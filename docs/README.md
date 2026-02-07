@@ -20,7 +20,7 @@ If your followed all the given instructions correctly, your repository will be a
 A HTML template integrated with the given GitHub repository templates, based on github.com/cepdnaclk/eYY-project-theme . If you like to remove this default theme and make your own web page, you can remove the file, docs/_config.yml and create the site using HTML. -->
 
 # Project Title
-
+Hotel Management System
 ---
 
 ## Team
