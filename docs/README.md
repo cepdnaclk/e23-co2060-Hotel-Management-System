@@ -3,8 +3,8 @@ layout: home
 permalink: index.html
 
 # Please update this with your repository name and project title
-repository-name: e23-co2060-project-template
-title: Project Template
+repository-name: e23-co2060-Hotel-Management-System
+title: Hotel Management System 
 ---
 
 [comment]: # "This is the standard layout for the project, but you can clean this and use your own template, and add more information required for your own project"
@@ -24,9 +24,9 @@ A HTML template integrated with the given GitHub repository templates, based on 
 ---
 
 ## Team
--  eNumber, Name, [email](mailto:name@email.com)
--  eNumber, Name, [email](mailto:name@email.com)
--  eNumber, Name, [email](mailto:name@email.com)
+-  E/23/016, W.L.K.Anushka, [e23016@eng.pdn.ac.lk](mailto:e23016@eng.pdn.ac.lk)
+-  E/23/015, K.A.A.I.Anusara, [e23015@eng.pdn.ac.lk](mailto:e23015@eng.pdn.ac.lk)
+-  E/23/196, R.M.K.S.Lakshani, [e23196@eng.pdn.ac.lk](mailto:e23196@eng.pdn.ac.lk)
 
 <!-- Image (photo/drawing of the final hardware) should be here -->
 
@@ -44,7 +44,7 @@ A HTML template integrated with the given GitHub repository templates, based on 
 
 ## Introduction
 
-Description of the real world problem and solution, impact
+The hospitality industry in Sri Lanka often struggles with fragmented booking systems and manual record-keeping, leading to inefficiencies and overbooking. Our Hotel Management System is a comprehensive MERN-stack web application designed to centralize operations. It features a real-time room booking engine, an administrative dashboard for staff to manage inventory, and secure user authentication. By automating these processes, the system enhances the guest experience and optimizes resource management for hotel owners, contributing to the digitalization of the local tourism sector
 
 
 ## Solution Architecture
