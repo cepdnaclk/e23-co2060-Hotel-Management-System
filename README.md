@@ -17,22 +17,22 @@ These projects will be automatically added into [https://projects.ce.pdn.ac.lk](
 
 ```
 {
-  "title": "This is the title of the project",
+  "title": "Hotel Management System",
   "team": [
     {
-      "name": "Team Member Name 1",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
+      "name": "W.L.K.Anushka",
+      "email": "e23016@eng.pdn.ac.lk",
+      "eNumber": "E/23/016"
     },
     {
-      "name": "Team Member Name 2",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
+      "name": "K.A.A.I Anusara",
+      "email": "e23015@eng.pdn.ac.lk",
+      "eNumber": "E/23/015"
     },
     {
-      "name": "Team Member Name 3",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
+      "name": "R.M.K.S. Lakshni",
+      "email": "e23196@eng.pdn.ac.lk",
+      "eNumber": "E/23/196"
     }
   ],
   "supervisors": [
