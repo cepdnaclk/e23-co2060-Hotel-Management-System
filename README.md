@@ -1,11 +1,10 @@
 ___
-# DELETE THIS INSTRUCTIONS AND ADD AN INTRODUCTION ABOUT YOUR PROJECT
+# Hotel Management System
 ___
 
-# eYY-co2060-project-template
+# e23-co2060-Hotel-Management-System
 
-This is a sample repository you can use for your Software Systems Design Project. Once you followed these instructions, remove the text and add a brief introduction to here.
-
+The Hotel Management System is a centralized web platform designed to optimize the travel experience for tourists in Sri Lanka. Tourists often face difficulties managing room bookings, meal plans, and transport within a limited timeframe. Our solution provides an integrated dashboard where users can seamlessly book hotel stays, discover cultural events, and arrange transport services, all in one place.
 ### Enable GitHub Pages
 
 You can put the things to be shown in GitHub pages into the _docs/_ folder. Both html and md file formats are supported. You need to go to settings and enable GitHub pages and select _main_ branch and _docs_ folder from the dropdowns, as shown in the below image.
