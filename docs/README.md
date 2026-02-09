@@ -49,7 +49,14 @@ The hospitality industry in Sri Lanka often struggles with fragmented booking sy
 
 ## Solution Architecture
 
-High level diagram + description
+The system follows a 3-tier Client-Server Architecture using the MERN Stack. This design ensures a clear separation of concerns, high scalability, and an efficient data flow between the user interface and the database.
+
+Architectural Layers
+Presentation Layer (Frontend): Built with React, this layer runs in the user's browser. It provides a responsive and dynamic interface for tourists to search for rooms, view events, and manage bookings.
+
+Business Logic Layer (Backend): Developed using Node.js and Express.js. This layer acts as the middle layer that handles client requests, processes business logic (like booking rules), and communicates with the database.
+
+Data Layer (Database): Utilizes MySQL to store structured data related to users, room inventory, transport providers, and booking records.
 
 ## Software Designs
 
