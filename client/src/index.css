@@ -4094,3 +4094,287 @@ a {
     font-size: 34px;
   }
 }
+/* ================================
+   Trip Planner Page
+   ================================ */
+
+.trip-planner-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-bottom: 50px;
+}
+
+.trip-planner-hero {
+  min-height: 380px;
+  border-radius: 0 0 30px 30px;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.8), rgba(15, 118, 110, 0.48)),
+    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80");
+  background-size: cover;
+  background-position: center;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 44px 28px;
+  margin-bottom: 34px;
+}
+
+.trip-planner-hero-content {
+  max-width: 760px;
+}
+
+.trip-eyebrow {
+  margin: 0 0 10px;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.trip-planner-hero h1 {
+  margin: 0;
+  font-size: 48px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.trip-planner-hero p {
+  margin: 18px 0 0;
+  color: #e2e8f0;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.planner-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.planner-control-card {
+  position: sticky;
+  top: 92px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.planner-control-card h2 {
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+
+.planner-control-card p {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.planner-control-card label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 15px;
+  color: #334155;
+  font-weight: 800;
+}
+
+.planner-control-card select {
+  min-height: 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 12px;
+  font-size: 15px;
+  outline: none;
+  background: white;
+}
+
+.planner-control-card select:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.planner-control-card button {
+  width: 100%;
+  border: none;
+  background: #0f766e;
+  color: white;
+  padding: 12px 15px;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.planner-result-area {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.planner-result-header {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.planner-result-header h2 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 30px;
+}
+
+.planner-result-header p {
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.planner-summary-box {
+  min-width: 150px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 6px;
+  color: #0f766e;
+}
+
+.planner-summary-box strong {
+  font-size: 22px;
+}
+
+.planner-summary-box span {
+  font-weight: 800;
+}
+
+.trip-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trip-day-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 18px;
+}
+
+.trip-day-number {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  background: #0f172a;
+  color: white;
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+
+.trip-day-number span {
+  font-size: 13px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.trip-day-number strong {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.trip-day-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.trip-day-title-row h3 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 24px;
+}
+
+.trip-day-title-row p {
+  margin: 0;
+  color: #64748b;
+}
+
+.trip-day-title-row button {
+  border: none;
+  background: #f59e0b;
+  color: white;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.trip-activity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.trip-activity-list span {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.trip-guide-note {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  color: #475569;
+  padding: 11px 13px;
+  border-radius: 12px;
+}
+
+@media (max-width: 1000px) {
+  .planner-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-control-card {
+    position: static;
+  }
+
+  .planner-result-header,
+  .trip-day-title-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .trip-planner-hero {
+    min-height: auto;
+    padding: 38px 20px;
+  }
+
+  .trip-planner-hero h1 {
+    font-size: 34px;
+  }
+
+  .trip-day-card {
+    grid-template-columns: 1fr;
+  }
+}

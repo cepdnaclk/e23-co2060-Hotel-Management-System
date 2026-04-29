@@ -28,6 +28,10 @@ function PublicLayout() {
             Explore
           </Link>
 
+          <Link to="/trip-planner" style={styles.link}>
+            Plan Trip
+          </Link>
+
           <Link to="/accommodation" style={styles.link}>
             Accommodation
           </Link>
@@ -85,8 +89,8 @@ function PublicLayout() {
 
 const styles = {
   header: {
-    height: "70px",
-    padding: "0 40px",
+    minHeight: "70px",
+    padding: "0 32px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -102,17 +106,21 @@ const styles = {
     color: "#0f766e",
     textDecoration: "none",
     whiteSpace: "nowrap",
+    marginRight: "24px",
   },
   nav: {
     display: "flex",
-    gap: "18px",
+    gap: "16px",
     alignItems: "center",
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
   },
   link: {
     textDecoration: "none",
     color: "#1f2937",
     fontWeight: "500",
     whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   button: {
     textDecoration: "none",
@@ -122,6 +130,7 @@ const styles = {
     borderRadius: "8px",
     fontWeight: "600",
     whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   logoutButton: {
     border: "none",
@@ -132,11 +141,13 @@ const styles = {
     fontWeight: "600",
     cursor: "pointer",
     whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   userText: {
     color: "#0f766e",
     fontWeight: "700",
     whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   main: {
     padding: "0 40px 40px",
