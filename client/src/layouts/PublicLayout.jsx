@@ -24,6 +24,10 @@ function PublicLayout() {
             Home
           </Link>
 
+          <Link to="/explore" style={styles.link}>
+            Explore
+          </Link>
+
           <Link to="/accommodation" style={styles.link}>
             Accommodation
           </Link>
@@ -101,7 +105,7 @@ const styles = {
   },
   nav: {
     display: "flex",
-    gap: "20px",
+    gap: "18px",
     alignItems: "center",
   },
   link: {

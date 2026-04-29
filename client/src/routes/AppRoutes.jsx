@@ -5,6 +5,7 @@ import PartnerLayout from "../layouts/PartnerLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import HomePage from "../pages/public/HomePage";
+import ExploreSriLankaPage from "../pages/public/ExploreSriLankaPage";
 import AccommodationPage from "../pages/public/AccommodationPage";
 import SearchResultsPage from "../pages/public/SearchResultsPage";
 import HotelDetailsPage from "../pages/public/HotelDetailsPage";
@@ -38,8 +39,9 @@ function AppRoutes() {
     <Routes>
       {/* Public tourist website */}
       <Route element={<PublicLayout />}>
-        {/* Main tourism portal home */}
+        {/* Main tourism portal */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/explore" element={<ExploreSriLankaPage />} />
 
         {/* Accommodation module */}
         <Route path="/accommodation" element={<AccommodationPage />} />
