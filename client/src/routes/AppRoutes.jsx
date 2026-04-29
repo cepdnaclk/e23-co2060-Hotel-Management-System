@@ -18,6 +18,7 @@ import MyBookingsPage from "../pages/public/MyBookingsPage";
 import LoginPage from "../pages/public/LoginPage";
 import RegisterPage from "../pages/public/RegisterPage";
 import EventsPage from "../pages/public/EventsPage";
+import GuidesPage from "../pages/public/GuidesPage";
 import TransportPage from "../pages/public/TransportPage";
 
 import PartnerLandingPage from "../pages/partner/PartnerLandingPage";
@@ -72,6 +73,7 @@ function AppRoutes() {
 
         {/* Tourism modules */}
         <Route path="/events" element={<EventsPage />} />
+        <Route path="/guides" element={<GuidesPage />} />
         <Route path="/transport" element={<TransportPage />} />
 
         {/* Partner public pages */}

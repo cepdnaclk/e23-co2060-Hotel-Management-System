@@ -40,6 +40,10 @@ function PublicLayout() {
             Events
           </Link>
 
+          <Link to="/guides" style={styles.link}>
+            Guides
+          </Link>
+
           <Link to="/transport" style={styles.link}>
             Transport
           </Link>
@@ -90,7 +94,7 @@ function PublicLayout() {
 const styles = {
   header: {
     minHeight: "70px",
-    padding: "0 32px",
+    padding: "0 28px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -106,11 +110,11 @@ const styles = {
     color: "#0f766e",
     textDecoration: "none",
     whiteSpace: "nowrap",
-    marginRight: "24px",
+    marginRight: "20px",
   },
   nav: {
     display: "flex",
-    gap: "16px",
+    gap: "14px",
     alignItems: "center",
     justifyContent: "flex-end",
     flexWrap: "wrap",
