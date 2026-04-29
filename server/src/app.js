@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
 const dbTestRoutes = require("./routes/dbTest.routes");
 const hotelRoutes = require("./routes/hotel.routes");
 const healthRoutes = require("./routes/health.routes");
@@ -12,7 +13,7 @@ const eventRoutes = require("./routes/event.routes");
 const diningRoutes = require("./routes/dining.routes");
 const complaintRoutes = require("./routes/complaint.routes");
 const adminRoutes = require("./routes/admin.routes");
-
+const tripsRoutes = require("./routes/trips.routes");
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ app.use("/api/partner/dining", diningRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/complaints", complaintRoutes);
 
+/* Saved trips API */
+app.use("/api/trips", tripsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
