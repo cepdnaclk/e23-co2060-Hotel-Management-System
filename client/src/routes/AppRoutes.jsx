@@ -20,6 +20,7 @@ import RegisterPage from "../pages/public/RegisterPage";
 import EventsPage from "../pages/public/EventsPage";
 import GuidesPage from "../pages/public/GuidesPage";
 import TransportPage from "../pages/public/TransportPage";
+import TravelEssentialsPage from "../pages/public/TravelEssentialsPage";
 
 import PartnerLandingPage from "../pages/partner/PartnerLandingPage";
 import PartnerRegisterPage from "../pages/partner/PartnerRegisterPage";
@@ -79,6 +80,7 @@ function AppRoutes() {
         {/* Partner public pages */}
         <Route path="/partner" element={<PartnerLandingPage />} />
         <Route path="/partner/register" element={<PartnerRegisterPage />} />
+        <Route path="/travel-essentials" element={<TravelEssentialsPage />} />
       </Route>
 
       {/* Partner dashboard */}

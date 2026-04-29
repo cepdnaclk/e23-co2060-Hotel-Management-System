@@ -4935,3 +4935,280 @@ a {
     align-items: flex-start;
   }
 }
+/* ================================
+   Travel Essentials Page
+   ================================ */
+
+.travel-essentials-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-bottom: 50px;
+}
+
+.travel-essentials-hero {
+  min-height: 390px;
+  border-radius: 0 0 30px 30px;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.82), rgba(15, 118, 110, 0.46)),
+    url("https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=1800&q=80");
+  background-size: cover;
+  background-position: center;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 46px 28px;
+  margin-bottom: 34px;
+}
+
+.travel-essentials-hero-content {
+  max-width: 760px;
+}
+
+.travel-eyebrow {
+  margin: 0 0 10px;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.travel-essentials-hero h1 {
+  margin: 0;
+  font-size: 48px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.travel-essentials-hero p {
+  margin: 18px 0 0;
+  color: #e2e8f0;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.travel-section {
+  margin-bottom: 42px;
+}
+
+.travel-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}
+
+.travel-section-header h2,
+.travel-tips-card h2,
+.season-card h2,
+.travel-note-banner h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+}
+
+.travel-section-header p {
+  max-width: 440px;
+  color: #64748b;
+  line-height: 1.65;
+}
+
+.emergency-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.emergency-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.emergency-card span {
+  display: inline-block;
+  background: #ecfdf5;
+  color: #0f766e;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.emergency-card h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+
+.emergency-card p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.emergency-card strong {
+  color: #dc2626;
+  font-size: 24px;
+  white-space: nowrap;
+}
+
+.essentials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.essential-info-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.essential-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #ecfeff;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  margin-bottom: 14px;
+}
+
+.essential-info-card h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+
+.essential-info-card p {
+  color: #64748b;
+  line-height: 1.65;
+}
+
+.essential-info-card span {
+  color: #0f766e;
+  font-weight: 900;
+}
+
+.travel-split-section {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 22px;
+  margin-bottom: 42px;
+}
+
+.travel-tips-card,
+.season-card,
+.travel-note-banner {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 26px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.travel-tips-card ul {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.travel-tips-card li {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 13px;
+  padding: 12px 14px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.season-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.season-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.season-row h3 {
+  margin: 0 0 5px;
+  color: #0f172a;
+}
+
+.season-row p {
+  margin: 0;
+  color: #64748b;
+}
+
+.season-row span {
+  color: #0f766e;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.travel-note-banner {
+  background: #0f172a;
+  color: white;
+}
+
+.travel-note-banner h2 {
+  color: white;
+}
+
+.travel-note-banner p {
+  max-width: 850px;
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+@media (max-width: 1000px) {
+  .emergency-grid,
+  .essentials-grid,
+  .travel-split-section {
+    grid-template-columns: 1fr;
+  }
+
+  .travel-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .travel-essentials-hero {
+    min-height: auto;
+    padding: 38px 20px;
+  }
+
+  .travel-essentials-hero h1 {
+    font-size: 34px;
+  }
+
+  .emergency-card,
+  .season-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

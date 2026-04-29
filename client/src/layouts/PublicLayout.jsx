@@ -47,6 +47,10 @@ function PublicLayout() {
           <Link to="/transport" style={styles.link}>
             Transport
           </Link>
+          
+          <Link to="/travel-essentials" style={styles.link}>
+            Essentials
+          </Link>
 
           <Link to="/partner" style={styles.link}>
             List your property
