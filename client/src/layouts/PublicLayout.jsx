@@ -61,6 +61,10 @@ function PublicLayout() {
               <Link to="/account/bookings" style={styles.link}>
                 My Bookings
               </Link>
+              
+              <Link to="/my-trips" style={styles.link}>
+                My Trips
+              </Link>
 
               <span style={styles.userText}>
                 Hi, {user?.full_name?.split(" ")[0] || "User"}

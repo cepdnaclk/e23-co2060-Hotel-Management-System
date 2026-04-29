@@ -21,6 +21,7 @@ import EventsPage from "../pages/public/EventsPage";
 import GuidesPage from "../pages/public/GuidesPage";
 import TransportPage from "../pages/public/TransportPage";
 import TravelEssentialsPage from "../pages/public/TravelEssentialsPage";
+import MyTripsPage from "../pages/public/MyTripsPage";
 
 import PartnerLandingPage from "../pages/partner/PartnerLandingPage";
 import PartnerRegisterPage from "../pages/partner/PartnerRegisterPage";
@@ -69,6 +70,7 @@ function AppRoutes() {
         />
 
         {/* Tourist account */}
+        <Route path="/my-trips" element={<MyTripsPage />} />
         <Route path="/account/bookings" element={<MyBookingsPage />} />
         <Route path="/my-bookings" element={<MyBookingsPage />} />
 
