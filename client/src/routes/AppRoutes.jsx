@@ -5,6 +5,9 @@ import PartnerLayout from "../layouts/PartnerLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import HomePage from "../pages/public/HomePage";
+import ExploreSriLankaPage from "../pages/public/ExploreSriLankaPage";
+import TripPlannerPage from "../pages/public/TripPlannerPage";
+import AccommodationPage from "../pages/public/AccommodationPage";
 import SearchResultsPage from "../pages/public/SearchResultsPage";
 import HotelDetailsPage from "../pages/public/HotelDetailsPage";
 import RoomsAvailabilityPage from "../pages/public/RoomsAvailabilityPage";
@@ -15,7 +18,9 @@ import MyBookingsPage from "../pages/public/MyBookingsPage";
 import LoginPage from "../pages/public/LoginPage";
 import RegisterPage from "../pages/public/RegisterPage";
 import EventsPage from "../pages/public/EventsPage";
+import GuidesPage from "../pages/public/GuidesPage";
 import TransportPage from "../pages/public/TransportPage";
+import TravelEssentialsPage from "../pages/public/TravelEssentialsPage";
 
 import PartnerLandingPage from "../pages/partner/PartnerLandingPage";
 import PartnerRegisterPage from "../pages/partner/PartnerRegisterPage";
@@ -37,10 +42,19 @@ function AppRoutes() {
     <Routes>
       {/* Public tourist website */}
       <Route element={<PublicLayout />}>
+        {/* Main tourism platform pages */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/explore" element={<ExploreSriLankaPage />} />
+        <Route path="/trip-planner" element={<TripPlannerPage />} />
+
+        {/* Accommodation / hotel booking module */}
+        <Route path="/accommodation" element={<AccommodationPage />} />
         <Route path="/hotels" element={<SearchResultsPage />} />
         <Route path="/hotels/:hotelId" element={<HotelDetailsPage />} />
-        <Route path="/hotels/:hotelId/rooms" element={<RoomsAvailabilityPage />} />
+        <Route
+          path="/hotels/:hotelId/rooms"
+          element={<RoomsAvailabilityPage />}
+        />
 
         {/* Tourist auth */}
         <Route path="/login" element={<LoginPage />} />
@@ -54,14 +68,19 @@ function AppRoutes() {
           element={<BookingConfirmationPage />}
         />
 
-        {/* My bookings */}
+        {/* Tourist account */}
         <Route path="/account/bookings" element={<MyBookingsPage />} />
         <Route path="/my-bookings" element={<MyBookingsPage />} />
 
+        {/* Tourism modules */}
         <Route path="/events" element={<EventsPage />} />
+        <Route path="/guides" element={<GuidesPage />} />
         <Route path="/transport" element={<TransportPage />} />
+
+        {/* Partner public pages */}
         <Route path="/partner" element={<PartnerLandingPage />} />
         <Route path="/partner/register" element={<PartnerRegisterPage />} />
+        <Route path="/travel-essentials" element={<TravelEssentialsPage />} />
       </Route>
 
       {/* Partner dashboard */}

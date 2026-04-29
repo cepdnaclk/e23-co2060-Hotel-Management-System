@@ -24,16 +24,32 @@ function PublicLayout() {
             Home
           </Link>
 
-          <Link to="/hotels" style={styles.link}>
-            Hotels
+          <Link to="/explore" style={styles.link}>
+            Explore
+          </Link>
+
+          <Link to="/trip-planner" style={styles.link}>
+            Plan Trip
+          </Link>
+
+          <Link to="/accommodation" style={styles.link}>
+            Accommodation
           </Link>
 
           <Link to="/events" style={styles.link}>
             Events
           </Link>
 
+          <Link to="/guides" style={styles.link}>
+            Guides
+          </Link>
+
           <Link to="/transport" style={styles.link}>
             Transport
+          </Link>
+          
+          <Link to="/travel-essentials" style={styles.link}>
+            Essentials
           </Link>
 
           <Link to="/partner" style={styles.link}>
@@ -81,29 +97,38 @@ function PublicLayout() {
 
 const styles = {
   header: {
-    height: "70px",
-    padding: "0 40px",
+    minHeight: "70px",
+    padding: "0 28px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottom: "1px solid #e5e7eb",
     background: "#ffffff",
+    position: "sticky",
+    top: 0,
+    zIndex: 1000,
   },
   logo: {
     fontSize: "22px",
     fontWeight: "700",
     color: "#0f766e",
     textDecoration: "none",
+    whiteSpace: "nowrap",
+    marginRight: "20px",
   },
   nav: {
     display: "flex",
-    gap: "20px",
+    gap: "14px",
     alignItems: "center",
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
   },
   link: {
     textDecoration: "none",
     color: "#1f2937",
     fontWeight: "500",
+    whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   button: {
     textDecoration: "none",
@@ -112,6 +137,8 @@ const styles = {
     padding: "8px 14px",
     borderRadius: "8px",
     fontWeight: "600",
+    whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   logoutButton: {
     border: "none",
@@ -121,10 +148,14 @@ const styles = {
     borderRadius: "8px",
     fontWeight: "600",
     cursor: "pointer",
+    whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   userText: {
     color: "#0f766e",
     fontWeight: "700",
+    whiteSpace: "nowrap",
+    fontSize: "15px",
   },
   main: {
     padding: "0 40px 40px",

@@ -1,219 +1,179 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function HomePage() {
-  const navigate = useNavigate();
-
-  const [searchData, setSearchData] = useState({
-    destination: "",
-    checkIn: "2026-05-18",
-    checkOut: "2026-05-19",
-    guests: "2",
-    guestText: "2 adults · 1 room",
-  });
-
-  const categories = [
-    "Popular",
-    "Beach",
-    "Cultural",
-    "Nature",
-    "Luxury",
-    "Budget",
-    "Festivals",
+  const services = [
+    {
+      title: "Explore Sri Lanka",
+      icon: "🧭",
+      text: "Discover destinations, attractions, culture, beaches, wildlife, and travel ideas.",
+      link: "/explore",
+      button: "Explore Places",
+    },
+    {
+      title: "Accommodation",
+      icon: "🏨",
+      text: "Find verified hotels, check rooms, compare stays, and complete your booking.",
+      link: "/accommodation",
+      button: "Find Hotels",
+    },
+    {
+      title: "Events & Experiences",
+      icon: "🎉",
+      text: "Browse festivals, cultural shows, food experiences, and activities near destinations.",
+      link: "/events",
+      button: "View Events",
+    },
+    {
+      title: "Tour Guides",
+      icon: "🧑‍🏫",
+      text: "Select guides by city, language, rating, and travel specialization.",
+      link: "/guides",
+      button: "Find Guides",
+    },
+    {
+      title: "Trip Planner",
+      icon: "🗺️",
+      text: "Create a day-by-day Sri Lanka travel plan based on your days, budget, and interests.",
+      link: "/trip-planner",
+      button: "Plan My Trip",
+    },
+    {
+      title: "Travel Essentials",
+      icon: "🛟",
+      text: "Get safety contacts, transport tips, weather guidance, budget help, and travel information.",
+      link: "/travel-essentials",
+      button: "Get Info",
+    },
   ];
 
   const destinations = [
     {
-      name: "Colombo",
-      description: "City hotels, shopping, and nightlife",
-      image:
-        "https://images.unsplash.com/photo-1575994532957-773da2f935fb?auto=format&fit=crop&w=900&q=80",
-    },
-    {
       name: "Kandy",
-      description: "Culture, lake views, and hill country",
+      text: "Culture, lake views, and hill country",
       image:
         "https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=900&q=80",
     },
     {
       name: "Ella",
-      description: "Mountains, waterfalls, and nature",
+      text: "Mountains, waterfalls, and scenic train journeys",
       image:
-        "https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1586611292717-f828b167408c?auto=format&fit=crop&w=900&q=80",
     },
     {
       name: "Galle",
-      description: "Fort, beaches, and colonial history",
+      text: "Fort, beaches, and colonial history",
       image:
         "https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=900&q=80",
     },
-  ];
-
-  const offers = [
     {
-      title: "Save up to 20% on early bookings",
-      text: "Book your Sri Lanka stay early and save more.",
-    },
-    {
-      title: "Weekend stay offers",
-      text: "Find special deals for short trips and holidays.",
+      name: "Sigiriya",
+      text: "Heritage, ancient kingdom, and nature",
+      image:
+        "https://images.unsplash.com/photo-1588598198321-9735fd52455b?auto=format&fit=crop&w=900&q=80",
     },
   ];
-
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    if (name === "guests") {
-      setSearchData((currentData) => ({
-        ...currentData,
-        guests: value,
-        guestText: `${value} adult${Number(value) > 1 ? "s" : ""} · 1 room`,
-      }));
-      return;
-    }
-
-    setSearchData((currentData) => ({
-      ...currentData,
-      [name]: value,
-    }));
-  }
-
-  function saveSearchAndNavigate(finalSearchData) {
-    localStorage.setItem(
-      "tourismhub_search_data",
-      JSON.stringify(finalSearchData)
-    );
-
-    localStorage.setItem("tourismhub_check_in", finalSearchData.checkIn);
-    localStorage.setItem("tourismhub_check_out", finalSearchData.checkOut);
-    localStorage.setItem("tourismhub_guests", finalSearchData.guests);
-    localStorage.setItem("tourismhub_guest_text", finalSearchData.guestText);
-
-    navigate("/hotels");
-  }
-
-  function handleSearch() {
-    const destination = searchData.destination.trim() || "Sri Lanka";
-
-    const finalSearchData = {
-      ...searchData,
-      destination,
-    };
-
-    saveSearchAndNavigate(finalSearchData);
-  }
-
-  function handleDestinationClick(destinationName) {
-    const finalSearchData = {
-      ...searchData,
-      destination: destinationName,
-    };
-
-    saveSearchAndNavigate(finalSearchData);
-  }
 
   return (
-    <div className="home-page">
-      <section className="hero-section">
-        <div className="hero-overlay">
-          <h1>Find hotels and plan your Sri Lanka trip in one place</h1>
-          <p>Search by destination or hotel name. Book faster. Save time.</p>
+    <div className="portal-home-page">
+      <section className="portal-hero">
+        <div className="portal-hero-content">
+          <p className="portal-eyebrow">TourismHub LK</p>
+          <h1>Plan your perfect Sri Lanka journey in one place</h1>
+          <p>
+            Explore destinations, plan your trip, book accommodation, discover
+            events, select guides, and travel with confidence.
+          </p>
 
-          <div className="search-box home-search-box">
-            <input
-              type="text"
-              name="destination"
-              placeholder="Where are you going? Colombo, Kandy, Ella..."
-              value={searchData.destination}
-              onChange={handleChange}
-            />
-
-            <input
-              type="date"
-              name="checkIn"
-              value={searchData.checkIn}
-              onChange={handleChange}
-            />
-
-            <input
-              type="date"
-              name="checkOut"
-              value={searchData.checkOut}
-              onChange={handleChange}
-            />
-
-            <select
-              name="guests"
-              value={searchData.guests}
-              onChange={handleChange}
-            >
-              <option value="1">1 adult · 1 room</option>
-              <option value="2">2 adults · 1 room</option>
-              <option value="3">3 adults · 1 room</option>
-              <option value="4">4 adults · 1 room</option>
-            </select>
-
-            <button
-              type="button"
-              className="search-button"
-              onClick={handleSearch}
-            >
-              Search
-            </button>
+          <div className="portal-hero-actions">
+            <Link to="/explore" className="portal-primary-button">
+              Explore Sri Lanka
+            </Link>
+            <Link to="/accommodation" className="portal-secondary-button">
+              Find Accommodation
+            </Link>
+            <Link to="/trip-planner" className="portal-light-button">
+              Plan My Trip
+            </Link>
           </div>
         </div>
       </section>
 
-      <section className="category-section">
-        {categories.map((category) => (
-          <button key={category} className="category-chip">
-            {category}
-          </button>
-        ))}
-      </section>
-
-      <section className="section-block">
-        <div className="section-title-row">
-          <h2>Popular Destinations in Sri Lanka</h2>
-          <Link to="/hotels">View all</Link>
+      <section className="portal-section">
+        <div className="portal-section-header">
+          <p className="portal-eyebrow">Main services</p>
+          <h2>Everything tourists need for a better travel plan</h2>
         </div>
 
-        <div className="destination-grid">
+        <div className="portal-service-grid">
+          {services.map((service) => (
+            <article className="portal-service-card" key={service.title}>
+              <div className="portal-service-icon">{service.icon}</div>
+              <h3>{service.title}</h3>
+              <p>{service.text}</p>
+              <Link to={service.link}>{service.button}</Link>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="portal-section">
+        <div className="portal-section-header">
+          <p className="portal-eyebrow">Popular destinations</p>
+          <h2>Start with Sri Lanka’s most loved places</h2>
+        </div>
+
+        <div className="portal-destination-grid">
           {destinations.map((destination) => (
-            <div
-              className="destination-card"
-              key={destination.name}
-              style={{ backgroundImage: `url(${destination.image})` }}
-            >
-              <div className="destination-content">
+            <article className="portal-destination-card" key={destination.name}>
+              <img src={destination.image} alt={destination.name} />
+              <div>
                 <h3>{destination.name}</h3>
-                <p>{destination.description}</p>
-
-                <button
-                  type="button"
-                  className="destination-explore-button"
-                  onClick={() => handleDestinationClick(destination.name)}
-                >
-                  Explore hotels
-                </button>
+                <p>{destination.text}</p>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="section-block">
-        <h2>Exciting offers</h2>
-
-        <div className="offer-grid">
-          {offers.map((offer) => (
-            <div className="offer-card" key={offer.title}>
-              <h3>{offer.title}</h3>
-              <p>{offer.text}</p>
-              <Link to="/hotels">View deals</Link>
-            </div>
-          ))}
+      <section className="portal-why-section">
+        <div>
+          <p className="portal-eyebrow">Why TourismHub LK?</p>
+          <h2>A complete travel companion for Sri Lanka</h2>
+          <p>
+            TourismHub LK connects exploration, planning, accommodation, events,
+            guides, and travel support in one platform. Your existing hotel
+            booking system becomes the accommodation module of this larger smart
+            tourism platform.
+          </p>
         </div>
+
+        <div className="portal-why-list">
+          <div>
+            <strong>01</strong>
+            <span>Explore before booking</span>
+          </div>
+          <div>
+            <strong>02</strong>
+            <span>Plan trips by interest and budget</span>
+          </div>
+          <div>
+            <strong>03</strong>
+            <span>Book verified accommodation</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="portal-partner-banner">
+        <div>
+          <p className="portal-eyebrow">For partners</p>
+          <h2>List your property and manage bookings</h2>
+          <p>
+            Hotels can register properties, manage rooms, update content, handle
+            bookings, and publish hotel events.
+          </p>
+        </div>
+
+        <Link to="/partner">List your property</Link>
       </section>
     </div>
   );
