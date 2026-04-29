@@ -1,85 +1,38 @@
-/* GLOBAL RESET */
-* { margin: 0; padding: 0; box-sizing: border-box; }
+.App {
+  text-align: center;
+}
 
-.landing-page {
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
   min-height: 100vh;
-  /* VIBRANT BLUE GRADIENT OVER PHOTO */
-  background: linear-gradient(rgba(0, 53, 128, 0.6), rgba(0, 0, 0, 0.7)), 
-              url('https://images.unsplash.com/photo-1546708973-b339540b5162?q=80&w=2000');
-  background-size: cover;
-  background-position: center;
-  font-family: 'Poppins', sans-serif;
   display: flex;
   flex-direction: column;
-}
-
-/* NAVBAR ALIGNMENT */
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  padding: 25px 80px;
-  color: white;
   align-items: center;
-}
-.nav-menu span { margin-left: 25px; cursor: pointer; font-weight: 500; }
-
-/* PERFECT VERTICAL & HORIZONTAL CENTERING */
-.hero-content {
-  flex: 1;
-  display: flex;
   justify-content: center;
-  align-items: center;
-}
-
-/* ATTRACTIVE GLASS CARD */
-.glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 30px;
-  padding: 60px 40px;
-  width: 480px;
-  text-align: center;
-  color: white;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-}
-
-/* BUTTONS UPGRADE */
-.button-group { display: flex; flex-direction: column; gap: 15px; margin: 30px 0; }
-.btn-login {
-  background: #003580; /* Corporate Blue */
-  color: white;
-  border: none;
-  height: 55px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: 0.3s;
-}
-.btn-login:hover { background: #0056b3; transform: scale(1.02); }
-
-.btn-register {
-  background: transparent;
-  color: white;
-  border: 2px solid white;
-  height: 55px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* FEATURE ROW ALIGNMENT */
-.features-row {
-  display: flex;
-  justify-content: center;
-  gap: 100px;
-  padding: 50px;
-  background: rgba(0,0,0,0.4);
+  font-size: calc(10px + 2vmin);
   color: white;
 }
-.feature-item { text-align: center; max-width: 250px; }
-.emoji { font-size: 2.5rem; display: block; margin-bottom: 10px; }
 
-/* FOOTER */
-.footer { padding: 30px; text-align: center; color: #ccc; font-size: 0.9rem; }
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
