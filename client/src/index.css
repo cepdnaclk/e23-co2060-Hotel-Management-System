@@ -4378,3 +4378,259 @@ a {
     grid-template-columns: 1fr;
   }
 }
+/* ================================
+   Trip Planner Customization Additions
+   ================================ */
+
+.custom-planner-layout {
+  grid-template-columns: 340px 1fr;
+}
+
+.planner-interest-box {
+  margin: 18px 0;
+}
+
+.planner-interest-box strong {
+  display: block;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.planner-interest-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.planner-checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  padding: 9px 10px;
+  border-radius: 10px;
+  margin-bottom: 0 !important;
+  font-size: 14px;
+}
+
+.planner-checkbox-label input {
+  width: 15px;
+  height: 15px;
+  accent-color: #0f766e;
+}
+
+.planner-save-outline {
+  margin-top: 10px;
+  background: white !important;
+  color: #0f766e !important;
+  border: 1px solid #99f6e4 !important;
+}
+
+.empty-trip-plan-card {
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 22px;
+  padding: 34px;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-trip-plan-card h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 26px;
+}
+
+.empty-trip-plan-card p {
+  max-width: 620px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.trip-custom-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trip-custom-actions button {
+  border: none;
+  background: #0f766e;
+  color: white;
+  padding: 11px 15px;
+  border-radius: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.trip-city-select {
+  border: none;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 900;
+  border-radius: 12px;
+  padding: 8px 10px;
+  outline: none;
+  margin-bottom: 6px;
+}
+
+.trip-city-select:focus {
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.trip-day-button-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.trip-remove-button {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.trip-activity-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.trip-activity-list span button {
+  border: none;
+  background: transparent;
+  color: #1d4ed8;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0;
+}
+
+.add-activity-button {
+  border: none;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.trip-notes-box {
+  width: 100%;
+  min-height: 76px;
+  margin-top: 14px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.trip-notes-box:focus {
+  outline: none;
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+@media (max-width: 1000px) {
+  .custom-planner-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-day-button-group {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .planner-interest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-city-select {
+    width: 100%;
+    font-size: 20px;
+  }
+}
+/* ================================
+   Trip Planner Custom Day + Stay Style Fix
+   ================================ */
+
+.planner-control-card input[type="number"] {
+  min-height: 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 12px;
+  font-size: 15px;
+  outline: none;
+  background: white;
+}
+
+.planner-control-card input[type="number"]:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.trip-stay-note {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #0f766e;
+  padding: 11px 13px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+/* ================================
+   Grouped Trip Planner Cards
+   ================================ */
+
+.grouped-trip-card {
+  align-items: flex-start;
+}
+
+.grouped-day-range {
+  color: #0f766e !important;
+  font-weight: 800;
+  margin-top: 4px !important;
+}
+
+.grouped-day-detail {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 16px;
+}
+
+.grouped-day-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.grouped-day-detail-header h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.grouped-day-detail-header button {
+  border: none;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.grouped-day-detail p {
+  color: #64748b;
+  margin: 8px 0 12px;
+}
