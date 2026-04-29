@@ -36,6 +36,8 @@ function MyTripsPage() {
     return groups;
   }, [savedTrip]);
 
+  const savedEvents = savedTrip?.events || [];
+
   function formatDayRange(group) {
     if (group.startDay === group.endDay) {
       return `Day ${group.startDay}`;
@@ -62,6 +64,24 @@ function MyTripsPage() {
     localStorage.setItem("tourismhub_guest_text", searchData.guestText);
 
     navigate("/hotels");
+  }
+
+  function removeEvent(eventId) {
+    const confirmRemove = window.confirm(
+      "Are you sure you want to remove this event from your trip?"
+    );
+
+    if (!confirmRemove) {
+      return;
+    }
+
+    const updatedTrip = {
+      ...savedTrip,
+      events: savedEvents.filter((event) => event.id !== eventId),
+    };
+
+    localStorage.setItem("tourismhub_saved_trip_plan", JSON.stringify(updatedTrip));
+    setSavedTrip(updatedTrip);
   }
 
   function deleteSavedTrip() {
@@ -109,12 +129,15 @@ function MyTripsPage() {
           <p className="my-trips-eyebrow">My Trips</p>
           <h1>{summary.title || "Saved Sri Lanka Trip"}</h1>
           <p>
-            View your saved route, check grouped stays, find accommodation for
-            each destination, and continue planning your Sri Lanka journey.
+            View your saved route, check grouped stays, find accommodation,
+            review added events, and continue planning your Sri Lanka journey.
           </p>
 
           <div className="my-trips-hero-actions">
             <Link to="/trip-planner">Edit in Trip Planner</Link>
+            <Link to="/events" className="my-trips-secondary-action">
+              Add Events
+            </Link>
             <button type="button" onClick={deleteSavedTrip}>
               Delete Trip
             </button>
@@ -149,8 +172,8 @@ function MyTripsPage() {
         </article>
 
         <article>
-          <span>Saved</span>
-          <strong>{savedDate}</strong>
+          <span>Saved Events</span>
+          <strong>{savedEvents.length}</strong>
         </article>
       </section>
 
@@ -220,6 +243,67 @@ function MyTripsPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="my-trip-events-section">
+        <div className="my-trips-section-header">
+          <div>
+            <p className="my-trips-eyebrow">Added events</p>
+            <h2>Events and experiences in your trip</h2>
+          </div>
+
+          <p>
+            Events added from the Events page appear here. You can remove events
+            or find accommodation near the event city.
+          </p>
+        </div>
+
+        {savedEvents.length === 0 ? (
+          <div className="my-trip-empty-events">
+            <h3>No events added yet</h3>
+            <p>
+              Explore events and add cultural shows, heritage walks, wildlife
+              safaris, food experiences, and activities to your trip.
+            </p>
+            <Link to="/events">Explore Events</Link>
+          </div>
+        ) : (
+          <div className="my-trip-events-grid">
+            {savedEvents.map((event) => (
+              <article className="my-trip-event-card" key={event.id}>
+                <div className="my-trip-event-top">
+                  <span>{event.category}</span>
+                  <strong>LKR {Number(event.price || 0).toLocaleString()}</strong>
+                </div>
+
+                <h3>{event.title}</h3>
+
+                <div className="my-trip-event-meta">
+                  <span>{event.city}</span>
+                  <span>{event.date}</span>
+                  <span>{event.time}</span>
+                </div>
+
+                <div className="my-trip-event-actions">
+                  <button
+                    type="button"
+                    onClick={() => findAccommodation(event.city)}
+                  >
+                    Hotels nearby
+                  </button>
+
+                  <button
+                    type="button"
+                    className="remove-trip-event-button"
+                    onClick={() => removeEvent(event.id)}
+                  >
+                    Remove event
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

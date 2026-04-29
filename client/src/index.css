@@ -5841,3 +5841,136 @@ a {
     height: 210px;
   }
 }
+/* ================================
+   My Trips - Added Events Section
+   ================================ */
+
+.my-trips-secondary-action {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.my-trip-events-section {
+  margin-bottom: 54px;
+}
+
+.my-trip-empty-events {
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 22px;
+  padding: 32px;
+  text-align: center;
+  color: #64748b;
+}
+
+.my-trip-empty-events h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 26px;
+}
+
+.my-trip-empty-events p {
+  max-width: 620px;
+  margin: 0 auto 18px;
+  line-height: 1.7;
+}
+
+.my-trip-empty-events a {
+  display: inline-block;
+  text-decoration: none;
+  background: #f59e0b;
+  color: white;
+  padding: 11px 15px;
+  border-radius: 11px;
+  font-weight: 900;
+}
+
+.my-trip-events-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.my-trip-event-card {
+  background: white;
+  border: 1px solid #ead7ad;
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 12px 32px rgba(93, 64, 22, 0.08);
+}
+
+.my-trip-event-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.my-trip-event-top span {
+  background: #fff7ed;
+  color: #92400e;
+  border: 1px solid #fed7aa;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.my-trip-event-top strong {
+  color: #0f172a;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.my-trip-event-card h3 {
+  margin: 0 0 14px;
+  color: #0f172a;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.my-trip-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.my-trip-event-meta span {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 7px 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.my-trip-event-actions {
+  border-top: 1px solid #f0dfb9;
+  padding-top: 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.my-trip-event-actions button {
+  border: none;
+  background: #f59e0b;
+  color: white;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.my-trip-event-actions .remove-trip-event-button {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+@media (max-width: 900px) {
+  .my-trip-events-grid {
+    grid-template-columns: 1fr;
+  }
+}
