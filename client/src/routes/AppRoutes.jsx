@@ -5,6 +5,7 @@ import PartnerLayout from "../layouts/PartnerLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import HomePage from "../pages/public/HomePage";
+import AccommodationPage from "../pages/public/AccommodationPage";
 import SearchResultsPage from "../pages/public/SearchResultsPage";
 import HotelDetailsPage from "../pages/public/HotelDetailsPage";
 import RoomsAvailabilityPage from "../pages/public/RoomsAvailabilityPage";
@@ -37,10 +38,17 @@ function AppRoutes() {
     <Routes>
       {/* Public tourist website */}
       <Route element={<PublicLayout />}>
+        {/* Main tourism portal home */}
         <Route path="/" element={<HomePage />} />
+
+        {/* Accommodation module */}
+        <Route path="/accommodation" element={<AccommodationPage />} />
         <Route path="/hotels" element={<SearchResultsPage />} />
         <Route path="/hotels/:hotelId" element={<HotelDetailsPage />} />
-        <Route path="/hotels/:hotelId/rooms" element={<RoomsAvailabilityPage />} />
+        <Route
+          path="/hotels/:hotelId/rooms"
+          element={<RoomsAvailabilityPage />}
+        />
 
         {/* Tourist auth */}
         <Route path="/login" element={<LoginPage />} />
@@ -54,12 +62,15 @@ function AppRoutes() {
           element={<BookingConfirmationPage />}
         />
 
-        {/* My bookings */}
+        {/* Tourist account */}
         <Route path="/account/bookings" element={<MyBookingsPage />} />
         <Route path="/my-bookings" element={<MyBookingsPage />} />
 
+        {/* Tourism modules */}
         <Route path="/events" element={<EventsPage />} />
         <Route path="/transport" element={<TransportPage />} />
+
+        {/* Partner public pages */}
         <Route path="/partner" element={<PartnerLandingPage />} />
         <Route path="/partner/register" element={<PartnerRegisterPage />} />
       </Route>

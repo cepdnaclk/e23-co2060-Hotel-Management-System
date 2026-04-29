@@ -24,8 +24,8 @@ function PublicLayout() {
             Home
           </Link>
 
-          <Link to="/hotels" style={styles.link}>
-            Hotels
+          <Link to="/accommodation" style={styles.link}>
+            Accommodation
           </Link>
 
           <Link to="/events" style={styles.link}>
@@ -88,12 +88,16 @@ const styles = {
     alignItems: "center",
     borderBottom: "1px solid #e5e7eb",
     background: "#ffffff",
+    position: "sticky",
+    top: 0,
+    zIndex: 1000,
   },
   logo: {
     fontSize: "22px",
     fontWeight: "700",
     color: "#0f766e",
     textDecoration: "none",
+    whiteSpace: "nowrap",
   },
   nav: {
     display: "flex",
@@ -104,6 +108,7 @@ const styles = {
     textDecoration: "none",
     color: "#1f2937",
     fontWeight: "500",
+    whiteSpace: "nowrap",
   },
   button: {
     textDecoration: "none",
@@ -112,6 +117,7 @@ const styles = {
     padding: "8px 14px",
     borderRadius: "8px",
     fontWeight: "600",
+    whiteSpace: "nowrap",
   },
   logoutButton: {
     border: "none",
@@ -121,10 +127,12 @@ const styles = {
     borderRadius: "8px",
     fontWeight: "600",
     cursor: "pointer",
+    whiteSpace: "nowrap",
   },
   userText: {
     color: "#0f766e",
     fontWeight: "700",
+    whiteSpace: "nowrap",
   },
   main: {
     padding: "0 40px 40px",
