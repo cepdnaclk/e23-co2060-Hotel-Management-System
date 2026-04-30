@@ -68,7 +68,6 @@
 .home-nav a,
 .language-btn {
   border: none;
-  background: transparent;
   color: #4b5563;
   font-size: 14px;
   font-weight: 700;
@@ -84,12 +83,24 @@
   background: #ffffff;
 }
 
-.primary-btn {
-  padding: 10px 20px;
-  border-radius: 12px;
+.home-nav a.primary-btn {
+  padding: 11px 22px;
+  border-radius: 14px;
   color: #ffffff !important;
-  background: linear-gradient(135deg, #1f6feb, #1c8fdb);
-  box-shadow: 0 10px 20px rgba(31, 111, 235, 0.25);
+  background: linear-gradient(135deg, #1f6feb, #0ea5e9) !important;
+  box-shadow: 0 12px 24px rgba(31, 111, 235, 0.25);
+  font-weight: 900;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  transition: 0.25s ease;
+}
+
+.home-nav a.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(31, 111, 235, 0.35);
 }
 
 /* Hero Section */

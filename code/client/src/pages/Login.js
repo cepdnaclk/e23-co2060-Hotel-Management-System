@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
+import LanguageCurrencySelector from "../components/LanguageCurrencySelector";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { t } = useAppSettings();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -30,7 +33,7 @@ function Login() {
     if (!formData.email.trim() || !formData.password.trim()) {
       setMessage({
         type: "error",
-        text: "Please enter your email and password.",
+        text: t("enterEmailPassword") || "Please enter your email and password.",
       });
       return;
     }
@@ -54,7 +57,7 @@ function Login() {
       if (!response.ok) {
         setMessage({
           type: "error",
-          text: data.error || "Invalid email or password.",
+          text: data.error || t("invalidLogin") || "Invalid email or password.",
         });
         return;
       }
@@ -71,7 +74,7 @@ function Login() {
 
       setMessage({
         type: "success",
-        text: "Login successful. Redirecting...",
+        text: t("loginSuccess") || "Login successful. Redirecting...",
       });
 
       setTimeout(() => {
@@ -86,7 +89,9 @@ function Login() {
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Cannot connect to server. Please check if backend is running.",
+        text:
+          t("serverConnectionFailed") ||
+          "Cannot connect to server. Please check if backend is running.",
       });
     } finally {
       setLoading(false);
@@ -105,10 +110,11 @@ function Login() {
         </Link>
 
         <nav className="login-nav">
-          <Link to="/">Home</Link>
-          <Link to="/partner">List your property</Link>
+          <LanguageCurrencySelector />
+          <Link to="/">{t("home")}</Link>
+          <Link to="/partner">{t("listProperty")}</Link>
           <Link to="/register" className="login-outline-btn">
-            Register
+            {t("register")}
           </Link>
         </nav>
       </header>
@@ -116,37 +122,51 @@ function Login() {
       <main className="login-main">
         <section className="login-left">
           <div className="login-left-content">
-            <span className="login-badge">Welcome Back</span>
+            <span className="login-badge">
+              {t("welcomeBack") || "Welcome Back"}
+            </span>
 
-            <h1>Sign in and continue your Sri Lanka journey</h1>
+            <h1>
+              {t("loginHeroTitle") ||
+                "Sign in and continue your Sri Lanka journey"}
+            </h1>
 
             <p>
-              Access your bookings, saved hotels, partner dashboard, and admin
-              tools using one secure TourismHub LK account.
+              {t("loginHeroSubtitle") ||
+                "Access your bookings, saved hotels, partner dashboard, and admin tools using one secure TourismHub LK account."}
             </p>
 
             <div className="login-benefits">
               <div className="login-benefit-card">
                 <span>🏨</span>
                 <div>
-                  <h3>Book Hotels Faster</h3>
-                  <p>Continue your searches and manage reservations easily.</p>
+                  <h3>{t("bookHotelsFaster") || "Book Hotels Faster"}</h3>
+                  <p>
+                    {t("loginBenefitBooking") ||
+                      "Continue your searches and manage reservations easily."}
+                  </p>
                 </div>
               </div>
 
               <div className="login-benefit-card">
                 <span>🔐</span>
                 <div>
-                  <h3>Secure Login</h3>
-                  <p>Your account uses role-based access for better safety.</p>
+                  <h3>{t("secureLogin") || "Secure Login"}</h3>
+                  <p>
+                    {t("secureLoginDesc") ||
+                      "Your account uses role-based access for better safety."}
+                  </p>
                 </div>
               </div>
 
               <div className="login-benefit-card">
                 <span>🌴</span>
                 <div>
-                  <h3>Explore Sri Lanka</h3>
-                  <p>Discover stays, events, and experiences in one platform.</p>
+                  <h3>{t("exploreSriLanka") || "Explore Sri Lanka"}</h3>
+                  <p>
+                    {t("exploreSriLankaDesc") ||
+                      "Discover stays, events, and experiences in one platform."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -157,8 +177,8 @@ function Login() {
           <div className="login-card">
             <div className="login-card-header">
               <span>👋</span>
-              <h2>Sign In</h2>
-              <p>Enter your account details to continue.</p>
+              <h2>{t("loginTitle")}</h2>
+              <p>{t("loginSubtitle")}</p>
             </div>
 
             {message.text && (
@@ -169,7 +189,7 @@ function Login() {
 
             <form onSubmit={handleLogin} className="login-form">
               <div className="login-field">
-                <label>Email Address</label>
+                <label>{t("email")}</label>
                 <div className="login-input-wrap">
                   <span>✉️</span>
                   <input
@@ -183,13 +203,13 @@ function Login() {
               </div>
 
               <div className="login-field">
-                <label>Password</label>
+                <label>{t("password")}</label>
                 <div className="login-input-wrap">
                   <span>🔒</span>
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
-                    placeholder="Enter your password"
+                    placeholder={t("enterPassword") || "Enter your password"}
                     value={formData.password}
                     onChange={handleChange}
                   />
@@ -198,7 +218,9 @@ function Login() {
                     className="password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? "Hide" : "Show"}
+                    {showPassword
+                      ? t("hidePassword") || "Hide"
+                      : t("showPassword") || "Show"}
                   </button>
                 </div>
               </div>
@@ -210,28 +232,31 @@ function Login() {
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                   />
-                  <span>Remember me</span>
+                  <span>{t("rememberMe")}</span>
                 </label>
 
-                <Link to="/forgot-password">Forgot password?</Link>
+                <Link to="/forgot-password">
+                  {t("forgotPassword")}
+                </Link>
               </div>
 
               <button type="submit" className="login-submit" disabled={loading}>
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? t("signingIn") || "Signing in..." : t("signIn")}
               </button>
             </form>
 
             <div className="demo-login-box">
-              <h4>Demo login guide</h4>
+              <h4>{t("demoLoginGuide") || "Demo login guide"}</h4>
               <p>
-                Use the email and password you inserted into your database using
-                registration or Postman.
+                {t("demoLoginGuideDesc") ||
+                  "Use the email and password you inserted into your database using registration or Postman."}
               </p>
             </div>
 
             <div className="login-footer-text">
               <p>
-                Do not have an account? <Link to="/register">Create account</Link>
+                {t("doNotHaveAccount") || "Do not have an account?"}{" "}
+                <Link to="/register">{t("createAccount")}</Link>
               </p>
             </div>
           </div>

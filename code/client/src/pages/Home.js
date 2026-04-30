@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
+import LanguageCurrencySelector from "../components/LanguageCurrencySelector";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 function Home() {
   const navigate = useNavigate();
+  const { t } = useAppSettings();
 
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -14,7 +17,7 @@ function Home() {
     e.preventDefault();
 
     if (!destination.trim()) {
-      alert("Please enter a destination or hotel name");
+      alert(t("destinationRequired") || "Please enter a destination or hotel name");
       return;
     }
 
@@ -26,13 +29,13 @@ function Home() {
   };
 
   const categories = [
-    { icon: "🔥", name: "Popular" },
-    { icon: "🏖️", name: "Beach" },
-    { icon: "🛕", name: "Cultural" },
-    { icon: "🌿", name: "Nature" },
-    { icon: "💎", name: "Luxury" },
-    { icon: "💰", name: "Budget" },
-    { icon: "🎉", name: "Festivals" },
+    { icon: "🔥", name: t("popular") },
+    { icon: "🏖️", name: t("beach") },
+    { icon: "🛕", name: t("cultural") },
+    { icon: "🌿", name: t("nature") },
+    { icon: "💎", name: t("luxury") },
+    { icon: "💰", name: t("budget") },
+    { icon: "🎉", name: t("festivals") },
   ];
 
   const featuredDestinations = [
@@ -73,12 +76,12 @@ function Home() {
 
   const offers = [
     {
-      title: "Save up to 20% on early bookings",
+      title: t("offerEarlyBooking"),
       image:
         "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
     },
     {
-      title: "Get 15% off on weekend stays",
+      title: t("offerWeekendStay"),
       image:
         "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
     },
@@ -86,7 +89,6 @@ function Home() {
 
   return (
     <div className="home-page">
-      {/* Header */}
       <header className="home-header">
         <Link to="/" className="brand">
           <div className="brand-icon">🌴</div>
@@ -97,42 +99,42 @@ function Home() {
         </Link>
 
         <nav className="home-nav">
-          <button className="language-btn">🇱🇰 EN / LKR</button>
-          <Link to="/help">Help</Link>
-          <Link to="/partner">List your property</Link>
+          <LanguageCurrencySelector />
+
+          <Link to="/help">{t("navHelp")}</Link>
+
+          <Link to="/partner">{t("navListProperty")}</Link>
+
           <Link to="/register" className="outline-btn">
-            Register
+            {t("navRegister")}
           </Link>
+
           <Link to="/login" className="primary-btn">
-            Sign In
+            {t("navSignIn")}
           </Link>
         </nav>
       </header>
 
-      {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-overlay">
           <div className="hero-content">
-            <p className="welcome-text">Explore • Book • Experience</p>
-            <h1>Find hotels and plan your Sri Lanka trip in one place</h1>
-            <p>
-              Search by destination or hotel name. Compare stays, discover
-              experiences, and book faster.
-            </p>
+            <p className="welcome-text">{t("heroBadge")}</p>
+            <h1>{t("heroTitle")}</h1>
+            <p>{t("heroSubtitle")}</p>
 
             <form className="search-box" onSubmit={handleSearch}>
               <div className="search-field destination-field">
-                <label>Destination</label>
+                <label>{t("destination")}</label>
                 <input
                   type="text"
-                  placeholder="Where are you going? Colombo, Kandy, Ella..."
+                  placeholder={t("destinationPlaceholder")}
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                 />
               </div>
 
               <div className="search-field">
-                <label>Check-in</label>
+                <label>{t("checkIn")}</label>
                 <input
                   type="date"
                   value={checkIn}
@@ -141,7 +143,7 @@ function Home() {
               </div>
 
               <div className="search-field">
-                <label>Check-out</label>
+                <label>{t("checkOut")}</label>
                 <input
                   type="date"
                   value={checkOut}
@@ -150,34 +152,32 @@ function Home() {
               </div>
 
               <div className="search-field">
-                <label>Guests</label>
+                <label>{t("guests")}</label>
                 <select
                   value={guests}
                   onChange={(e) => setGuests(e.target.value)}
                 >
-                  <option>1 adult · 1 room</option>
-                  <option>2 adults · 1 room</option>
-                  <option>2 adults · 2 rooms</option>
-                  <option>Family · 1 room</option>
-                  <option>Group · 3 rooms</option>
+                  <option value="2 adults · 1 room">{t("guestOption1")}</option>
+                  <option value="1 adult · 1 room">{t("guestOption2")}</option>
+                  <option value="2 adults · 2 rooms">{t("guestOption3")}</option>
+                  <option value="Family · 1 room">{t("guestOption4")}</option>
+                  <option value="Group · 3 rooms">{t("guestOption5")}</option>
                 </select>
               </div>
 
               <button type="submit" className="search-btn">
-                Search
+                {t("search")}
               </button>
             </form>
           </div>
         </div>
       </section>
 
-      {/* Main Content */}
       <main className="home-main">
-        {/* Categories */}
         <section className="category-section">
           <div className="category-row">
             {categories.map((category, index) => (
-              <button className="category-chip" key={index}>
+              <button type="button" className="category-chip" key={index}>
                 <span>{category.icon}</span>
                 {category.name}
               </button>
@@ -185,11 +185,10 @@ function Home() {
           </div>
         </section>
 
-        {/* Featured Destinations */}
         <section className="section-block">
           <div className="section-title">
-            <h2>Popular Destinations in Sri Lanka</h2>
-            <p>Start your journey with the most searched cities.</p>
+            <h2>{t("popularDestinations")}</h2>
+            <p>{t("popularDestinationsSub")}</p>
           </div>
 
           <div className="featured-grid">
@@ -203,18 +202,17 @@ function Home() {
                 <div className="card-gradient"></div>
                 <div className="destination-info">
                   <h3>{place.name}</h3>
-                  <button>Explore Hotels</button>
+                  <button type="button">{t("exploreHotels")}</button>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* More Destinations */}
         <section className="section-block">
           <div className="section-title">
-            <h2>Discover Beautiful Places</h2>
-            <p>Find stays near beaches, mountains, heritage cities, and more.</p>
+            <h2>{t("discoverBeautifulPlaces")}</h2>
+            <p>{t("discoverBeautifulPlacesSub")}</p>
           </div>
 
           <div className="destination-grid">
@@ -228,18 +226,17 @@ function Home() {
                 <div className="card-gradient"></div>
                 <div className="destination-info">
                   <h3>{place.name}</h3>
-                  <button>Explore Hotels</button>
+                  <button type="button">{t("exploreHotels")}</button>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Offers */}
         <section className="section-block">
           <div className="section-title">
-            <h2>Exciting Offers</h2>
-            <p>Special deals for your next Sri Lankan getaway.</p>
+            <h2>{t("excitingOffers")}</h2>
+            <p>{t("excitingOffersSub")}</p>
           </div>
 
           <div className="offer-grid">
@@ -247,28 +244,24 @@ function Home() {
               <div className="offer-card" key={index}>
                 <img src={offer.image} alt={offer.title} />
                 <div className="offer-content">
-                  <span>Limited Offer</span>
+                  <span>{t("limitedOffer")}</span>
                   <h3>{offer.title}</h3>
-                  <button>View Details</button>
+                  <button type="button">{t("viewDetails")}</button>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Partner CTA */}
         <section className="partner-cta">
           <div>
-            <span>For hotel owners</span>
-            <h2>List your property on TourismHub LK</h2>
-            <p>
-              Reach more travelers, manage bookings, and grow your hotel
-              business with our partner dashboard.
-            </p>
+            <span>{t("forHotelOwners")}</span>
+            <h2>{t("listPropertyTitle")}</h2>
+            <p>{t("listPropertySubtitle")}</p>
           </div>
 
           <Link to="/partner" className="partner-btn">
-            Register Your Property
+            {t("registerYourProperty")}
           </Link>
         </section>
       </main>

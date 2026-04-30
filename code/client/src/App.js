@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AppSettingsProvider } from "./context/AppSettingsContext";
 import Home from './pages/Home';
 import Results from './pages/Results';
 import HotelDetails from './pages/HotelDetails';
@@ -8,6 +9,7 @@ import PartnerDashboard from './pages/PartnerDashboard';
 
 function App() {
   return (
+    <AppSettingsProvider>
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -18,6 +20,7 @@ function App() {
         <Route path="/partner-dashboard" element={<PartnerDashboard />} />
       </Routes>
     </Router>
+    </AppSettingsProvider>
   );
 }
 export default App;

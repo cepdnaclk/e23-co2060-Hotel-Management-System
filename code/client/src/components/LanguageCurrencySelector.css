@@ -1,0 +1,71 @@
+.lc-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.lc-main-btn {
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 9px 10px;
+  border-radius: 12px;
+  transition: 0.25s ease;
+}
+
+.lc-main-btn:hover {
+  background: #f0f5ff;
+  color: #1f6feb;
+}
+
+.lc-dropdown {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 18px 45px rgba(29, 60, 120, 0.18);
+  z-index: 9999;
+}
+
+.lc-section {
+  margin-bottom: 14px;
+}
+
+.lc-section:last-child {
+  margin-bottom: 0;
+}
+
+.lc-section h4 {
+  margin: 0 0 9px;
+  color: #102a56;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.lc-section button {
+  width: 100%;
+  border: 1px solid #e5edf8;
+  background: #f7f9ff;
+  color: #344054;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 7px;
+  transition: 0.2s ease;
+}
+
+.lc-section button:hover,
+.lc-section button.active {
+  background: linear-gradient(135deg, #1f6feb, #0ea5e9);
+  color: #ffffff;
+  border-color: transparent;
+}

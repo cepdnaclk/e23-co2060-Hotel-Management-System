@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Register.css";
+import LanguageCurrencySelector from "../components/LanguageCurrencySelector";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 function Register() {
   const navigate = useNavigate();
+  const { t } = useAppSettings();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -40,7 +43,7 @@ function Register() {
     ) {
       setMessage({
         type: "error",
-        text: "Please fill all required fields.",
+        text: t("fillAllFields") || "Please fill all required fields.",
       });
       return;
     }
@@ -48,7 +51,8 @@ function Register() {
     if (formData.password.length < 6) {
       setMessage({
         type: "error",
-        text: "Password must be at least 6 characters.",
+        text:
+          t("passwordMinLength") || "Password must be at least 6 characters.",
       });
       return;
     }
@@ -56,7 +60,7 @@ function Register() {
     if (formData.password !== formData.confirmPassword) {
       setMessage({
         type: "error",
-        text: "Passwords do not match.",
+        text: t("passwordMismatch") || "Passwords do not match.",
       });
       return;
     }
@@ -64,7 +68,9 @@ function Register() {
     if (!agreeTerms) {
       setMessage({
         type: "error",
-        text: "Please agree to the Terms and Conditions.",
+        text:
+          t("agreeTermsError") ||
+          "Please agree to the Terms and Conditions.",
       });
       return;
     }
@@ -91,14 +97,19 @@ function Register() {
       if (!response.ok) {
         setMessage({
           type: "error",
-          text: data.error || "Registration failed. Email may already exist.",
+          text:
+            data.error ||
+            t("registrationFailed") ||
+            "Registration failed. Email may already exist.",
         });
         return;
       }
 
       setMessage({
         type: "success",
-        text: "Account created successfully. Redirecting to login...",
+        text:
+          t("accountCreatedSuccess") ||
+          "Account created successfully. Redirecting to login...",
       });
 
       setTimeout(() => {
@@ -107,7 +118,9 @@ function Register() {
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Cannot connect to server. Please check if backend is running.",
+        text:
+          t("serverConnectionFailed") ||
+          "Cannot connect to server. Please check if backend is running.",
       });
     } finally {
       setLoading(false);
@@ -126,10 +139,11 @@ function Register() {
         </Link>
 
         <nav className="register-nav">
-          <Link to="/">Home</Link>
-          <Link to="/partner">List your property</Link>
+          <LanguageCurrencySelector />
+          <Link to="/">{t("home")}</Link>
+          <Link to="/partner">{t("listProperty")}</Link>
           <Link to="/login" className="signin-link">
-            Sign In
+            {t("signIn")}
           </Link>
         </nav>
       </header>
@@ -137,37 +151,51 @@ function Register() {
       <main className="register-main">
         <section className="register-left">
           <div className="register-left-content">
-            <span className="register-badge">Create Your Account</span>
+            <span className="register-badge">
+              {t("createYourAccount") || "Create Your Account"}
+            </span>
 
-            <h1>Join TourismHub LK and explore Sri Lanka with ease</h1>
+            <h1>
+              {t("registerHeroTitle") ||
+                "Join TourismHub LK and explore Sri Lanka with ease"}
+            </h1>
 
             <p>
-              Register as a tourist to book hotels and discover experiences, or
-              join as a hotel partner to list and manage your property.
+              {t("registerHeroSubtitle") ||
+                "Register as a tourist to book hotels and discover experiences, or join as a hotel partner to list and manage your property."}
             </p>
 
             <div className="register-benefits">
               <div className="benefit-card">
                 <span>🏨</span>
                 <div>
-                  <h3>Book Hotels Faster</h3>
-                  <p>Search, compare, and reserve hotels in Sri Lanka.</p>
+                  <h3>{t("bookHotelsFaster") || "Book Hotels Faster"}</h3>
+                  <p>
+                    {t("bookHotelsFasterDesc") ||
+                      "Search, compare, and reserve hotels in Sri Lanka."}
+                  </p>
                 </div>
               </div>
 
               <div className="benefit-card">
                 <span>🤝</span>
                 <div>
-                  <h3>Partner Management</h3>
-                  <p>Manage rooms, prices, bookings, and hotel content.</p>
+                  <h3>{t("partnerManagement") || "Partner Management"}</h3>
+                  <p>
+                    {t("partnerManagementDesc") ||
+                      "Manage rooms, prices, bookings, and hotel content."}
+                  </p>
                 </div>
               </div>
 
               <div className="benefit-card">
                 <span>🔐</span>
                 <div>
-                  <h3>Secure Access</h3>
-                  <p>Role-based login for tourists, partners, and admins.</p>
+                  <h3>{t("secureAccess") || "Secure Access"}</h3>
+                  <p>
+                    {t("secureAccessDesc") ||
+                      "Role-based login for tourists, partners, and admins."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -178,8 +206,8 @@ function Register() {
           <div className="register-card">
             <div className="register-card-header">
               <div className="register-icon">📝</div>
-              <h2>Create Account</h2>
-              <p>Fill your details to get started.</p>
+              <h2>{t("registerTitle")}</h2>
+              <p>{t("registerSubtitle") || "Fill your details to get started."}</p>
             </div>
 
             {message.text && (
@@ -198,7 +226,7 @@ function Register() {
                   }
                 >
                   <span>🌍</span>
-                  Tourist
+                  {t("tourist")}
                 </button>
 
                 <button
@@ -209,18 +237,18 @@ function Register() {
                   }
                 >
                   <span>🏨</span>
-                  Hotel Partner
+                  {t("hotelPartner")}
                 </button>
               </div>
 
               <div className="form-group">
-                <label>Full Name</label>
+                <label>{t("fullName")}</label>
                 <div className="input-box">
                   <span>👤</span>
                   <input
                     type="text"
                     name="name"
-                    placeholder="Enter your full name"
+                    placeholder={t("enterFullName") || "Enter your full name"}
                     value={formData.name}
                     onChange={handleChange}
                   />
@@ -228,7 +256,7 @@ function Register() {
               </div>
 
               <div className="form-group">
-                <label>Email Address</label>
+                <label>{t("email")}</label>
                 <div className="input-box">
                   <span>✉️</span>
                   <input
@@ -242,7 +270,7 @@ function Register() {
               </div>
 
               <div className="form-group">
-                <label>Phone Number</label>
+                <label>{t("phone")}</label>
                 <div className="input-box">
                   <span>📞</span>
                   <input
@@ -257,13 +285,13 @@ function Register() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Password</label>
+                  <label>{t("password")}</label>
                   <div className="input-box">
                     <span>🔒</span>
                     <input
                       type={showPassword ? "text" : "password"}
                       name="password"
-                      placeholder="Password"
+                      placeholder={t("password")}
                       value={formData.password}
                       onChange={handleChange}
                     />
@@ -271,13 +299,13 @@ function Register() {
                 </div>
 
                 <div className="form-group">
-                  <label>Confirm Password</label>
+                  <label>{t("confirmPassword")}</label>
                   <div className="input-box">
                     <span>🔒</span>
                     <input
                       type={showPassword ? "text" : "password"}
                       name="confirmPassword"
-                      placeholder="Confirm"
+                      placeholder={t("confirmPassword")}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                     />
@@ -292,7 +320,7 @@ function Register() {
                     checked={showPassword}
                     onChange={(e) => setShowPassword(e.target.checked)}
                   />
-                  Show password
+                  {t("showPassword") || "Show password"}
                 </label>
 
                 <label className="checkbox-label">
@@ -301,7 +329,7 @@ function Register() {
                     checked={agreeTerms}
                     onChange={(e) => setAgreeTerms(e.target.checked)}
                   />
-                  I agree to Terms
+                  {t("agreeTerms") || "I agree to Terms"}
                 </label>
               </div>
 
@@ -310,20 +338,23 @@ function Register() {
                 className="register-submit-btn"
                 disabled={loading}
               >
-                {loading ? "Creating Account..." : "Create Account"}
+                {loading
+                  ? t("creatingAccount") || "Creating Account..."
+                  : t("createAccount")}
               </button>
             </form>
 
             <div className="register-help-box">
-              <h4>For semester demo</h4>
+              <h4>{t("semesterDemo") || "For semester demo"}</h4>
               <p>
-                Create a tourist account for hotel search and a partner account
-                for partner dashboard testing.
+                {t("semesterDemoDesc") ||
+                  "Create a tourist account for hotel search and a partner account for partner dashboard testing."}
               </p>
             </div>
 
             <p className="login-text">
-              Already have an account? <Link to="/login">Sign in here</Link>
+              {t("alreadyHaveAccount") || "Already have an account?"}{" "}
+              <Link to="/login">{t("signIn")}</Link>
             </p>
           </div>
         </section>

@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./Results.css";
+import LanguageCurrencySelector from "../components/LanguageCurrencySelector";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 function Results() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t, formatPrice } = useAppSettings();
 
   const queryParams = new URLSearchParams(location.search);
   const initialCity = queryParams.get("city") || "";
@@ -12,7 +15,9 @@ function Results() {
   const [city, setCity] = useState(initialCity);
   const [checkIn, setCheckIn] = useState(queryParams.get("checkIn") || "");
   const [checkOut, setCheckOut] = useState(queryParams.get("checkOut") || "");
-  const [guests, setGuests] = useState(queryParams.get("guests") || "2 adults · 1 room");
+  const [guests, setGuests] = useState(
+    queryParams.get("guests") || "2 adults · 1 room"
+  );
 
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -105,8 +110,11 @@ function Results() {
         setLoading(true);
 
         const searchCity = initialCity || "Kandy";
+
         const response = await fetch(
-          `http://localhost:5000/api/hotels?city=${encodeURIComponent(searchCity)}`
+          `http://localhost:5000/api/hotels?city=${encodeURIComponent(
+            searchCity
+          )}`
         );
 
         if (!response.ok) {
@@ -128,7 +136,9 @@ function Results() {
             image:
               hotel.image ||
               fallbackHotels[index % fallbackHotels.length].image,
-            rating: hotel.rating || fallbackHotels[index % fallbackHotels.length].rating,
+            rating:
+              hotel.rating ||
+              fallbackHotels[index % fallbackHotels.length].rating,
             review_count:
               hotel.review_count ||
               fallbackHotels[index % fallbackHotels.length].review_count,
@@ -172,7 +182,9 @@ function Results() {
     }
 
     navigate(
-      `/results?city=${encodeURIComponent(city)}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${encodeURIComponent(
+      `/results?city=${encodeURIComponent(
+        city
+      )}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${encodeURIComponent(
         guests
       )}`
     );
@@ -224,11 +236,12 @@ function Results() {
       parking: false,
       verifiedOnly: false,
     });
+
     setSortBy("Recommended");
   };
 
   const getRatingText = (rating) => {
-    if (rating >= 9 || rating >= 4.7) return "Excellent";
+    if (rating >= 9 || rating >= 4.7) return t("excellent");
     if (rating >= 8 || rating >= 4.2) return "Very Good";
     if (rating >= 7 || rating >= 3.8) return "Good";
     return "Pleasant";
@@ -236,7 +249,6 @@ function Results() {
 
   return (
     <div className="results-page">
-      {/* Header */}
       <header className="results-header">
         <Link to="/" className="results-brand">
           <div className="results-brand-icon">🌴</div>
@@ -247,23 +259,22 @@ function Results() {
         </Link>
 
         <nav className="results-nav">
-          <button>🇱🇰 EN / LKR</button>
-          <Link to="/help">Help</Link>
-          <Link to="/partner">List your property</Link>
+          <LanguageCurrencySelector />
+          <Link to="/help">{t("help")}</Link>
+          <Link to="/partner">{t("listProperty")}</Link>
           <Link to="/register" className="results-outline-btn">
-            Register
+            {t("register")}
           </Link>
           <Link to="/login" className="results-primary-btn">
-            Sign In
+            {t("signIn")}
           </Link>
         </nav>
       </header>
 
-      {/* Top Search */}
       <section className="results-search-section">
         <form className="results-search-bar" onSubmit={handleSearch}>
           <div className="results-search-field destination-field">
-            <label>Destination</label>
+            <label>{t("destination")}</label>
             <input
               type="text"
               placeholder="Where are you going?"
@@ -273,7 +284,7 @@ function Results() {
           </div>
 
           <div className="results-search-field">
-            <label>Check-in</label>
+            <label>{t("checkIn")}</label>
             <input
               type="date"
               value={checkIn}
@@ -282,7 +293,7 @@ function Results() {
           </div>
 
           <div className="results-search-field">
-            <label>Check-out</label>
+            <label>{t("checkOut")}</label>
             <input
               type="date"
               value={checkOut}
@@ -291,7 +302,7 @@ function Results() {
           </div>
 
           <div className="results-search-field">
-            <label>Guests</label>
+            <label>{t("guests")}</label>
             <select value={guests} onChange={(e) => setGuests(e.target.value)}>
               <option>1 adult · 1 room</option>
               <option>2 adults · 1 room</option>
@@ -302,21 +313,24 @@ function Results() {
           </div>
 
           <button type="submit" className="results-search-btn">
-            Search
+            {t("search")}
           </button>
         </form>
       </section>
 
       <main className="results-container">
-        {/* Page Title */}
         <section className="results-title-row">
           <div>
             <p className="breadcrumb-text">
-              Home <span>›</span> Search Results <span>›</span> {city || "Kandy"}
+              {t("home")} <span>›</span> {t("searchResults")} <span>›</span>{" "}
+              {city || "Kandy"}
             </p>
+
             <h1>
-              {city || "Kandy"}: {filteredAndSortedHotels.length} stays found
+              {city || "Kandy"}: {filteredAndSortedHotels.length}{" "}
+              {t("staysFound")}
             </h1>
+
             <p>
               Compare verified hotels, facilities, ratings, and prices for your
               Sri Lanka trip.
@@ -325,12 +339,15 @@ function Results() {
 
           <div className="view-toggle">
             <button
+              type="button"
               className={viewMode === "list" ? "active" : ""}
               onClick={() => setViewMode("list")}
             >
               ☰ List
             </button>
+
             <button
+              type="button"
               className={viewMode === "map" ? "active" : ""}
               onClick={() => setViewMode("map")}
             >
@@ -340,19 +357,22 @@ function Results() {
         </section>
 
         <section className="results-layout">
-          {/* Filters */}
           <aside className="filters-sidebar">
             <div className="filter-card">
               <div className="filter-header">
-                <h2>Filter by</h2>
-                <button onClick={resetFilters}>Reset</button>
+                <h2>{t("filterBy")}</h2>
+                <button type="button" onClick={resetFilters}>
+                  {t("reset")}
+                </button>
               </div>
 
               <div className="filter-block">
-                <label className="filter-label">Price range per night</label>
+                <label className="filter-label">{t("priceRange")}</label>
+
                 <div className="price-output">
-                  LKR 0 - LKR {Number(filters.maxPrice).toLocaleString()}
+                  {formatPrice(0)} - {formatPrice(filters.maxPrice)}
                 </div>
+
                 <input
                   type="range"
                   min="5000"
@@ -366,7 +386,7 @@ function Results() {
               </div>
 
               <div className="filter-block">
-                <label className="filter-label">Popular filters</label>
+                <label className="filter-label">{t("popularFilters")}</label>
 
                 <label className="filter-checkbox">
                   <input
@@ -424,7 +444,7 @@ function Results() {
                       handleFilterChange("verifiedOnly", e.target.checked)
                     }
                   />
-                  Verified hotels only
+                  {t("verifiedOnly")}
                 </label>
               </div>
 
@@ -454,25 +474,30 @@ function Results() {
 
               <div className="filter-block">
                 <label className="filter-label">Review score</label>
+
                 <div className="rating-filter-list">
-                  <button>9+ ⭐</button>
-                  <button>8+ ⭐</button>
-                  <button>7+ ⭐</button>
+                  <button type="button">9+ ⭐</button>
+                  <button type="button">8+ ⭐</button>
+                  <button type="button">7+ ⭐</button>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Results */}
           <section className="results-content">
             <div className="results-toolbar">
               <p>
-                Showing <strong>{filteredAndSortedHotels.length}</strong> hotels
+                {t("showing")}{" "}
+                <strong>{filteredAndSortedHotels.length}</strong> {t("hotels")}
               </p>
 
               <div>
-                <label>Sort by: </label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <label>{t("sortBy")}: </label>
+
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
                   <option>Recommended</option>
                   <option>Price Low to High</option>
                   <option>Rating High to Low</option>
@@ -490,7 +515,9 @@ function Results() {
                 <span>🏨</span>
                 <h2>No hotels found</h2>
                 <p>Try changing your filters or searching another city.</p>
-                <button onClick={resetFilters}>Clear filters</button>
+                <button type="button" onClick={resetFilters}>
+                  Clear filters
+                </button>
               </div>
             ) : viewMode === "map" ? (
               <div className="map-view">
@@ -508,6 +535,8 @@ function Results() {
                     key={hotel.hotel_id}
                     hotel={hotel}
                     getRatingText={getRatingText}
+                    formatPrice={formatPrice}
+                    t={t}
                   />
                 ))}
               </div>
@@ -518,18 +547,22 @@ function Results() {
                     key={hotel.hotel_id}
                     hotel={hotel}
                     getRatingText={getRatingText}
+                    formatPrice={formatPrice}
+                    t={t}
                   />
                 ))}
               </div>
             )}
 
             <div className="pagination">
-              <button>‹</button>
-              <button className="active">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button>4</button>
-              <button>Next ›</button>
+              <button type="button">‹</button>
+              <button type="button" className="active">
+                1
+              </button>
+              <button type="button">2</button>
+              <button type="button">3</button>
+              <button type="button">4</button>
+              <button type="button">Next ›</button>
             </div>
           </section>
         </section>
@@ -538,7 +571,7 @@ function Results() {
   );
 }
 
-function HotelCard({ hotel, getRatingText }) {
+function HotelCard({ hotel, getRatingText, formatPrice, t }) {
   const facilities = hotel.facilities || [];
 
   return (
@@ -546,9 +579,13 @@ function HotelCard({ hotel, getRatingText }) {
       <div className="hotel-image-wrap">
         <img src={hotel.image} alt={hotel.name} />
 
-        {hotel.is_verified && <span className="image-verified">✓ Verified</span>}
+        {hotel.is_verified && (
+          <span className="image-verified">✓ {t("verified")}</span>
+        )}
 
-        <button className="save-btn">♡</button>
+        <button type="button" className="save-btn">
+          ♡
+        </button>
       </div>
 
       <div className="hotel-info">
@@ -558,13 +595,17 @@ function HotelCard({ hotel, getRatingText }) {
             <p className="hotel-location">📍 {hotel.address}</p>
           </div>
 
-          {hotel.is_verified && <span className="verified-badge">✓ Verified</span>}
+          {hotel.is_verified && (
+            <span className="verified-badge">✓ {t("verified")}</span>
+          )}
         </div>
 
         <div className="rating-row">
           <span className="rating-score">{hotel.rating}</span>
           <strong>{getRatingText(Number(hotel.rating))}</strong>
-          <p>{hotel.review_count} reviews</p>
+          <p>
+            {hotel.review_count} {t("reviews")}
+          </p>
         </div>
 
         <p className="hotel-description">{hotel.description}</p>
@@ -585,15 +626,14 @@ function HotelCard({ hotel, getRatingText }) {
       <div className="price-box">
         <p>2 nights, 2 adults</p>
 
-        {hotel.old_price && (
-          <small>LKR {Number(hotel.old_price).toLocaleString()}</small>
-        )}
+        {hotel.old_price && <small>{formatPrice(hotel.old_price)}</small>}
 
-        <h3>LKR {Number(hotel.price).toLocaleString()}</h3>
+        <h3>{formatPrice(hotel.price)}</h3>
+
         <span>Includes taxes and charges</span>
 
         <Link to={`/hotel/${hotel.hotel_id}`} className="view-details-btn">
-          View details
+          {t("viewDetails")}
         </Link>
       </div>
     </article>

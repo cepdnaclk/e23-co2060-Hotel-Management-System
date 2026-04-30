@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./PartnerDashboard.css";
+import LanguageCurrencySelector from "../components/LanguageCurrencySelector";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 function PartnerDashboard() {
   const navigate = useNavigate();
+  const { t, formatPrice } = useAppSettings();
 
   const [partnerName, setPartnerName] = useState("John");
   const [searchTerm, setSearchTerm] = useState("");
@@ -11,7 +14,8 @@ function PartnerDashboard() {
 
   useEffect(() => {
     const storedName =
-    localStorage.getItem("name") || sessionStorage.getItem("name");
+      localStorage.getItem("name") || sessionStorage.getItem("name");
+
     if (storedName) {
       setPartnerName(storedName.split(" ")[0]);
     }
@@ -19,37 +23,37 @@ function PartnerDashboard() {
 
   const dashboardStats = [
     {
-      title: "New Bookings",
+      title: t("newBookings") || "New Bookings",
       value: "12",
-      subtitle: "3 upcoming",
+      subtitle: t("upcomingBookings") || "3 upcoming",
       icon: "📅",
       color: "blue",
     },
     {
-      title: "Today Check-Ins",
+      title: t("todayCheckIns") || "Today Check-Ins",
       value: "14",
-      subtitle: "5 remaining",
+      subtitle: t("remainingCheckIns") || "5 remaining",
       icon: "✅",
       color: "green",
     },
     {
-      title: "Today Check-Outs",
+      title: t("todayCheckOuts") || "Today Check-Outs",
       value: "8",
-      subtitle: "All checked out",
+      subtitle: t("allCheckedOut") || "All checked out",
       icon: "🧳",
       color: "orange",
     },
     {
-      title: "Availability Alert",
+      title: t("availabilityAlert") || "Availability Alert",
       value: "2",
-      subtitle: "rooms need attention",
+      subtitle: t("roomsNeedAttention") || "rooms need attention",
       icon: "⚠️",
       color: "yellow",
     },
     {
-      title: "Average Rating",
+      title: t("averageRating") || "Average Rating",
       value: "4.8",
-      subtitle: "Only 1 Deluxe Room left",
+      subtitle: t("onlyOneRoomLeft") || "Only 1 Deluxe Room left",
       icon: "⭐",
       color: "purple",
     },
@@ -62,7 +66,7 @@ function PartnerDashboard() {
       room: "Deluxe Suite",
       roomCount: "1 booked",
       dates: "Sat, May 4 - Mon, May 6",
-      amount: "LKR 48,900",
+      amount: 48900,
       status: "Confirmed",
     },
     {
@@ -71,7 +75,7 @@ function PartnerDashboard() {
       room: "Standard Room",
       roomCount: "2 booked",
       dates: "Sun, May 5 - Tue, May 7",
-      amount: "LKR 35,900",
+      amount: 35900,
       status: "Confirmed",
     },
     {
@@ -80,7 +84,7 @@ function PartnerDashboard() {
       room: "Deluxe Suite",
       roomCount: "2 booked",
       dates: "Mon, May 6 - Wed, May 8",
-      amount: "LKR 52,400",
+      amount: 52400,
       status: "Pending",
     },
     {
@@ -89,7 +93,7 @@ function PartnerDashboard() {
       room: "Family Room",
       roomCount: "1 booked",
       dates: "Mon, May 6 - Fri, May 10",
-      amount: "LKR 76,500",
+      amount: 76500,
       status: "Cancelled",
     },
   ];
@@ -118,21 +122,28 @@ function PartnerDashboard() {
     navigate("/login");
   };
 
+  const getStatusText = (status) => {
+    if (status === "Confirmed") return t("confirmed") || "Confirmed";
+    if (status === "Pending") return t("pending") || "Pending";
+    if (status === "Cancelled") return t("cancelled") || "Cancelled";
+    return status;
+  };
+
   return (
     <div className="partner-dashboard-page">
-      {/* Header */}
       <header className="partner-header">
         <Link to="/" className="partner-brand">
           <div className="partner-brand-icon">🌴</div>
           <div>
             <h2>TourismHub LK</h2>
-            <span>Partner Portal</span>
+            <span>{t("partnerPortal") || "Partner Portal"}</span>
           </div>
         </Link>
 
         <nav className="partner-top-nav">
-          <button>🇱🇰 EN / LKR</button>
-          <Link to="/help">Help</Link>
+          <LanguageCurrencySelector />
+
+          <Link to="/help">{t("help")}</Link>
 
           <div className="partner-profile">
             <div className="profile-avatar">
@@ -142,49 +153,57 @@ function PartnerDashboard() {
           </div>
 
           <button className="logout-btn" onClick={handleLogout}>
-            Logout
+            {t("logout")}
           </button>
         </nav>
       </header>
 
-      {/* Dashboard Navigation */}
       <section className="partner-menu-wrap">
         <div className="partner-menu">
           <Link className="active" to="/partner-dashboard">
-            Dashboard
+            {t("dashboard")}
           </Link>
-          <Link to="/partner-bookings">Bookings</Link>
-          <Link to="/partner-calendar">Calendar</Link>
-          <Link to="/partner-rooms">Rooms & Rates</Link>
-          <Link to="/partner-promotions">Promotions</Link>
-          <Link to="/partner-management">Management</Link>
-          <Link to="/partner-reports">Reports</Link>
+          <Link to="/partner-bookings">{t("bookings") || "Bookings"}</Link>
+          <Link to="/partner-calendar">{t("calendar") || "Calendar"}</Link>
+          <Link to="/partner-rooms">{t("roomsPricing")}</Link>
+          <Link to="/partner-promotions">
+            {t("promotions") || "Promotions"}
+          </Link>
+          <Link to="/partner-management">
+            {t("management") || "Management"}
+          </Link>
+          <Link to="/partner-reports">{t("reports") || "Reports"}</Link>
         </div>
       </section>
 
       <main className="partner-container">
-        {/* Welcome */}
         <section className="partner-welcome">
           <div>
-            <span className="welcome-badge">Hotel Partner Dashboard</span>
-            <h1>Welcome back, {partnerName}!</h1>
+            <span className="welcome-badge">
+              {t("hotelPartnerDashboard") || "Hotel Partner Dashboard"}
+            </span>
+
+            <h1>
+              {t("welcomeBack")}, {partnerName}!
+            </h1>
+
             <p>
-              Here’s what’s happening at your property. Manage bookings, rooms,
-              check-ins, and availability from one place.
+              {t("partnerWelcomeText") ||
+                "Here’s what’s happening at your property. Manage bookings, rooms, check-ins, and availability from one place."}
             </p>
           </div>
 
           <div className="welcome-actions">
             <button onClick={() => navigate("/partner-rooms")}>
-              + Add Room
+              + {t("addRoom") || "Add Room"}
             </button>
+
             <button onClick={() => navigate("/partner-management")}>
-              Edit Hotel
+              {t("editHotel") || "Edit Hotel"}
             </button>
           </div>
         </section>
 
-        {/* Stats */}
         <section className="stats-grid">
           {dashboardStats.map((stat, index) => (
             <div className={`stat-card ${stat.color}`} key={index}>
@@ -199,26 +218,27 @@ function PartnerDashboard() {
           ))}
         </section>
 
-        {/* Content Layout */}
         <section className="dashboard-layout">
           <div className="dashboard-main">
-            {/* Latest Bookings */}
             <div className="bookings-card">
               <div className="card-header">
                 <div>
-                  <h2>Latest Bookings</h2>
-                  <p>View and manage your latest hotel reservations.</p>
+                  <h2>{t("latestBookings")}</h2>
+                  <p>
+                    {t("latestBookingsDesc") ||
+                      "View and manage your latest hotel reservations."}
+                  </p>
                 </div>
 
-                <Link to="/partner-bookings">View all</Link>
+                <Link to="/partner-bookings">{t("viewAll") || "View all"}</Link>
               </div>
 
               <div className="booking-filters">
                 <select>
-                  <option>Show: All Bookings</option>
-                  <option>Today</option>
-                  <option>This Week</option>
-                  <option>This Month</option>
+                  <option>{t("showAllBookings") || "Show: All Bookings"}</option>
+                  <option>{t("today") || "Today"}</option>
+                  <option>{t("thisWeek") || "This Week"}</option>
+                  <option>{t("thisMonth") || "This Month"}</option>
                 </select>
 
                 <select
@@ -232,7 +252,7 @@ function PartnerDashboard() {
                 </select>
 
                 <select>
-                  <option>All Rooms</option>
+                  <option>{t("allRooms") || "All Rooms"}</option>
                   <option>Standard Room</option>
                   <option>Deluxe Suite</option>
                   <option>Family Room</option>
@@ -242,7 +262,7 @@ function PartnerDashboard() {
                   <span>🔍</span>
                   <input
                     type="text"
-                    placeholder="Search bookings..."
+                    placeholder={t("searchBookings") || "Search bookings..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -253,12 +273,12 @@ function PartnerDashboard() {
                 <table className="booking-table">
                   <thead>
                     <tr>
-                      <th>Booking ID</th>
-                      <th>Guest</th>
-                      <th>Room</th>
-                      <th>Dates</th>
-                      <th>Amount</th>
-                      <th>Status</th>
+                      <th>{t("bookingId") || "Booking ID"}</th>
+                      <th>{t("guest") || "Guest"}</th>
+                      <th>{t("room") || "Room"}</th>
+                      <th>{t("dates") || "Dates"}</th>
+                      <th>{t("amount") || "Amount"}</th>
+                      <th>{t("status") || "Status"}</th>
                     </tr>
                   </thead>
 
@@ -276,13 +296,13 @@ function PartnerDashboard() {
                           </td>
                           <td>{booking.dates}</td>
                           <td>
-                            <strong>{booking.amount}</strong>
+                            <strong>{formatPrice(booking.amount)}</strong>
                           </td>
                           <td>
                             <span
                               className={`status-badge ${booking.status.toLowerCase()}`}
                             >
-                              {booking.status}
+                              {getStatusText(booking.status)}
                             </span>
                           </td>
                         </tr>
@@ -290,7 +310,7 @@ function PartnerDashboard() {
                     ) : (
                       <tr>
                         <td colSpan="6" className="empty-table">
-                          No bookings found.
+                          {t("noBookingsFound") || "No bookings found."}
                         </td>
                       </tr>
                     )}
@@ -299,39 +319,43 @@ function PartnerDashboard() {
               </div>
             </div>
 
-            {/* Bottom Banner */}
             <div className="partner-banner">
               <div>
-                <span>Grow your property</span>
-                <h2>Improve your listing and attract more travelers</h2>
+                <span>{t("growProperty") || "Grow your property"}</span>
+                <h2>
+                  {t("improveListingTitle") ||
+                    "Improve your listing and attract more travelers"}
+                </h2>
                 <p>
-                  Add better photos, update room prices, and keep availability
-                  accurate to increase bookings.
+                  {t("improveListingDesc") ||
+                    "Add better photos, update room prices, and keep availability accurate to increase bookings."}
                 </p>
               </div>
 
               <button onClick={() => navigate("/partner-management")}>
-                Update Listing
+                {t("updateListing") || "Update Listing"}
               </button>
             </div>
           </div>
 
-          {/* Sidebar */}
           <aside className="dashboard-sidebar">
             <div className="quick-card">
-              <h3>Quick Actions</h3>
+              <h3>{t("quickActions")}</h3>
 
               <button onClick={() => navigate("/partner-bookings")}>
-                📋 Manage Bookings
+                📋 {t("manageBookings")}
               </button>
+
               <button onClick={() => navigate("/partner-rooms")}>
-                🛏️ Rooms & Pricing
+                🛏️ {t("roomsPricing")}
               </button>
+
               <button onClick={() => navigate("/partner-calendar")}>
-                📆 Availability Calendar
+                📆 {t("availabilityCalendar") || "Availability Calendar"}
               </button>
+
               <button onClick={() => navigate("/partner-promotions")}>
-                🎁 Create Promotion
+                🎁 {t("createPromotion") || "Create Promotion"}
               </button>
             </div>
 
@@ -339,23 +363,23 @@ function PartnerDashboard() {
               <div className="property-image"></div>
 
               <div className="property-info">
-                <span>Verified Property</span>
+                <span>{t("verifiedProperty") || "Verified Property"}</span>
                 <h3>White Sands Resort</h3>
                 <p>Kandy, Sri Lanka</p>
 
                 <div className="property-rating">
                   <strong>4.8</strong>
-                  <p>Excellent rating</p>
+                  <p>{t("excellentRating") || "Excellent rating"}</p>
                 </div>
               </div>
             </div>
 
             <div className="support-box">
               <div className="support-avatar">👨‍💼</div>
-              <h3>Need help?</h3>
+              <h3>{t("needHelp") || "Need help?"}</h3>
               <p>
-                Our support team is here to assist you with bookings, rooms, and
-                account settings.
+                {t("partnerSupportText") ||
+                  "Our support team is here to assist you with bookings, rooms, and account settings."}
               </p>
 
               <div className="support-contact">
@@ -368,7 +392,7 @@ function PartnerDashboard() {
       </main>
 
       <footer className="partner-footer">
-        <p>Here’s most events to GL 🇱🇰</p>
+        <p>{t("footerText") || "TourismHub LK Partner Portal 🇱🇰"}</p>
       </footer>
     </div>
   );
