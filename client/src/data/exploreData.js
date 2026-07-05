@@ -1047,6 +1047,400 @@ export const explorePlaces = [
     entryFee: "Free (donations welcome)",
     facilities: ["Tea Shops", "Rest Areas", "Toilets", "First Aid Posts"]
   }
+  ,
+  {
+    id: 11,
+    name: "Arugam Bay Surf Coast",
+    city: "Arugam Bay",
+    district: "Ampara",
+    region: "East Coast",
+    category: "beach",
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A laid-back east-coast beach town famous for surf breaks, lagoon trips, cafés, and golden sunsets.",
+    fullDescription: "Arugam Bay is one of Sri Lanka's most loved east-coast beach destinations. It is especially popular with surfers, backpackers, beach lovers, and travellers who want a relaxed coastal rhythm.\n\nThe main surf point attracts international visitors during the May to September season, while nearby lagoons and villages offer quieter wildlife and culture experiences. The town is also useful for trip planning because it connects well with Kumana National Park and the wider east coast.\n\nFor TourismHub LK, Arugam Bay works well as a destination where users can explore activities first, save the beach to a route, then find stays nearby for a few relaxing nights.",
+    tags: ["Surf", "Beach", "Sunset", "Lagoon", "Backpacker"],
+    duration: "1-3 days",
+    bestTime: "May - Sep",
+    bestMonths: [4, 5, 6, 7, 8],
+    budget: "Medium",
+    budgetScore: 2,
+    estimatedCost: 9000,
+    lat: 6.8404,
+    lng: 81.8368,
+    featured: true,
+    vibe: "Relaxation",
+    experiences: [
+      { title: "Surf Lesson", description: "Try a beginner surf lesson or watch experienced surfers at the main point during the east-coast season.", duration: "2 hours", cost: 6000 },
+      { title: "Lagoon Safari", description: "Take a calm boat ride through nearby lagoons to spot birds, mangroves, and village scenery.", duration: "2-3 hours", cost: 4500 },
+      { title: "Sunset Beach Walk", description: "Enjoy the evening light along the bay with small cafés and relaxed beach life.", duration: "1 hour", cost: 0 },
+      { title: "Kumana Day Trip", description: "Plan a wildlife day from Arugam Bay to Kumana National Park for birds, elephants, and wild landscapes.", duration: "Half day", cost: 12000 }
+    ],
+    highlights: [
+      { icon: "🏄", title: "Surf Coast", description: "One of Sri Lanka's most famous surf destinations" },
+      { icon: "🌅", title: "East-Coast Sunset", description: "Relaxed beach atmosphere with open skies" },
+      { icon: "🛶", title: "Lagoon Trips", description: "Quiet water routes and birdwatching nearby" },
+      { icon: "☕", title: "Beach Cafés", description: "Casual food, cafés, and traveller-friendly stays" }
+    ],
+    nearbyPlaces: [
+      { name: "Kumana National Park", distance: "35 km", type: "Wildlife" },
+      { name: "Pottuvil Lagoon", distance: "5 km", type: "Nature" },
+      { name: "Muhudu Maha Viharaya", distance: "4 km", type: "Heritage" },
+      { name: "Whiskey Point", distance: "10 km", type: "Surf Beach" }
+    ],
+    tips: ["Best surf season is usually May to September", "Book rooms early during surf season", "Use reef-safe sunscreen", "Keep cash for small beach cafés", "Check sea conditions before swimming"],
+    openingHours: "Open area",
+    entryFee: "Free beach access",
+    facilities: ["Surf Schools", "Cafés", "Guesthouses", "Tuk-tuks", "Beach Gear"]
+  },
+  {
+    id: 12,
+    name: "Udawalawe National Park",
+    city: "Udawalawe",
+    district: "Ratnapura",
+    region: "South Coast",
+    category: "nature",
+    image: "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1521651201144-634f700b36ef?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A reliable elephant safari destination with open grassland, lakeside views, and family-friendly wildlife drives.",
+    fullDescription: "Udawalawe National Park is one of the best places in Sri Lanka to see elephants in open landscapes. The park's grasslands and reservoir create strong visibility, making it friendly for families and first-time safari travellers.\n\nCompared with some larger parks, Udawalawe can feel easier to plan because safari drives are straightforward and many stays are located close to the park entrance. It is a strong connection point between hill country routes and the south coast.\n\nIn TourismHub LK, Udawalawe works well as a nature stop that can be added between Ella, Mirissa, Galle, and Yala-style wildlife routes.",
+    tags: ["Elephants", "Safari", "Family", "Wildlife", "Nature"],
+    duration: "Half day safari",
+    bestTime: "Year-round",
+    bestMonths: [0,1,2,3,4,5,6,7,8,9,10,11],
+    budget: "High",
+    budgetScore: 3,
+    estimatedCost: 14000,
+    lat: 6.4744,
+    lng: 80.8883,
+    featured: true,
+    vibe: "Wildlife",
+    experiences: [
+      { title: "Morning Safari", description: "Start early for cooler weather and a better chance of active elephants and birdlife.", duration: "3-4 hours", cost: 14000 },
+      { title: "Reservoir Viewpoints", description: "Stop near scenic edges of the reservoir for photos of grassland, water, and wildlife.", duration: "30 minutes", cost: 0 },
+      { title: "Elephant Transit Home", description: "Visit the elephant care facility nearby at feeding time if your schedule matches.", duration: "1 hour", cost: 1500 },
+      { title: "Family Wildlife Route", description: "Combine the park with south-coast hotels for an easy family itinerary.", duration: "1 day", cost: 0 }
+    ],
+    highlights: [
+      { icon: "🐘", title: "Elephant Sightings", description: "Known for frequent elephant encounters" },
+      { icon: "🦅", title: "Birdlife", description: "Reservoir and grasslands attract many birds" },
+      { icon: "🚙", title: "Easy Safari", description: "Good visibility and straightforward routes" },
+      { icon: "👨‍👩‍👧", title: "Family Friendly", description: "A strong first safari choice for visitors" }
+    ],
+    nearbyPlaces: [
+      { name: "Elephant Transit Home", distance: "5 km", type: "Conservation" },
+      { name: "Ella", distance: "95 km", type: "Hill Country" },
+      { name: "Mirissa", distance: "125 km", type: "Beach" },
+      { name: "Ratnapura", distance: "65 km", type: "City" }
+    ],
+    tips: ["Choose early morning or late afternoon safari", "Carry a hat and water", "Use a licensed safari jeep", "Avoid feeding animals", "Keep camera batteries charged"],
+    openingHours: "6:00 AM - 6:00 PM",
+    entryFee: "Varies by visitor type and jeep package",
+    facilities: ["Safari Jeeps", "Guides", "Washrooms", "Parking", "Nearby Lodges"]
+  },
+  {
+    id: 13,
+    name: "Horton Plains & World's End",
+    city: "Ohiya",
+    district: "Nuwara Eliya",
+    region: "Hill Country",
+    category: "nature",
+    image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1549880338-65ddcdfd017b?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A cool-climate national park with misty plains, forest trails, waterfalls, and the famous World's End viewpoint.",
+    fullDescription: "Horton Plains offers a completely different Sri Lankan landscape: open montane grassland, cloud forest, chilly air, and long walking trails. The World's End viewpoint is the key attraction, where the land drops dramatically toward the lowlands on clear mornings.\n\nThe trail is best done early before mist covers the view. It fits naturally into Nuwara Eliya, Ohiya, and Ella trip plans, especially for travellers who enjoy walking, photography, and cooler climates.\n\nFor a university tourism platform, Horton Plains adds depth because it helps show Sri Lanka beyond beaches and hotels.",
+    tags: ["Hiking", "Viewpoint", "Cool Climate", "Nature", "Photography"],
+    duration: "3-5 hours",
+    bestTime: "Jan - Apr",
+    bestMonths: [0,1,2,3],
+    budget: "Medium",
+    budgetScore: 2,
+    estimatedCost: 7000,
+    lat: 6.8021,
+    lng: 80.8073,
+    featured: false,
+    vibe: "Adventure",
+    experiences: [
+      { title: "World's End Trail", description: "Walk the circular trail to the dramatic viewpoint before the clouds arrive.", duration: "3 hours", cost: 7000 },
+      { title: "Baker's Falls Stop", description: "Visit the waterfall inside the loop trail and take a short rest in the forest area.", duration: "30 minutes", cost: 0 },
+      { title: "Ohiya Scenic Drive", description: "Enjoy a winding highland drive with tea estates and misty mountain views.", duration: "1-2 hours", cost: 0 },
+      { title: "Photography Walk", description: "Capture grassland, cloud forest, and rare highland scenery in the early morning light.", duration: "Flexible", cost: 0 }
+    ],
+    highlights: [
+      { icon: "🌫️", title: "Cloud Forest", description: "Unique misty highland ecosystem" },
+      { icon: "🥾", title: "Loop Trail", description: "A manageable walking route with major viewpoints" },
+      { icon: "📷", title: "Viewpoint", description: "Dramatic morning scenery when skies are clear" },
+      { icon: "💧", title: "Baker's Falls", description: "Waterfall stop inside the national park" }
+    ],
+    nearbyPlaces: [
+      { name: "Nuwara Eliya", distance: "32 km", type: "Hill Town" },
+      { name: "Ohiya Railway Station", distance: "8 km", type: "Transport" },
+      { name: "Ambewela", distance: "25 km", type: "Farm" },
+      { name: "Ella", distance: "65 km", type: "Hill Country" }
+    ],
+    tips: ["Start very early for the best view", "Carry warm clothing", "No plastic bags are allowed inside", "Wear shoes suitable for muddy trails", "Mist can reduce visibility after late morning"],
+    openingHours: "6:00 AM - 4:00 PM",
+    entryFee: "Varies by visitor type",
+    facilities: ["Parking", "Ticket Counter", "Basic Toilets", "Guides", "Trail Signs"]
+  },
+  {
+    id: 14,
+    name: "Anuradhapura Sacred City",
+    city: "Anuradhapura",
+    district: "Anuradhapura",
+    region: "Cultural Triangle",
+    category: "heritage",
+    image: "https://images.unsplash.com/photo-1578922746465-3a80a228f223?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1578922746465-3a80a228f223?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1524492449090-a1813372d362?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A sacred ancient capital filled with stupas, monasteries, reservoirs, and living Buddhist pilgrimage sites.",
+    fullDescription: "Anuradhapura is one of Sri Lanka's most important ancient capitals and a living sacred city. Its large stupas, ancient reservoirs, monastic ruins, and pilgrimage spaces show the scale of early Sri Lankan civilization.\n\nTravellers can explore the sacred Bo tree area, massive stupas, moonstones, and archaeological sites spread across a wide heritage zone. It is best planned as a full-day or two-day Cultural Triangle experience.\n\nFor TourismHub LK, Anuradhapura supports heritage-rich itineraries that connect with Sigiriya, Dambulla, Polonnaruwa, and Kandy.",
+    tags: ["Ancient City", "Sacred", "Stupas", "UNESCO", "Pilgrimage"],
+    duration: "1-2 days",
+    bestTime: "Dec - Apr",
+    bestMonths: [11,0,1,2,3],
+    budget: "Medium",
+    budgetScore: 2,
+    estimatedCost: 6000,
+    lat: 8.3114,
+    lng: 80.4037,
+    featured: false,
+    vibe: "Culture",
+    experiences: [
+      { title: "Sacred City Circuit", description: "Visit major stupas, monastery ruins, and sacred tree areas with a guide or tuk-tuk route.", duration: "Full day", cost: 6000 },
+      { title: "Sunset by a Stupa", description: "End the day near a large white stupa as the light softens and pilgrims gather.", duration: "1 hour", cost: 0 },
+      { title: "Museum Stop", description: "Understand the history behind the ancient capital before visiting the main sites.", duration: "1 hour", cost: 1000 },
+      { title: "Reservoir Walk", description: "Enjoy the ancient tank landscapes that supported the historic kingdom.", duration: "45 minutes", cost: 0 }
+    ],
+    highlights: [
+      { icon: "⚪", title: "Giant Stupas", description: "Some of the largest ancient brick monuments in the world" },
+      { icon: "🌳", title: "Sacred Bo Tree", description: "A deeply venerated Buddhist pilgrimage site" },
+      { icon: "💧", title: "Ancient Reservoirs", description: "Engineering heritage linked to irrigation civilization" },
+      { icon: "🛕", title: "Living Heritage", description: "Archaeology and daily worship exist together" }
+    ],
+    nearbyPlaces: [
+      { name: "Mihintale", distance: "13 km", type: "Pilgrimage" },
+      { name: "Wilpattu National Park", distance: "55 km", type: "Wildlife" },
+      { name: "Dambulla", distance: "65 km", type: "Heritage" },
+      { name: "Sigiriya", distance: "75 km", type: "Heritage" }
+    ],
+    tips: ["Use a bicycle or tuk-tuk for the large site area", "Dress respectfully at sacred locations", "Carry socks for hot stone floors", "Start early to avoid heat", "Plan enough time because sites are spread out"],
+    openingHours: "Most sites open daily during daylight hours",
+    entryFee: "Varies by site and visitor type",
+    facilities: ["Guides", "Tuk-tuks", "Bicycle Hire", "Parking", "Local Food"]
+  },
+  {
+    id: 15,
+    name: "Polonnaruwa Ancient City",
+    city: "Polonnaruwa",
+    district: "Polonnaruwa",
+    region: "Cultural Triangle",
+    category: "heritage",
+    image: "https://images.unsplash.com/photo-1524492449090-a1813372d362?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1524492449090-a1813372d362?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1578922746465-3a80a228f223?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A compact ancient royal city with stone sculptures, palace ruins, temples, and cycle-friendly heritage routes.",
+    fullDescription: "Polonnaruwa is a beautifully preserved ancient capital where visitors can see royal palace ruins, Buddhist temples, carved stone images, and irrigation heritage in a relatively compact area.\n\nIt is easier to explore than some larger ancient zones because many major attractions are close enough for cycling. The site works well as a day trip from Sigiriya or as a cultural stop before moving to the east coast.\n\nIn TourismHub LK, Polonnaruwa helps build meaningful Cultural Triangle routes for travellers who want more than one heritage destination.",
+    tags: ["Ancient City", "Cycling", "Stone Art", "UNESCO", "Culture"],
+    duration: "Half day - Full day",
+    bestTime: "Dec - Apr",
+    bestMonths: [11,0,1,2,3],
+    budget: "Medium",
+    budgetScore: 2,
+    estimatedCost: 6500,
+    lat: 7.9403,
+    lng: 81.0188,
+    featured: false,
+    vibe: "Culture",
+    experiences: [
+      { title: "Cycle the Ancient City", description: "Rent a bicycle and move between palace ruins, temples, and carved stone sites.", duration: "3-5 hours", cost: 6500 },
+      { title: "Gal Vihara Visit", description: "See iconic Buddha sculptures carved from granite in a peaceful heritage setting.", duration: "45 minutes", cost: 0 },
+      { title: "Parakrama Samudra View", description: "Stop by the ancient reservoir that reflects the kingdom's engineering power.", duration: "30 minutes", cost: 0 },
+      { title: "Museum First Route", description: "Start at the museum to understand how the ancient city was arranged.", duration: "1 hour", cost: 1000 }
+    ],
+    highlights: [
+      { icon: "🚲", title: "Cycle Route", description: "A great heritage site to explore by bicycle" },
+      { icon: "🗿", title: "Stone Sculpture", description: "Famous carved Buddha images and moonstones" },
+      { icon: "👑", title: "Royal City", description: "Palace, council chamber, and temple ruins" },
+      { icon: "💧", title: "Reservoir Heritage", description: "Linked to one of Sri Lanka's greatest irrigation works" }
+    ],
+    nearbyPlaces: [
+      { name: "Minneriya National Park", distance: "40 km", type: "Wildlife" },
+      { name: "Sigiriya", distance: "60 km", type: "Heritage" },
+      { name: "Dambulla", distance: "70 km", type: "Temple" },
+      { name: "Trincomalee", distance: "105 km", type: "Beach" }
+    ],
+    tips: ["Cycling is popular but carry water", "Start early for cooler weather", "Wear modest clothing for temple areas", "Use a guide for better historical understanding", "Protect yourself from sun exposure"],
+    openingHours: "7:00 AM - 6:00 PM",
+    entryFee: "Varies by visitor type",
+    facilities: ["Museum", "Bicycle Hire", "Guides", "Parking", "Local Restaurants"]
+  },
+  {
+    id: 16,
+    name: "Jaffna Fort & Nallur Temple",
+    city: "Jaffna",
+    district: "Jaffna",
+    region: "Northern Region",
+    category: "heritage",
+    image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1605640840605-14ac1855827b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1549144511-f099e773c147?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A northern culture stop with colonial fort walls, Tamil heritage, temple rituals, food, and island day trips.",
+    fullDescription: "Jaffna gives travellers a different rhythm of Sri Lanka: Tamil culture, bright temple spaces, colonial fort remains, palmyrah landscapes, and distinctive northern food.\n\nThe city is well suited for travellers who want culture and local life beyond the most common routes. Jaffna Fort, Nallur Kandaswamy Temple, local markets, and island trips can form a full two-day itinerary.\n\nThis destination helps TourismHub LK show regional diversity and encourages visitors to explore the north responsibly and respectfully.",
+    tags: ["Northern Culture", "Fort", "Temple", "Food", "Local Life"],
+    duration: "1-2 days",
+    bestTime: "Jan - Sep",
+    bestMonths: [0,1,2,3,4,5,6,7,8],
+    budget: "Medium",
+    budgetScore: 2,
+    estimatedCost: 7500,
+    lat: 9.6615,
+    lng: 80.0255,
+    featured: false,
+    vibe: "Culture",
+    experiences: [
+      { title: "Jaffna Fort Walk", description: "Walk the fort walls and open lawns while learning about colonial and local history.", duration: "1 hour", cost: 0 },
+      { title: "Nallur Temple Visit", description: "Experience the atmosphere around one of the most important Hindu temples in the north.", duration: "1 hour", cost: 0 },
+      { title: "Jaffna Food Trail", description: "Try northern dishes, sweets, and local flavours that differ from the south and hill country.", duration: "2 hours", cost: 2500 },
+      { title: "Island Day Trip", description: "Visit nearby islands or coastal spots depending on available transport and time.", duration: "Half day", cost: 6000 }
+    ],
+    highlights: [
+      { icon: "🛕", title: "Tamil Heritage", description: "Temple culture and northern traditions" },
+      { icon: "🏰", title: "Fort Views", description: "Open colonial fort space near the lagoon" },
+      { icon: "🍛", title: "Northern Food", description: "Distinctive local cuisine and sweets" },
+      { icon: "🚆", title: "Long Rail Route", description: "A memorable train journey from Colombo or Anuradhapura" }
+    ],
+    nearbyPlaces: [
+      { name: "Nainativu", distance: "35 km + ferry", type: "Island" },
+      { name: "Casuarina Beach", distance: "25 km", type: "Beach" },
+      { name: "Keerimalai", distance: "25 km", type: "Coast" },
+      { name: "Jaffna Market", distance: "2 km", type: "Food" }
+    ],
+    tips: ["Dress respectfully around temples", "Check temple entry rules before entering", "Try local food with guidance if unfamiliar", "Plan transport for island visits early", "Respect local customs and photography rules"],
+    openingHours: "Open areas vary by site",
+    entryFee: "Mostly free or low-cost",
+    facilities: ["Hotels", "Restaurants", "Tuk-tuks", "Railway Access", "Local Markets"]
+  },
+  {
+    id: 17,
+    name: "Bentota River & Beach",
+    city: "Bentota",
+    district: "Galle",
+    region: "South Coast",
+    category: "beach",
+    image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A soft south-west coast stay with beach resorts, river cruises, water sports, and easy access from Colombo.",
+    fullDescription: "Bentota is a practical coastal destination for travellers who want beach comfort, river activities, and resort-style stays without travelling too far from Colombo.\n\nThe Bentota River adds variety to the beach experience with boat rides, mangroves, and water sports. It is a strong hotel-booking destination because many travellers use it for relaxing stays before or after longer Sri Lanka routes.\n\nFor TourismHub LK, Bentota connects directly with hotel discovery and family-friendly beach planning.",
+    tags: ["Beach", "River", "Water Sports", "Family", "Resort"],
+    duration: "1-2 days",
+    bestTime: "Dec - Apr",
+    bestMonths: [11,0,1,2,3],
+    budget: "Medium",
+    budgetScore: 2,
+    estimatedCost: 9000,
+    lat: 6.4214,
+    lng: 79.9958,
+    featured: false,
+    vibe: "Relaxation",
+    experiences: [
+      { title: "River Boat Safari", description: "Cruise through river scenery and mangrove areas with local boat operators.", duration: "1-2 hours", cost: 4500 },
+      { title: "Beach Resort Day", description: "Enjoy a slow beach day with swimming, sunset, and seafood nearby.", duration: "Half day", cost: 0 },
+      { title: "Water Sports", description: "Try jet-skiing, banana boat rides, or other water activities where available.", duration: "1 hour", cost: 6000 },
+      { title: "Brief Garden Visit", description: "Add a nearby garden/culture stop if you want a break from the beach.", duration: "2 hours", cost: 2000 }
+    ],
+    highlights: [
+      { icon: "🏖️", title: "Beach Stays", description: "Resort-friendly coastline close to Colombo" },
+      { icon: "🛶", title: "River Life", description: "Boat rides and mangrove scenery" },
+      { icon: "🌊", title: "Water Sports", description: "Active options for families and groups" },
+      { icon: "🏨", title: "Hotel Choice", description: "Good connection to stay and booking features" }
+    ],
+    nearbyPlaces: [
+      { name: "Kosgoda Turtle Hatchery", distance: "12 km", type: "Wildlife" },
+      { name: "Brief Garden", distance: "10 km", type: "Garden" },
+      { name: "Galle Fort", distance: "65 km", type: "Heritage" },
+      { name: "Colombo", distance: "85 km", type: "City" }
+    ],
+    tips: ["Best beach season is roughly December to April", "Check sea conditions before swimming", "Compare hotel locations by beach access", "Book water sports through trusted operators", "Use sun protection during midday"],
+    openingHours: "Open area",
+    entryFee: "Free beach access; activities vary",
+    facilities: ["Hotels", "Restaurants", "Water Sports", "Boat Rides", "Tuk-tuks"]
+  },
+  {
+    id: 18,
+    name: "Colombo Food & City Walk",
+    city: "Colombo",
+    district: "Colombo",
+    region: "West Coast",
+    category: "food",
+    image: "https://images.unsplash.com/photo-1604152135912-04a022e23696?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1604152135912-04a022e23696?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80"
+    ],
+    shortDescription: "A city starter experience with street food, colonial streets, oceanfront walks, markets, and nightlife.",
+    fullDescription: "Colombo is often the first or last stop in a Sri Lanka journey. It works well as a soft landing for visitors who want food, city walks, shopping, and hotels before moving to beach, hill country, or heritage routes.\n\nA food and city walk can introduce travellers to kottu, hoppers, seafood, tea, local sweets, and modern cafés. The experience connects naturally with airport arrival nights and city hotel bookings.\n\nFor TourismHub LK, Colombo is useful because it can connect tourist discovery, hotel booking, dining, and transport previews.",
+    tags: ["Food", "City", "Markets", "Nightlife", "Start Point"],
+    duration: "2-4 hours",
+    bestTime: "Year-round",
+    bestMonths: [0,1,2,3,4,5,6,7,8,9,10,11],
+    budget: "Low",
+    budgetScore: 1,
+    estimatedCost: 3000,
+    lat: 6.9271,
+    lng: 79.8612,
+    featured: false,
+    vibe: "Food",
+    experiences: [
+      { title: "Street Food Tasting", description: "Try local favourites such as kottu, hoppers, isso wade, tea, and sweets.", duration: "2 hours", cost: 3000 },
+      { title: "Galle Face Evening Walk", description: "Walk by the oceanfront in the evening and enjoy snacks and sea breeze.", duration: "1 hour", cost: 0 },
+      { title: "Pettah Market Glimpse", description: "Experience busy streets, shops, and local commercial life with care and guidance.", duration: "1-2 hours", cost: 0 },
+      { title: "City Hotel Start", description: "Use Colombo as an arrival night before beginning the main island route.", duration: "1 night", cost: 0 }
+    ],
+    highlights: [
+      { icon: "🍛", title: "Food First", description: "A quick way to taste Sri Lankan culture" },
+      { icon: "🌊", title: "Oceanfront", description: "Evening walks near the sea" },
+      { icon: "🏙️", title: "Urban Stay", description: "Useful for arrival and departure nights" },
+      { icon: "🛍️", title: "Markets", description: "Street scenes, shops, and local life" }
+    ],
+    nearbyPlaces: [
+      { name: "Galle Face Green", distance: "2 km", type: "Oceanfront" },
+      { name: "Pettah Market", distance: "2 km", type: "Market" },
+      { name: "Lotus Tower", distance: "3 km", type: "City View" },
+      { name: "Mount Lavinia", distance: "12 km", type: "Beach" }
+    ],
+    tips: ["Evening is better for food walks", "Keep belongings safe in crowded markets", "Use trusted transport at night", "Ask about spice level before ordering", "Book a Colombo stay if arriving late"],
+    openingHours: "City areas vary by business",
+    entryFee: "Free public areas; food costs vary",
+    facilities: ["Hotels", "Restaurants", "Transport", "ATMs", "Shopping"]
+  }
+
 ];
 
 export const getPlaceById = (id) => {

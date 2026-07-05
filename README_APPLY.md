@@ -1,32 +1,31 @@
-# Landing Quick Start Phase 35
+# TourismHub LK - Explore Advanced Phase 36
 
-Replaces only:
+## Files changed
+- `client/src/pages/ExplorePage.jsx`
+- `client/src/data/exploreData.js`
 
-- `client/src/pages/HomePage.jsx`
-
-Changes:
-
-- Improves the three quick-start cards under the landing hero.
-- Adds image-backed cards, badges, chips, stronger CTA buttons, and better hover style.
-- Keeps the same TourismHub LK colors and page flow.
-
-Apply:
-
+## Apply steps
 1. Extract this ZIP.
-2. Copy the extracted `client` folder into the project root.
+2. Copy the extracted `client` folder into your project root:
+   `e23-co2060-Hotel-Management-System/`
 3. Choose **Replace files**.
 4. Run:
+   ```bash
+   cd client
+   npm run dev
+   ```
+5. Test:
+   - `/explore`
+   - search and filters
+   - place detail modal
+   - add to trip
+   - hotels link
+   - trip planner link
 
-```bash
-cd client
-npm run dev
-```
-
-Commit:
-
+## Commit
 ```bash
 git status
-git add client/src/pages/HomePage.jsx
-git commit -m "Improve landing quick start cards"
+git add client/src/pages/ExplorePage.jsx client/src/data/exploreData.js
+git commit -m "Improve Explore page user experience and destinations"
 git push origin dev
 ```
