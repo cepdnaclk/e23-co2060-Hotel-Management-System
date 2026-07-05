@@ -1,16 +1,32 @@
-# Hero Phrase Fix Phase 32
+# TourismHub LK - Landing Clean Text Phase 34
 
-Replaces only:
+This update replaces only:
 
+```text
 client/src/pages/HomePage.jsx
+```
 
 Changes:
-- Replaces uneven heading with a balanced phrase.
-- Keeps "Sri Lanka" together in the same font size as the rest of the heading.
-- Slightly reduces hero heading size so it looks professional on wide screens.
+- Removed developer-style explanatory wording from the landing page.
+- Replaced it with user-friendly travel wording.
+- Kept the current landing page design, hero, sections, footer, and back-to-top button.
 
 Apply:
-1. Extract ZIP.
-2. Copy the `client` folder into your project root.
-3. Choose Replace files.
-4. Run `cd client && npm run dev`.
+1. Extract this ZIP.
+2. Copy the extracted `client` folder into the project root.
+3. Choose **Replace files**.
+4. Run:
+
+```bash
+cd client
+npm run dev
+```
+
+Commit:
+
+```bash
+git status
+git add client/src/pages/HomePage.jsx
+git commit -m "Refine landing page user-facing text"
+git push origin dev
+```

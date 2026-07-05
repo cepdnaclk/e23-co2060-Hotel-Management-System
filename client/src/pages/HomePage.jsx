@@ -155,6 +155,43 @@ function HomePage() {
     ];
   }, []);
 
+  const quickStartCards = useMemo(() => [
+    {
+      id: "discover-first",
+      label: "I want to discover first",
+      title: "Explore Sri Lanka",
+      text: "Open real places, view details, save favourites, and understand what each city offers before booking.",
+      action: "Start exploring",
+      to: "/explore",
+      icon: "🧭",
+    },
+    {
+      id: "already-know",
+      label: "I already know my stay",
+      title: "Find hotels",
+      text: "Search approved stays by city, compare rooms, then continue the booking flow with clear details.",
+      action: "Browse hotels",
+      to: "/hotels",
+      icon: "🏨",
+    },
+    {
+      id: "need-route",
+      label: "I need an itinerary",
+      title: "Plan my trip",
+      text: "Turn saved destinations into a day-by-day plan with travel notes, hotel checks, and PDF export.",
+      action: "Build route",
+      to: "/trip-planner",
+      icon: "🗺️",
+    },
+  ], []);
+
+  const landingStats = useMemo(() => [
+    { value: "Explore", label: "places, events, guides" },
+    { value: "Plan", label: "day-by-day travel routes" },
+    { value: "Stay", label: "hotels near each city" },
+    { value: "Book", label: "continue reservations" },
+  ], []);
+
   const loadHotels = async () => {
     try {
       setLoadingHotels(true);
@@ -242,14 +279,47 @@ function HomePage() {
         </div>
       </section>
 
+      <section className="quick-start-section" aria-label="Choose how to start using TourismHub LK">
+        <div className="quick-start-header">
+          <span className="section-kicker">Start your way</span>
+          <h2>Choose the easiest path for your journey</h2>
+          <p>
+            Start with the option that matches your trip: discover places, find a stay, or build a
+            day-by-day route across Sri Lanka.
+          </p>
+        </div>
+
+        <div className="quick-start-grid">
+          {quickStartCards.map((card) => (
+            <Link to={card.to} onClick={handleNavigateTop} className="quick-start-card" key={card.id}>
+              <div className="quick-icon">{card.icon}</div>
+              <span>{card.label}</span>
+              <h3>{card.title}</h3>
+              <p>{card.text}</p>
+              <strong>{card.action} →</strong>
+            </Link>
+          ))}
+        </div>
+
+        <div className="journey-flow-strip" aria-label="TourismHub LK journey flow">
+          {landingStats.map((item, index) => (
+            <div className="flow-item" key={item.value}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+              {index < landingStats.length - 1 && <em>→</em>}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="landing-showcase-section first-showcase">
         <div className="showcase-heading">
           <div>
             <span className="section-kicker">Explore Sri Lanka</span>
             <h2>Things to see and do</h2>
             <p>
-              Start with iconic places, culture, beaches, wildlife, and local experiences before
-              choosing where to stay.
+              Start with iconic places, culture, beaches, wildlife, and local experiences. Click a
+              card to open the matching destination detail view in Explore.
             </p>
           </div>
           <Link to="/explore" onClick={handleNavigateTop} className="outline-action">Explore more</Link>
@@ -300,10 +370,10 @@ function HomePage() {
 
           <div className="planner-feature-card">
             <span className="mini-label">How it helps</span>
-            <h3>A simple travel board for first-time visitors</h3>
+            <h3>A clear travel board for your Sri Lanka route</h3>
             <p>
-              The trip planner keeps the journey organized without feeling complicated. Tourists can
-              start from Explore, save places, arrange days, and continue to hotel booking naturally.
+              Save places from Explore, arrange each travel day, add notes, and continue to nearby
+              hotels when your route is ready.
             </p>
 
             <div className="planner-step-list">
@@ -329,8 +399,8 @@ function HomePage() {
             <span className="section-kicker">Hotels and stays</span>
             <h2>Stay closer to your journey</h2>
             <p>
-              Move from travel inspiration to real hotel choices. Search stays by city, compare
-              options, and continue the booking flow.
+              Move from travel inspiration to real hotel choices. Open approved stays by city,
+              compare options, and continue the booking flow.
             </p>
           </div>
           <Link to="/hotels" onClick={handleNavigateTop} className="outline-action">Hotel more</Link>
@@ -408,7 +478,7 @@ function HomePage() {
               <div className="showcase-card-body">
                 <span>{guide.subtitle}</span>
                 <h3>{guide.title}</h3>
-                <p>Choose a suitable guide and make the route easier for first-time visitors.</p>
+                <p>Choose a suitable guide and make each route easier to enjoy.</p>
               </div>
             </Link>
           ))}
@@ -702,6 +772,175 @@ const homeCss = `
 
   .hero-center-actions a:nth-child(1):hover { background: #f59e0b; }
   .hero-center-actions a:nth-child(2):hover { background: rgba(13, 148, 136, 0.86); }
+
+  .quick-start-section {
+    width: min(1180px, calc(100% - 36px));
+    margin: 58px auto 0;
+    padding: 34px;
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at 10% 10%, rgba(20,184,166,0.12), transparent 22rem),
+      linear-gradient(135deg, rgba(255,255,255,0.94), rgba(248,244,234,0.94));
+    border: 1px solid rgba(15,118,110,0.14);
+    box-shadow: 0 22px 60px rgba(15,23,42,0.07);
+  }
+
+  .quick-start-header {
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(280px, 0.55fr);
+    gap: 30px;
+    align-items: end;
+    margin-bottom: 22px;
+  }
+
+  .quick-start-header h2 {
+    margin: 14px 0 0;
+    color: #083f3b;
+    font-size: clamp(30px, 4.2vw, 52px);
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .quick-start-header p {
+    margin: 0;
+    color: #475569;
+    font-size: 16px;
+    line-height: 1.7;
+    font-weight: 720;
+  }
+
+  .quick-start-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .quick-start-card {
+    position: relative;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 24px;
+    border-radius: 26px;
+    text-decoration: none;
+    color: #172033;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(15,118,110,0.12);
+    box-shadow: 0 16px 42px rgba(15,23,42,0.07);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .quick-start-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: linear-gradient(90deg, #fbbf24, #14b8a6);
+  }
+
+  .quick-start-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(20,184,166,0.45);
+    box-shadow: 0 24px 58px rgba(15,23,42,0.12);
+  }
+
+  .quick-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: #ecfdf5;
+    color: #0f766e;
+    font-size: 24px;
+    box-shadow: inset 0 0 0 1px rgba(20,184,166,0.18);
+  }
+
+  .quick-start-card span {
+    margin-top: 18px;
+    color: #0f766e;
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .quick-start-card h3 {
+    margin: 8px 0 8px;
+    color: #083f3b;
+    font-size: 25px;
+    letter-spacing: -0.035em;
+  }
+
+  .quick-start-card p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.6;
+    font-weight: 700;
+  }
+
+  .quick-start-card strong {
+    margin-top: 20px;
+    color: #b45309;
+    font-weight: 950;
+  }
+
+  .journey-flow-strip {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 24px;
+    background: #063f3a;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    color: #ffffff;
+  }
+
+  .flow-item {
+    position: relative;
+    min-height: 74px;
+    padding: 14px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .flow-item strong,
+  .flow-item span {
+    display: block;
+  }
+
+  .flow-item strong {
+    color: #fde68a;
+    font-size: 22px;
+    font-weight: 950;
+  }
+
+  .flow-item span {
+    margin-top: 4px;
+    color: #ccfbf1;
+    font-size: 13px;
+    font-weight: 730;
+  }
+
+  .flow-item em {
+    position: absolute;
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #fbbf24;
+    color: #063f3a;
+    font-style: normal;
+    font-weight: 950;
+    z-index: 2;
+  }
 
   .landing-showcase-section,
   .partner-strip-section {
@@ -1364,6 +1603,16 @@ const homeCss = `
   }
 
   @media (max-width: 1050px) {
+    .quick-start-header,
+    .quick-start-grid,
+    .journey-flow-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .flow-item em {
+      display: none;
+    }
+
     .footer-main {
       grid-template-columns: 1fr 1fr;
     }
@@ -1413,6 +1662,16 @@ const homeCss = `
   }
 
   @media (max-width: 640px) {
+    .quick-start-section {
+      width: min(100% - 20px, 1180px);
+      padding: 24px 18px;
+      border-radius: 26px;
+    }
+
+    .quick-start-card {
+      min-height: auto;
+    }
+
     .tourismhub-footer {
       width: min(100% - 20px, 1180px);
       border-radius: 26px 26px 0 0;
