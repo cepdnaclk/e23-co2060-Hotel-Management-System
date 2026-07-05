@@ -1,33 +1,16 @@
-# TourismHub LK Landing Hero Real Video Phase 30
+# Hero Phrase Fix Phase 32
 
-This update changes the landing hero so it expects a real high-quality Sri Lanka live-action video.
+Replaces only:
 
-## Files
-- client/src/pages/HomePage.jsx
-- client/public/videos/README_VIDEO.txt
+client/src/pages/HomePage.jsx
 
-## Important
-This ZIP does not include a random video. Add your selected high-quality MP4 manually:
+Changes:
+- Replaces uneven heading with a balanced phrase.
+- Keeps "Sri Lanka" together in the same font size as the rest of the heading.
+- Slightly reduces hero heading size so it looks professional on wide screens.
 
-client/public/videos/sri-lanka-real-hero.mp4
-
-Optional poster:
-
-client/public/videos/sri-lanka-real-hero-poster.jpg
-
-Good video style:
-- Sri Lankan hospitality
-- hotel welcome / ayubowan
-- beach / hill country / heritage clips
-- real live-action video
-- not animated illustration
-
-## Apply
-Copy the `client` folder into your project root and replace files.
-
-Then add your video file to `client/public/videos/`.
-
-Run:
-cd client
-npm run dev
-
+Apply:
+1. Extract ZIP.
+2. Copy the `client` folder into your project root.
+3. Choose Replace files.
+4. Run `cd client && npm run dev`.

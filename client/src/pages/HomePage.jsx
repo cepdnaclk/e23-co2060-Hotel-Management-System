@@ -230,7 +230,7 @@ function HomePage() {
 
           <div className="hero-center-copy">
             <span>TourismHub LK</span>
-            <h1>Feel the warmth of Sri Lanka.</h1>
+            <h1>Your {"Sri\u00a0Lanka"} journey starts here.</h1>
             <p>Real journeys. Local smiles. Stays that bring you closer.</p>
 
             <div className="hero-center-actions" aria-label="Main landing actions">
@@ -619,15 +619,21 @@ const homeCss = `
 
   .hero-center-copy h1 {
     margin: 18px 0 8px;
-    max-width: 1040px;
-    font-size: clamp(46px, 7.4vw, 102px);
-    line-height: 0.9;
-    letter-spacing: -0.07em;
+    max-width: 1120px;
+    font-size: clamp(44px, 6.2vw, 88px);
+    line-height: 0.96;
+    letter-spacing: -0.055em;
     color: #ffffff;
     text-shadow: 0 16px 46px rgba(0,0,0,0.34);
   }
 
+  .hero-nowrap {
+    white-space: nowrap;
+    display: inline-block;
+  }
+
   .hero-center-copy p {
+    max-width: 980px;
     margin: 0;
     color: #fde68a;
     font-size: clamp(18px, 2.2vw, 31px);
