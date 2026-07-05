@@ -151,7 +151,7 @@ function HomePage() {
     const params = new URLSearchParams();
 
     if (destination.trim()) {
-      params.set("destination", destination.trim());
+      params.set("city", destination.trim());
     }
 
     if (checkIn) {

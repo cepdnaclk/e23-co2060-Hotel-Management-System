@@ -4,6 +4,7 @@ import PublicLayout from "./layouts/PublicLayout";
 
 import HomePage from "./pages/HomePage";
 import ExplorePage from "./pages/ExplorePage";
+import PlaceDetailsPage from "./pages/PlaceDetailsPage";
 import HotelsPage from "./pages/HotelsPage";
 import HotelDetailsPage from "./pages/HotelDetailsPage";
 import RoomAvailabilityPage from "./pages/RoomAvailabilityPage";
@@ -13,6 +14,7 @@ import TouristLoginPage from "./pages/TouristLoginPage";
 
 import BookingPage from "./pages/BookingPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import TripPlannerPage from "./pages/TripPlannerPage";
 
 import ListYourPropertyPage from "./pages/partner/ListYourPropertyPage";
 import PartnerRegisterPage from "./pages/partner/PartnerRegisterPage";
@@ -58,16 +60,9 @@ function App() {
 
         {/* Navbar future pages */}
 <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/explore/:id" element={<PlaceDetailsPage />} />
 
-        <Route
-          path="/trip-planner"
-          element={
-            <SimplePage
-              title="Trip Planner"
-              message="This page will help tourists plan their Sri Lankan travel journey in a future update."
-            />
-          }
-        />
+        <Route path="/trip-planner" element={<TripPlannerPage />} />
 
         <Route
           path="/travel-essentials"
