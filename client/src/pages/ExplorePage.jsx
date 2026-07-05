@@ -6,12 +6,13 @@ import {
   formatLkr,
   sriLankaRegions,
 } from "../data/exploreData";
+import PlaceDetailModal from "../components/PlaceDetailModal";
 
 const SAVED_PLACES_KEY = "tourismhub_trip_places";
 
 const getSavedPlaces = () => {
   try {
-    return JSON.parse(localStorage.getItem(SAVED_PLACES_KEY)) || [];
+    return JSON.parse(localStorage.getItem(SAVED_PLACES_KEY) || "[]") || [];
   } catch {
     return [];
   }
@@ -34,11 +35,7 @@ const monthNames = [
 
 const monthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// ---- Monsoon Compass geometry helpers -------------------------------------
-// Sri Lanka has two monsoon systems: the Yala (southwest) monsoon roughly
-// May-September, and the Maha (northeast) monsoon roughly October-January.
-// The commonly used tourist guideline is: West & South coasts are driest
-// (best to visit) Dec-Mar, while the East coast is driest May-Sept.
+// Monsoon Compass geometry helpers
 const polarToCartesian = (cx, cy, r, angleDeg) => {
   const angleRad = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) };
@@ -65,6 +62,10 @@ function ExplorePage() {
   const [notice, setNotice] = useState("");
   const [showTray, setShowTray] = useState(false);
   const [activeMapPlace, setActiveMapPlace] = useState(null);
+  
+  // Detail Modal State
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -155,9 +156,29 @@ function ExplorePage() {
     setSortBy("default");
   };
 
+  const openPlaceDetail = (place) => {
+    setSelectedPlace(place);
+    setIsModalOpen(true);
+  };
+
+  const closePlaceDetail = () => {
+    setIsModalOpen(false);
+    setSelectedPlace(null);
+  };
+
   return (
     <main className="explore-page">
       <style>{exploreCss}</style>
+
+      {/* Place Detail Modal */}
+      <PlaceDetailModal
+        place={selectedPlace}
+        isOpen={isModalOpen}
+        onClose={closePlaceDetail}
+        onAddToTrip={addToTrip}
+        isSaved={selectedPlace ? isPlaceSaved(selectedPlace.id) : false}
+        onRemoveFromTrip={removeFromTrip}
+      />
 
       <div className={`floating-tray ${showTray ? "open" : ""}`}>
         <div className="tray-header">
@@ -246,12 +267,18 @@ function ExplorePage() {
 
         <div className="explore-hero-grid">
           {featuredPlaces.map((place, index) => (
-            <article className={`hero-stamp hero-stamp-${index + 1}`} key={place.id}>
+            <article 
+              className={`hero-stamp hero-stamp-${index + 1}`} 
+              key={place.id}
+              onClick={() => openPlaceDetail(place)}
+              style={{ cursor: 'pointer' }}
+            >
               <img src={place.image} alt={place.name} />
               <div className="hero-stamp-caption">
                 <strong>{place.name}</strong>
                 <span>{place.region}</span>
               </div>
+              <div className="stamp-view-more">Click to view details</div>
             </article>
           ))}
         </div>
@@ -314,13 +341,18 @@ function ExplorePage() {
             ) : (
               <div className="seasonal-list">
                 {seasonalPlaces.map((place) => (
-                  <button key={place.id} className="seasonal-row" type="button" onClick={() => setSearchText(place.name)}>
+                  <button 
+                    key={place.id} 
+                    className="seasonal-row" 
+                    type="button" 
+                    onClick={() => openPlaceDetail(place)}
+                  >
                     <img src={place.image} alt={place.name} />
                     <div>
                       <strong>{place.name}</strong>
                       <span>{place.region}</span>
                     </div>
-                    <em>view →</em>
+                    <em>view details →</em>
                   </button>
                 ))}
               </div>
@@ -393,17 +425,27 @@ function ExplorePage() {
         <div className="destination-grid">
           {filteredPlaces.map((place) => (
             <article className="destination-card" key={place.id}>
-              <div className="destination-image-wrap">
+              <div 
+                className="destination-image-wrap"
+                onClick={() => openPlaceDetail(place)}
+                style={{ cursor: 'pointer' }}
+              >
                 <img src={place.image} alt={place.name} />
                 <span className="destination-postmark">{place.region}</span>
                 <button
                   type="button"
                   className="coordinates-badge"
-                  onClick={() => setActiveMapPlace(activeMapPlace?.id === place.id ? null : place)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMapPlace(activeMapPlace?.id === place.id ? null : place);
+                  }}
                   title="View GPS preview"
                 >
                   {place.lat}, {place.lng}
                 </button>
+                <div className="view-details-overlay">
+                  <span>👁️ View Full Details</span>
+                </div>
               </div>
 
               {activeMapPlace?.id === place.id && (
@@ -412,15 +454,27 @@ function ExplorePage() {
                     <p><strong>Map preview</strong></p>
                     <p>Marker: {place.name}</p>
                     <span>Latitude {place.lat} • Longitude {place.lng}</span>
+                    <a 
+                      href={`https://www.google.com/maps?q=${place.lat},${place.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="maps-external-link"
+                    >
+                      Open in Google Maps →
+                    </a>
                   </div>
                 </div>
               )}
 
               <div className="destination-body">
                 <div className="destination-title-row">
-                  <Link to={`/explore/${place.id}`} className="destination-title-link">
-                    <h3>{place.name}</h3>
-                  </Link>
+                  <h3 
+                    onClick={() => openPlaceDetail(place)}
+                    style={{ cursor: 'pointer' }}
+                    className="clickable-title"
+                  >
+                    {place.name}
+                  </h3>
                   <span className={`budget-tag budget-${place.budget.toLowerCase()}`}>{place.budget}</span>
                 </div>
 
@@ -433,6 +487,18 @@ function ExplorePage() {
                   ))}
                 </div>
 
+                {/* Experience preview */}
+                <div className="experience-preview">
+                  <span className="exp-count">{place.experiences.length} things to do</span>
+                  <button 
+                    type="button" 
+                    className="view-exp-btn"
+                    onClick={() => openPlaceDetail(place)}
+                  >
+                    View experiences →
+                  </button>
+                </div>
+
                 <div className="destination-meta">
                   <span>Best: {place.bestTime}</span>
                   <span>{formatLkr(place.estimatedCost)} est.</span>
@@ -441,20 +507,24 @@ function ExplorePage() {
                 <div className="destination-actions">
                   {isPlaceSaved(place.id) ? (
                     <button type="button" className="saved-btn" onClick={(event) => removeFromTrip(place.id, event)}>
-                      Saved — remove
+                      ✓ Saved — remove
                     </button>
                   ) : (
                     <button type="button" className="add-btn" onClick={() => addToTrip(place)}>
-                      Add to trip
+                      ➕ Add to trip
                     </button>
                   )}
 
-                  <Link to={`/explore/${place.id}`} className="details-btn">
-                    View details
-                  </Link>
+                  <button 
+                    type="button" 
+                    className="details-btn"
+                    onClick={() => openPlaceDetail(place)}
+                  >
+                    View Details
+                  </button>
 
                   <Link to={`/hotels?city=${encodeURIComponent(place.city)}`} className="hotel-btn">
-                    Hotels near {place.city}
+                    🏨 Hotels
                   </Link>
                 </div>
               </div>
@@ -542,15 +612,19 @@ const exploreCss = `
   .ghost-link { color: var(--jade); font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--jade); font-size: 14px; }
 
   .explore-hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .hero-stamp { position: relative; overflow: hidden; min-height: 200px; border: 6px solid #ffffff; outline: 1px dashed #c9bb92; outline-offset: -12px; box-shadow: 0 18px 40px rgba(14,59,58,0.22); }
+  .hero-stamp { position: relative; overflow: hidden; min-height: 200px; border: 6px solid #ffffff; outline: 1px dashed #c9bb92; outline-offset: -12px; box-shadow: 0 18px 40px rgba(14,59,58,0.22); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .hero-stamp:hover { transform: scale(1.02); box-shadow: 0 24px 50px rgba(14,59,58,0.3); }
   .hero-stamp-1 { transform: rotate(-2deg); }
   .hero-stamp-2 { transform: rotate(1.5deg) translateY(14px); }
   .hero-stamp-3 { transform: rotate(1deg) translateY(-6px); }
   .hero-stamp-4 { transform: rotate(-1.5deg) translateY(10px); }
+  .hero-stamp:hover { transform: scale(1.02) !important; }
   .hero-stamp img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .hero-stamp-caption { position: absolute; inset: auto 0 0 0; background: linear-gradient(0deg, rgba(8,38,35,0.85), transparent); color: var(--parchment); padding: 10px 12px 8px; }
   .hero-stamp-caption strong { display: block; font-family: "Rozha One", serif; font-size: 16px; }
   .hero-stamp-caption span { font-size: 11px; color: #d9cba0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stamp-view-more { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--turmeric); color: var(--ceylon-teal-deep); padding: 10px 18px; font-weight: 800; font-size: 12px; opacity: 0; transition: opacity 0.3s ease; }
+  .hero-stamp:hover .stamp-view-more { opacity: 1; }
 
   .trip-notice, .explore-stats, .explore-section, .experience-strip { max-width: 1180px; margin-left: auto; margin-right: auto; }
   .trip-notice { margin-top: 12px; padding: 14px 22px; border-left: 5px solid var(--jade); background: #eef3ea; color: var(--ceylon-teal-deep); display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
@@ -580,7 +654,8 @@ const exploreCss = `
 
   .compass-side h3 { font-size: 22px; color: var(--ceylon-teal); margin: 0 0 14px; }
   .seasonal-list { display: flex; flex-direction: column; gap: 10px; }
-  .seasonal-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; background: #ffffff; border: 1px solid #e4d9bf; padding: 10px; cursor: pointer; text-align: left; }
+  .seasonal-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; background: #ffffff; border: 1px solid #e4d9bf; padding: 10px; cursor: pointer; text-align: left; transition: all 0.2s ease; }
+  .seasonal-row:hover { border-color: var(--turmeric); background: #fdfcf8; }
   .seasonal-row img { width: 56px; height: 56px; object-fit: cover; }
   .seasonal-row strong { display: block; font-family: "Work Sans", sans-serif; font-weight: 700; color: var(--ink); font-size: 14px; }
   .seasonal-row span { font-size: 12px; color: var(--jade); font-weight: 700; }
@@ -609,40 +684,57 @@ const exploreCss = `
   .match-counter { font-weight: 700; color: var(--vermillion); margin: 2px 0 0; font-size: 13px; font-family: "IBM Plex Mono", monospace; }
 
   .destination-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-  .destination-card { background: #ffffff; border: 2px dashed #c9bb92; position: relative; display: flex; flex-direction: column; }
+  .destination-card { background: #ffffff; border: 2px dashed #c9bb92; position: relative; display: flex; flex-direction: column; transition: all 0.3s ease; }
+  .destination-card:hover { border-color: var(--turmeric); box-shadow: 0 12px 35px rgba(14,59,58,0.15); }
   .destination-image-wrap { height: 210px; position: relative; overflow: hidden; background: #e4d9bf; margin: 10px 10px 0; }
   .destination-image-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
   .destination-card:hover .destination-image-wrap img { transform: scale(1.05); }
   .destination-postmark { position: absolute; top: 10px; left: 10px; background: var(--parchment); border: 2px solid var(--ceylon-teal); color: var(--ceylon-teal); padding: 6px 10px; font-weight: 800; font-size: 11px; transform: rotate(-4deg); text-transform: uppercase; letter-spacing: 0.03em; }
   .coordinates-badge { position: absolute; bottom: 10px; right: 10px; background: var(--ceylon-teal-deep); color: var(--parchment); border: none; padding: 5px 10px; font-size: 10.5px; font-weight: 700; cursor: pointer; font-family: "IBM Plex Mono", monospace; }
+  
+  .view-details-overlay { position: absolute; inset: 0; background: rgba(14,59,58,0.7); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
+  .view-details-overlay span { background: var(--turmeric); color: var(--ceylon-teal-deep); padding: 12px 20px; font-weight: 800; font-size: 13px; }
+  .destination-image-wrap:hover .view-details-overlay { opacity: 1; }
+  
   .inline-map-preview { margin: 0 10px; background: var(--parchment); border-bottom: 2px solid #e4d9bf; padding: 12px; }
   .mock-map-canvas { background: #ffffff; border: 1px dashed #c9bb92; padding: 15px; text-align: center; color: var(--ink-soft); font-size: 12px; }
+  .maps-external-link { display: inline-block; margin-top: 10px; color: var(--jade); font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--jade); }
 
-  .destination-body { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .destination-body { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; }
   .destination-title-row { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
   .destination-title-row h3 { margin: 0; font-size: 21px; color: var(--ceylon-teal); }
+  .clickable-title { transition: color 0.2s ease; }
+  .clickable-title:hover { color: var(--turmeric); }
   .budget-tag { padding: 5px 9px; font-size: 10.5px; font-weight: 800; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.03em; }
   .budget-low { background: #e3ede4; color: var(--jade); }
   .budget-medium { background: #f6e6c4; color: #8a5d10; }
   .budget-high { background: #f1dcd8; color: var(--vermillion); }
   .destination-location { margin: 8px 0; color: var(--jade); font-weight: 700; font-size: 13.5px; }
-  .destination-text { color: var(--ink-soft); line-height: 1.6; font-weight: 500; min-height: 70px; font-size: 14.5px; }
+  .destination-text { color: var(--ink-soft); line-height: 1.6; font-weight: 500; font-size: 14.5px; flex-grow: 1; }
   .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
   .tag-row span { background: var(--parchment); color: var(--ink-soft); padding: 5px 9px; font-size: 11.5px; font-weight: 700; border: 1px solid #e4d9bf; }
+  
+  .experience-preview { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: linear-gradient(135deg, #f0f9f4, #fef9e7); border: 1px solid #d4e8d9; margin-bottom: 12px; }
+  .exp-count { font-weight: 800; color: var(--jade); font-size: 12px; }
+  .view-exp-btn { background: none; border: none; color: var(--vermillion); font-weight: 700; font-size: 12px; cursor: pointer; padding: 0; }
+  .view-exp-btn:hover { text-decoration: underline; }
+  
   .destination-meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--ink-soft); font-weight: 700; margin-bottom: 14px; font-size: 12.5px; font-family: "IBM Plex Mono", monospace; }
 
-  .destination-actions, .explore-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .btn-main, .hotel-btn, .details-btn, .add-btn, .saved-btn { border: none; padding: 11px 16px; font-weight: 800; cursor: pointer; text-decoration: none; font-size: 13.5px; }
+  .destination-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn-main, .hotel-btn, .add-btn, .saved-btn, .details-btn { border: none; padding: 11px 14px; font-weight: 800; cursor: pointer; text-decoration: none; font-size: 12px; }
   .btn-main, .add-btn { background: var(--turmeric); color: var(--ceylon-teal-deep); }
+  .details-btn { background: var(--ceylon-teal); color: var(--parchment); }
   .hotel-btn { background: transparent; color: var(--ceylon-teal); border: 1px solid var(--ceylon-teal); }
-  .details-btn { background: var(--ceylon-teal); color: var(--parchment); border: 1px solid var(--ceylon-teal); }
-  .destination-title-link { color: inherit; text-decoration: none; }
-  .destination-title-link:hover h3 { color: var(--jade); }
   .saved-btn { background: #f1dcd8; color: var(--vermillion); border: 1px dashed var(--vermillion); }
 
   .experience-strip { margin-top: 44px; padding: 36px; background: var(--ceylon-teal); color: var(--parchment); display: flex; justify-content: space-between; align-items: center; gap: 22px; }
   .experience-strip h2 { margin: 14px 0 10px; font-size: 32px; }
   .experience-strip p { margin: 0; max-width: 640px; color: #d7e6df; line-height: 1.7; font-weight: 500; }
+
+  @media (max-width: 1100px) {
+    .destination-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 
   @media (max-width: 950px) {
     .explore-hero, .destination-grid, .explore-stats, .explore-search-card, .compass-layout { grid-template-columns: 1fr; }
@@ -652,9 +744,11 @@ const exploreCss = `
     .floating-tray { width: 100%; right: -100%; }
     .explore-stats div { border-right: none; border-bottom: 1px dashed #c9bb92; }
   }
+  
   @media (max-width: 640px) {
     .explore-hero { padding-top: 44px; }
     .explore-hero-grid { grid-template-columns: 1fr 1fr; }
+    .destination-grid { grid-template-columns: 1fr; }
   }
 `;
 
