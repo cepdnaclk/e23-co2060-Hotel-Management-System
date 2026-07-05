@@ -15,6 +15,9 @@ import TouristLoginPage from "./pages/TouristLoginPage";
 import BookingPage from "./pages/BookingPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 import TripPlannerPage from "./pages/TripPlannerPage";
+import EventsPage from "./pages/EventsPage";
+import TouristGuidePage from "./pages/TouristGuidePage";
+import AboutUsPage from "./pages/AboutUsPage";
 
 import ListYourPropertyPage from "./pages/partner/ListYourPropertyPage";
 import PartnerRegisterPage from "./pages/partner/PartnerRegisterPage";
@@ -42,7 +45,6 @@ function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        {/* Tourist/Public pages */}
         <Route path="/" element={<HomePage />} />
         <Route path="/hotels" element={<HotelsPage />} />
         <Route path="/hotels/:id" element={<HotelDetailsPage />} />
@@ -53,16 +55,14 @@ function App() {
 
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/my-bookings" element={<MyBookingsPage />} />
-        <Route
-          path="/online-payment-future"
-          element={<OnlinePaymentFuturePage />}
-        />
+        <Route path="/online-payment-future" element={<OnlinePaymentFuturePage />} />
 
-        {/* Navbar future pages */}
-<Route path="/explore" element={<ExplorePage />} />
+        <Route path="/explore" element={<ExplorePage />} />
         <Route path="/explore/:id" element={<PlaceDetailsPage />} />
-
         <Route path="/trip-planner" element={<TripPlannerPage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/tourist-guides" element={<TouristGuidePage />} />
+        <Route path="/about" element={<AboutUsPage />} />
 
         <Route
           path="/travel-essentials"
@@ -74,45 +74,17 @@ function App() {
           }
         />
 
-        <Route
-          path="/events"
-          element={<SimplePage title="Events Page" />}
-        />
+        <Route path="/transport" element={<SimplePage title="Transport Page" />} />
 
-        <Route
-          path="/transport"
-          element={<SimplePage title="Transport Page" />}
-        />
-
-        {/* Partner pages */}
         <Route path="/list-your-property" element={<ListYourPropertyPage />} />
         <Route path="/partner/register" element={<PartnerRegisterPage />} />
         <Route path="/partner/login" element={<PartnerLoginPage />} />
         <Route path="/partner/dashboard" element={<PartnerDashboardPage />} />
         <Route path="/partner/bookings" element={<PartnerBookingsPage />} />
-
-        {/* Register property routes - both links work */}
-        <Route
-          path="/partner/register-property"
-          element={<RegisterPropertyPage />}
-        />
-
-        <Route
-          path="/partner/properties/new"
-          element={<RegisterPropertyPage />}
-        />
-
-        {/* Property password verification */}
-        <Route
-          path="/partner/property-login/:id"
-          element={<PropertyLoginPage />}
-        />
-
-        {/* Property management */}
-        <Route
-          path="/partner/properties/:id"
-          element={<PropertyManagementPage />}
-        />
+        <Route path="/partner/register-property" element={<RegisterPropertyPage />} />
+        <Route path="/partner/properties/new" element={<RegisterPropertyPage />} />
+        <Route path="/partner/property-login/:id" element={<PropertyLoginPage />} />
+        <Route path="/partner/properties/:id" element={<PropertyManagementPage />} />
 
         <Route
           path="*"
@@ -129,4 +101,3 @@ function App() {
 }
 
 export default App;
-

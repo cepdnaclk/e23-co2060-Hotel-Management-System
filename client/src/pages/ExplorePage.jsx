@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   exploreCategories,
   explorePlaces,
@@ -54,6 +54,8 @@ const WEST_SOUTH_ARC = describeArc(110, 110, 88, 330, 450);
 const EAST_ARC = describeArc(110, 110, 88, 120, 270);
 
 function ExplorePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedPlaceIdFromQuery = searchParams.get("place");
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRegion, setSelectedRegion] = useState("All Regions");
@@ -66,6 +68,26 @@ function ExplorePage() {
   // Detail Modal State
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    if (!selectedPlaceIdFromQuery) {
+      return;
+    }
+
+    const matchedPlace = explorePlaces.find(
+      (place) => String(place.id) === String(selectedPlaceIdFromQuery)
+    );
+
+    if (matchedPlace) {
+      setSearchText("");
+      setSelectedCategory("all");
+      setSelectedRegion("All Regions");
+      setSelectedPlace(matchedPlace);
+      setIsModalOpen(true);
+    }
+  }, [selectedPlaceIdFromQuery]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -157,17 +179,23 @@ function ExplorePage() {
   };
 
   const openPlaceDetail = (place) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("place", String(place.id));
+    setSearchParams(nextParams);
     setSelectedPlace(place);
     setIsModalOpen(true);
   };
 
   const closePlaceDetail = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("place");
+    setSearchParams(nextParams, { replace: true });
     setIsModalOpen(false);
     setSelectedPlace(null);
   };
 
   return (
-    <main className="explore-page">
+    <main className="explore-page" id="explore-top">
       <style>{exploreCss}</style>
 
       {/* Place Detail Modal */}
