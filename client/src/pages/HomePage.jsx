@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import { explorePlaces } from "../data/exploreData";
+import { homeEventCollections } from "../data/eventData";
 
 const fallbackHotels = [
   {
@@ -95,35 +96,7 @@ function HomePage() {
     };
   }, []);
 
-  const eventCards = useMemo(() => {
-    const kandy = explorePlaces.find((place) => place.city === "Kandy") || explorePlaces[0];
-    const mirissa = explorePlaces.find((place) => place.city === "Mirissa") || explorePlaces[0];
-    const colombo = explorePlaces.find((place) => place.city === "Colombo") || explorePlaces[0];
-
-    return [
-      {
-        id: "perahera-night",
-        title: "Cultural nights",
-        subtitle: "Kandy • Perahera • temple city",
-        image: getPlaceImage(kandy),
-        meta: "Festivals",
-      },
-      {
-        id: "coastal-events",
-        title: "Coastal evenings",
-        subtitle: "Mirissa • music • sunsets",
-        image: getPlaceImage(mirissa),
-        meta: "Beach life",
-      },
-      {
-        id: "city-food-events",
-        title: "City food walks",
-        subtitle: "Colombo • street food • local stories",
-        image: getPlaceImage(colombo),
-        meta: "Food events",
-      },
-    ];
-  }, []);
+  const eventCards = useMemo(() => homeEventCollections, []);
 
   const guideCards = useMemo(() => {
     const sigiriya = explorePlaces.find((place) => place.name?.toLowerCase().includes("sigiriya")) || explorePlaces[0];
@@ -477,13 +450,18 @@ function HomePage() {
 
         <div className="showcase-card-grid event-grid">
           {eventCards.map((event) => (
-            <Link to="/events" onClick={handleNavigateTop} className="showcase-card route-card" key={event.id}>
+            <Link
+              to={`/events?category=${encodeURIComponent(event.category)}&city=${encodeURIComponent(event.city)}`}
+              onClick={handleNavigateTop}
+              className="showcase-card route-card"
+              key={event.id}
+            >
               <img src={event.image} alt={event.title} />
               <div className="route-badge">{event.meta}</div>
               <div className="showcase-card-body">
                 <span>{event.subtitle}</span>
                 <h3>{event.title}</h3>
-                <p>Browse events and connect the experience with nearby hotels and trip days.</p>
+                <p>{event.description}</p>
               </div>
             </Link>
           ))}

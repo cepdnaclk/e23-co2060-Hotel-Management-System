@@ -16,6 +16,7 @@ import BookingPage from "./pages/BookingPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 import TripPlannerPage from "./pages/TripPlannerPage";
 import EventsPage from "./pages/EventsPage";
+import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
 import AboutUsPage from "./pages/AboutUsPage";
 
@@ -61,6 +62,7 @@ function App() {
         <Route path="/explore/:id" element={<PlaceDetailsPage />} />
         <Route path="/trip-planner" element={<TripPlannerPage />} />
         <Route path="/events" element={<EventsPage />} />
+        <Route path="/events/:id" element={<EventDetailsPage />} />
         <Route path="/tourist-guides" element={<TouristGuidePage />} />
         <Route path="/about" element={<AboutUsPage />} />
 
