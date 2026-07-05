@@ -1,17 +1,17 @@
-# TourismHub LK - Landing Clean Text Phase 34
+# Landing Quick Start Phase 35
 
-This update replaces only:
+Replaces only:
 
-```text
-client/src/pages/HomePage.jsx
-```
+- `client/src/pages/HomePage.jsx`
 
 Changes:
-- Removed developer-style explanatory wording from the landing page.
-- Replaced it with user-friendly travel wording.
-- Kept the current landing page design, hero, sections, footer, and back-to-top button.
+
+- Improves the three quick-start cards under the landing hero.
+- Adds image-backed cards, badges, chips, stronger CTA buttons, and better hover style.
+- Keeps the same TourismHub LK colors and page flow.
 
 Apply:
+
 1. Extract this ZIP.
 2. Copy the extracted `client` folder into the project root.
 3. Choose **Replace files**.
@@ -27,6 +27,6 @@ Commit:
 ```bash
 git status
 git add client/src/pages/HomePage.jsx
-git commit -m "Refine landing page user-facing text"
+git commit -m "Improve landing quick start cards"
 git push origin dev
 ```

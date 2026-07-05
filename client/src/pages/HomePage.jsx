@@ -155,35 +155,50 @@ function HomePage() {
     ];
   }, []);
 
-  const quickStartCards = useMemo(() => [
-    {
-      id: "discover-first",
-      label: "I want to discover first",
-      title: "Explore Sri Lanka",
-      text: "Open real places, view details, save favourites, and understand what each city offers before booking.",
-      action: "Start exploring",
-      to: "/explore",
-      icon: "🧭",
-    },
-    {
-      id: "already-know",
-      label: "I already know my stay",
-      title: "Find hotels",
-      text: "Search approved stays by city, compare rooms, then continue the booking flow with clear details.",
-      action: "Browse hotels",
-      to: "/hotels",
-      icon: "🏨",
-    },
-    {
-      id: "need-route",
-      label: "I need an itinerary",
-      title: "Plan my trip",
-      text: "Turn saved destinations into a day-by-day plan with travel notes, hotel checks, and PDF export.",
-      action: "Build route",
-      to: "/trip-planner",
-      icon: "🗺️",
-    },
-  ], []);
+  const quickStartCards = useMemo(() => {
+    const sigiriya = explorePlaces.find((place) => place.name?.toLowerCase().includes("sigiriya")) || explorePlaces[0];
+    const ella = explorePlaces.find((place) => place.city === "Ella") || explorePlaces[1] || explorePlaces[0];
+    const mirissa = explorePlaces.find((place) => place.city === "Mirissa") || explorePlaces[2] || explorePlaces[0];
+
+    return [
+      {
+        id: "discover-first",
+        label: "Start with inspiration",
+        title: "Explore Sri Lanka",
+        text: "Open destination stories, browse experiences, and save the places that match your mood before choosing where to stay.",
+        action: "Start exploring",
+        to: "/explore",
+        icon: "🧭",
+        image: getPlaceImage(sigiriya),
+        badge: "Best first step",
+        chips: ["Places", "Experiences", "Local tips"],
+      },
+      {
+        id: "already-know",
+        label: "Ready to stay",
+        title: "Find hotels",
+        text: "Search approved hotels by city, compare room options, and continue smoothly to reservation details.",
+        action: "Browse hotels",
+        to: "/hotels",
+        icon: "🏨",
+        image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=85",
+        badge: "Book-ready",
+        chips: ["Approved stays", "Room details", "Bookings"],
+      },
+      {
+        id: "need-route",
+        label: "Build the route",
+        title: "Plan my trip",
+        text: "Arrange saved places into travel days, check hotel needs for each night, and download a clean itinerary.",
+        action: "Build route",
+        to: "/trip-planner",
+        icon: "🗺️",
+        image: getPlaceImage(ella || mirissa),
+        badge: "Day-by-day",
+        chips: ["Daily plan", "Stay checks", "PDF export"],
+      },
+    ];
+  }, []);
 
   const landingStats = useMemo(() => [
     { value: "Explore", label: "places, events, guides" },
@@ -281,22 +296,40 @@ function HomePage() {
 
       <section className="quick-start-section" aria-label="Choose how to start using TourismHub LK">
         <div className="quick-start-header">
-          <span className="section-kicker">Start your way</span>
-          <h2>Choose the easiest path for your journey</h2>
+          <span className="section-kicker">Start your journey</span>
+          <h2>What would you like to do first?</h2>
           <p>
-            Start with the option that matches your trip: discover places, find a stay, or build a
-            day-by-day route across Sri Lanka.
+            Choose a path that matches your travel mood: discover the island, find a stay, or build
+            a day-by-day route across Sri Lanka.
           </p>
         </div>
 
         <div className="quick-start-grid">
           {quickStartCards.map((card) => (
-            <Link to={card.to} onClick={handleNavigateTop} className="quick-start-card" key={card.id}>
-              <div className="quick-icon">{card.icon}</div>
-              <span>{card.label}</span>
-              <h3>{card.title}</h3>
-              <p>{card.text}</p>
-              <strong>{card.action} →</strong>
+            <Link
+              to={card.to}
+              onClick={handleNavigateTop}
+              className={`quick-start-card ${card.id}`}
+              key={card.id}
+            >
+              <div className="quick-card-visual">
+                <img src={card.image} alt={card.title} />
+                <div className="quick-card-shade" />
+                <span className="quick-card-badge">{card.badge}</span>
+                <div className="quick-icon">{card.icon}</div>
+              </div>
+
+              <div className="quick-card-content">
+                <span className="quick-eyebrow">{card.label}</span>
+                <h3>{card.title}</h3>
+                <p>{card.text}</p>
+                <div className="quick-chip-row">
+                  {card.chips.map((chip) => (
+                    <em key={chip}>{chip}</em>
+                  ))}
+                </div>
+                <strong>{card.action} →</strong>
+              </div>
             </Link>
           ))}
         </div>
@@ -812,79 +845,170 @@ const homeCss = `
   .quick-start-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    gap: 22px;
   }
 
   .quick-start-card {
     position: relative;
-    min-height: 250px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 24px;
-    border-radius: 26px;
+    display: grid;
+    grid-template-rows: 190px 1fr;
+    min-height: 440px;
+    overflow: hidden;
+    border-radius: 30px;
     text-decoration: none;
     color: #172033;
-    background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(15,118,110,0.12);
-    box-shadow: 0 16px 42px rgba(15,23,42,0.07);
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(15,118,110,0.16);
+    box-shadow: 0 24px 58px rgba(15,23,42,0.10);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
   }
 
   .quick-start-card::before {
     content: "";
     position: absolute;
     inset: 0 0 auto 0;
-    height: 5px;
-    background: linear-gradient(90deg, #fbbf24, #14b8a6);
+    height: 6px;
+    background: linear-gradient(90deg, #fbbf24, #14b8a6, #0f766e);
+    z-index: 4;
   }
 
   .quick-start-card:hover {
-    transform: translateY(-6px);
-    border-color: rgba(20,184,166,0.45);
-    box-shadow: 0 24px 58px rgba(15,23,42,0.12);
+    transform: translateY(-8px);
+    border-color: rgba(20,184,166,0.52);
+    box-shadow: 0 34px 76px rgba(15,23,42,0.16);
+  }
+
+  .quick-card-visual {
+    position: relative;
+    overflow: hidden;
+    background: #063f3a;
+  }
+
+  .quick-card-visual img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    transform: scale(1.02);
+    transition: transform 0.38s ease, filter 0.38s ease;
+  }
+
+  .quick-start-card:hover .quick-card-visual img {
+    transform: scale(1.09);
+    filter: saturate(1.12);
+  }
+
+  .quick-card-shade {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(251, 191, 36, 0.24), transparent 16rem),
+      linear-gradient(180deg, rgba(6, 63, 58, 0.05) 0%, rgba(6, 63, 58, 0.78) 100%);
+  }
+
+  .quick-card-badge {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 2;
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.88);
+    color: #063f3a;
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    backdrop-filter: blur(10px);
   }
 
   .quick-icon {
-    width: 48px;
-    height: 48px;
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2;
+    width: 58px;
+    height: 58px;
     display: grid;
     place-items: center;
-    border-radius: 18px;
-    background: #ecfdf5;
-    color: #0f766e;
-    font-size: 24px;
-    box-shadow: inset 0 0 0 1px rgba(20,184,166,0.18);
+    border-radius: 22px;
+    background: #fbbf24;
+    color: #063f3a;
+    font-size: 28px;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.20), inset 0 0 0 2px rgba(255,255,255,0.56);
   }
 
-  .quick-start-card span {
-    margin-top: 18px;
+  .quick-card-content {
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .quick-eyebrow {
     color: #0f766e;
     font-size: 12px;
     font-weight: 950;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
   }
 
   .quick-start-card h3 {
-    margin: 8px 0 8px;
+    margin: 10px 0 10px;
     color: #083f3b;
-    font-size: 25px;
-    letter-spacing: -0.035em;
+    font-size: clamp(25px, 2.4vw, 34px);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
   }
 
   .quick-start-card p {
     margin: 0;
-    color: #64748b;
-    line-height: 1.6;
-    font-weight: 700;
+    color: #4b5f78;
+    line-height: 1.65;
+    font-weight: 720;
+  }
+
+  .quick-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0 22px;
+  }
+
+  .quick-chip-row em {
+    display: inline-flex;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #0f766e;
+    border: 1px solid rgba(20,184,166,0.20);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 900;
   }
 
   .quick-start-card strong {
-    margin-top: 20px;
-    color: #b45309;
+    margin-top: auto;
+    min-height: 46px;
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: #063f3a;
+    color: #ffffff;
     font-weight: 950;
+    box-shadow: 0 14px 30px rgba(6, 63, 58, 0.16);
+  }
+
+  .quick-start-card.discover-first strong {
+    background: #fbbf24;
+    color: #092f2b;
+  }
+
+  .quick-start-card.already-know strong {
+    background: #0f766e;
   }
 
   .journey-flow-strip {
