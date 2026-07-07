@@ -20,6 +20,7 @@ import ListYourPropertyPage from "./pages/partner/ListYourPropertyPage";
 import PartnerRegisterPage from "./pages/partner/PartnerRegisterPage";
 import PartnerLoginPage from "./pages/partner/PartnerLoginPage";
 import PartnerDashboardPage from "./pages/partner/PartnerDashboardPage";
+import PartnerEventRegistrationPage from "./pages/partner/PartnerEventRegistrationPage";
 import PropertyManagementPage from "./pages/partner/PropertyManagementPage";
 import PropertyLoginPage from "./pages/partner/PropertyLoginPage";
 import RegisterPropertyPage from "./pages/partner/RegisterPropertyPage";
@@ -94,6 +95,15 @@ function App() {
         <Route path="/partner/login" element={<PartnerLoginPage />} />
         <Route path="/partner/dashboard" element={<PartnerDashboardPage />} />
         <Route path="/partner/bookings" element={<PartnerBookingsPage />} />
+        <Route
+          path="/partner/event-registration"
+          element={<PartnerEventRegistrationPage />}
+        />
+        <Route path="/partner/events" element={<PartnerEventRegistrationPage />} />
+        <Route
+          path="/partner/events/new"
+          element={<PartnerEventRegistrationPage />}
+        />
 
         {/* Register property routes - both links work */}
         <Route

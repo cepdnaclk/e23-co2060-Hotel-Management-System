@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+
+const getStatusCount = (items, status) =>
+  items.filter((item) => item.status === status).length;
 
 function PartnerDashboardPage() {
   const { user, isLoggedIn, logout } = useAuth();
@@ -9,6 +12,7 @@ function PartnerDashboardPage() {
 
   const [profile, setProfile] = useState(null);
   const [properties, setProperties] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -17,17 +21,30 @@ function PartnerDashboardPage() {
       setLoading(true);
       setError("");
 
-      const [profileResponse, propertiesResponse] = await Promise.all([
-        api.get("/partner/profile"),
-        api.get("/partner/properties"),
-      ]);
+      const [profileResponse, propertiesResponse, eventsResponse] =
+        await Promise.allSettled([
+          api.get("/partner/profile"),
+          api.get("/partner/properties"),
+          api.get("/partner/events"),
+        ]);
 
-      setProfile(profileResponse.data.data);
-      setProperties(propertiesResponse.data.data || []);
-    } catch (error) {
-      setError(
-        error.response?.data?.message || "Failed to load partner dashboard"
-      );
+      if (profileResponse.status === "fulfilled") {
+        setProfile(profileResponse.value.data.data);
+      }
+
+      if (propertiesResponse.status === "fulfilled") {
+        setProperties(propertiesResponse.value.data.data || []);
+      }
+
+      if (eventsResponse.status === "fulfilled") {
+        setEvents(eventsResponse.value.data.events || []);
+      }
+
+      if (profileResponse.status === "rejected" || propertiesResponse.status === "rejected") {
+        setError("Some dashboard details could not be loaded. Please refresh again.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load partner dashboard");
     } finally {
       setLoading(false);
     }
@@ -38,6 +55,18 @@ function PartnerDashboardPage() {
       loadDashboard();
     }
   }, [isLoggedIn, user]);
+
+  const stats = useMemo(
+    () => ({
+      properties: properties.length,
+      approvedProperties: getStatusCount(properties, "approved"),
+      pendingProperties: getStatusCount(properties, "pending"),
+      events: events.length,
+      publishedEvents: getStatusCount(events, "published"),
+      draftEvents: getStatusCount(events, "draft"),
+    }),
+    [properties, events]
+  );
 
   if (!isLoggedIn) {
     return <Navigate to="/partner/login" />;
@@ -67,301 +96,455 @@ function PartnerDashboardPage() {
     }
   };
 
-  return (
-    <div className="page">
-      <div style={styles.header}>
-        <div>
-          <h1>Partner Dashboard</h1>
-          <p>
-            Welcome,{" "}
-            <strong>{profile?.full_name || user?.full_name || "Partner"}</strong>
-          </p>
-        </div>
+  const partnerName = profile?.full_name || user?.full_name || "Partner";
 
-        <div style={styles.headerActions}>
-          <Link to="/partner/register-property" className="btn-primary">
-            Register New Property
-          </Link>
+  return (
+    <div style={styles.pageShell}>
+      <section style={styles.hero}>
+        <div style={styles.heroPattern} />
+        <div style={styles.heroContent}>
+          <div>
+            <span style={styles.badge}>TourismHub LK Partner Portal</span>
+            <h1 style={styles.heroTitle}>Welcome back, {partnerName}</h1>
+            <p style={styles.heroText}>
+              Register properties, publish tourism events, and manage your business presence from one dashboard.
+            </p>
+          </div>
 
           <button type="button" onClick={handleLogout} style={styles.logoutBtn}>
             Logout
           </button>
         </div>
-      </div>
+      </section>
 
       {error && <div style={styles.errorBox}>{error}</div>}
 
-      <div style={styles.statsGrid}>
-        <div className="card" style={styles.statCard}>
-          <h3>Total Properties</h3>
-          <strong>{properties.length}</strong>
-        </div>
-
-        <div className="card" style={styles.statCard}>
-          <h3>Approved</h3>
-          <strong>
-            {properties.filter((property) => property.status === "approved").length}
-          </strong>
-        </div>
-
-        <div className="card" style={styles.statCard}>
-          <h3>Pending</h3>
-          <strong>
-            {properties.filter((property) => property.status === "pending").length}
-          </strong>
-        </div>
-      </div>
-
-      <div className="card" style={styles.propertiesCard}>
-        <h2>My Properties</h2>
-
-        {loading ? (
-          <p>Loading properties...</p>
-        ) : properties.length === 0 ? (
-          <div style={styles.emptyBox}>
-            <h3>No properties yet</h3>
-            <p>Register your first hotel or property.</p>
-            <Link to="/partner/register-property" className="btn-primary">
-              Register Property
-            </Link>
+      <section style={styles.actionGrid}>
+        <Link to="/partner/register-property" style={styles.actionCard}>
+          <div style={styles.actionIcon}>🏨</div>
+          <div>
+            <p style={styles.actionLabel}>Property Registration</p>
+            <h2 style={styles.actionTitle}>Register a hotel or property</h2>
+            <p style={styles.actionText}>
+              Add hotel details, rooms, photos, pricing, policies, and submit for admin approval.
+            </p>
           </div>
-        ) : (
-          <div style={styles.propertyGrid}>
-            {properties.map((property) => (
-              <div key={property.id} style={styles.propertyCard}>
-                <div style={styles.imageWrap}>
-                  {property.main_image ? (
-                    <img
-                      src={property.main_image}
-                      alt={property.name}
-                      style={styles.propertyImage}
-                    />
-                  ) : (
-                    <div style={styles.emptyImage}>No main photo</div>
-                  )}
+          <span style={styles.actionButton}>Go to Property Registration →</span>
+        </Link>
 
-                  {property.logo_url && (
-                    <img
-                      src={property.logo_url}
-                      alt={`${property.name} logo`}
-                      style={styles.logo}
-                    />
-                  )}
-                </div>
-
-                <div style={styles.propertyContent}>
-                  <div style={styles.propertyTitleRow}>
-                    <h3>{property.name}</h3>
-                    <span className={`status-badge status-${property.status}`}>
-                      {property.status}
-                    </span>
-                  </div>
-
-                  <p style={styles.city}>
-                    {property.city}
-                    {property.district ? `, ${property.district}` : ""}
-                  </p>
-
-                  <p style={styles.description}>
-                    {property.description || "No description added."}
-                  </p>
-
-                  <div style={styles.actionRow}>
-                    <button
-                      type="button"
-                      onClick={() => handleManageProperty(property.id)}
-                      style={styles.manageBtn}
-                    >
-                      Manage Property
-                    </button>
-
-                    <Link
-                      to={`/hotels/${property.id}`}
-                      target="_blank"
-                      style={styles.viewBtn}
-                    >
-                      View Page
-                    </Link>
-                  </div>
-
-                  <p style={styles.securityNote}>
-                    Manage Property requires the password created during property
-                    registration.
-                  </p>
-                </div>
-              </div>
-            ))}
+        <Link to="/partner/event-registration" style={{ ...styles.actionCard, ...styles.eventActionCard }}>
+          <div style={styles.actionIcon}>🎉</div>
+          <div>
+            <p style={styles.actionLabel}>Event Registration</p>
+            <h2 style={styles.actionTitle}>Register and edit events</h2>
+            <p style={styles.actionText}>
+              Create hotel experiences, cultural nights, food events, wellness activities, and publish them for tourists.
+            </p>
           </div>
-        )}
-      </div>
+          <span style={styles.actionButton}>Go to Event Registration →</span>
+        </Link>
+      </section>
+
+      <section style={styles.statsGrid}>
+        <div style={styles.statCard}>
+          <span>Total Properties</span>
+          <strong>{stats.properties}</strong>
+          <small>{stats.approvedProperties} approved</small>
+        </div>
+        <div style={styles.statCard}>
+          <span>Pending Properties</span>
+          <strong>{stats.pendingProperties}</strong>
+          <small>Waiting for admin review</small>
+        </div>
+        <div style={styles.statCard}>
+          <span>Total Events</span>
+          <strong>{stats.events}</strong>
+          <small>{stats.publishedEvents} published</small>
+        </div>
+        <div style={styles.statCard}>
+          <span>Draft Events</span>
+          <strong>{stats.draftEvents}</strong>
+          <small>Complete and publish later</small>
+        </div>
+      </section>
+
+      <section style={styles.contentGrid}>
+        <div className="card" style={styles.panel}>
+          <div style={styles.panelHeader}>
+            <div>
+              <h2 style={styles.panelTitle}>My Properties</h2>
+              <p style={styles.panelSubtitle}>Open property management after password verification.</p>
+            </div>
+            <Link to="/partner/register-property" style={styles.smallLink}>+ Add Property</Link>
+          </div>
+
+          {loading ? (
+            <p style={styles.mutedText}>Loading properties...</p>
+          ) : properties.length === 0 ? (
+            <div style={styles.emptyBox}>
+              <h3>No properties yet</h3>
+              <p>Use the Property Registration button to submit your first property.</p>
+            </div>
+          ) : (
+            <div style={styles.listStack}>
+              {properties.slice(0, 4).map((property) => (
+                <div key={property.id} style={styles.propertyRow}>
+                  <div style={styles.thumbWrap}>
+                    {property.main_image ? (
+                      <img src={property.main_image} alt={property.name} style={styles.thumbImage} />
+                    ) : (
+                      <span style={styles.thumbFallback}>Hotel</span>
+                    )}
+                  </div>
+                  <div style={styles.rowMain}>
+                    <h3 style={styles.rowTitle}>{property.name}</h3>
+                    <p style={styles.rowText}>{property.city}{property.district ? `, ${property.district}` : ""}</p>
+                  </div>
+                  <span className={`status-badge status-${property.status}`}>
+                    {property.status}
+                  </span>
+                  <button type="button" onClick={() => handleManageProperty(property.id)} style={styles.rowButton}>
+                    Manage
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={styles.panel}>
+          <div style={styles.panelHeader}>
+            <div>
+              <h2 style={styles.panelTitle}>My Events</h2>
+              <p style={styles.panelSubtitle}>Edit, publish, hide, or delete partner events.</p>
+            </div>
+            <Link to="/partner/event-registration" style={styles.smallLink}>+ Add Event</Link>
+          </div>
+
+          {loading ? (
+            <p style={styles.mutedText}>Loading events...</p>
+          ) : events.length === 0 ? (
+            <div style={styles.emptyBox}>
+              <h3>No events yet</h3>
+              <p>Use the Event Registration button to publish your first event.</p>
+            </div>
+          ) : (
+            <div style={styles.listStack}>
+              {events.slice(0, 4).map((event) => (
+                <div key={event.id} style={styles.eventRow}>
+                  <div style={styles.eventDateBox}>
+                    <strong>{event.month_name?.slice(0, 3) || "EVT"}</strong>
+                    <span>{event.event_date ? String(event.event_date).slice(8, 10) : "Soon"}</span>
+                  </div>
+                  <div style={styles.rowMain}>
+                    <h3 style={styles.rowTitle}>{event.title}</h3>
+                    <p style={styles.rowText}>{event.city} • {event.category}</p>
+                  </div>
+                  <span style={styles.eventStatus(event.status)}>{event.status}</span>
+                  <Link to={`/partner/event-registration?edit=${event.id}`} style={styles.editEventLink}>
+                    Edit
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
 
 const styles = {
+  pageShell: {
+    padding: "34px 20px 60px",
+    background:
+      "linear-gradient(135deg, rgba(240,253,244,0.95), rgba(239,246,255,0.9))",
+    minHeight: "calc(100vh - 76px)",
+  },
   noticeCard: {
     padding: "30px",
     textAlign: "center",
   },
-
-  header: {
+  hero: {
+    maxWidth: "1180px",
+    margin: "0 auto 22px",
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: "30px",
+    background:
+      "linear-gradient(135deg, #064e3b 0%, #0f7a43 45%, #0b63ce 100%)",
+    boxShadow: "0 28px 70px rgba(6,78,59,0.28)",
+  },
+  heroPattern: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.20), transparent 28%), radial-gradient(circle at 85% 10%, rgba(255,255,255,0.16), transparent 24%)",
+  },
+  heroContent: {
+    position: "relative",
+    zIndex: 1,
+    padding: "42px",
+    color: "white",
     display: "flex",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: "20px",
-    marginBottom: "24px",
   },
-
-  headerActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
+  badge: {
+    display: "inline-flex",
+    padding: "8px 12px",
+    borderRadius: "999px",
+    background: "rgba(255,255,255,0.16)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    fontWeight: 900,
+    fontSize: "13px",
   },
-
+  heroTitle: {
+    margin: "18px 0 10px",
+    fontSize: "clamp(34px, 5vw, 54px)",
+    lineHeight: 1.02,
+  },
+  heroText: {
+    maxWidth: "720px",
+    margin: 0,
+    color: "rgba(255,255,255,0.88)",
+    fontSize: "17px",
+    lineHeight: 1.7,
+  },
   logoutBtn: {
-    border: "none",
-    background: "#ef4444",
+    border: "1px solid rgba(255,255,255,0.35)",
+    background: "rgba(255,255,255,0.14)",
     color: "#ffffff",
-    padding: "12px 16px",
-    borderRadius: "12px",
-    fontWeight: "900",
+    padding: "12px 18px",
+    borderRadius: "14px",
+    fontWeight: 900,
     cursor: "pointer",
   },
-
   errorBox: {
+    maxWidth: "1180px",
+    margin: "0 auto 18px",
     background: "#fee2e2",
     color: "#991b1b",
     padding: "14px 18px",
-    borderRadius: "14px",
-    marginBottom: "18px",
-    fontWeight: "800",
+    borderRadius: "16px",
+    fontWeight: 800,
   },
-
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "18px",
-    marginBottom: "22px",
-  },
-
-  statCard: {
-    padding: "22px",
-  },
-
-  propertiesCard: {
-    padding: "24px",
-  },
-
-  emptyBox: {
-    textAlign: "center",
-    padding: "35px",
-  },
-
-  propertyGrid: {
+  actionGrid: {
+    maxWidth: "1180px",
+    margin: "0 auto 22px",
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: "20px",
-    marginTop: "18px",
   },
-
-  propertyCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: "20px",
-    overflow: "hidden",
+  actionCard: {
+    textDecoration: "none",
+    color: "#0f172a",
     background: "#ffffff",
-    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
+    border: "1px solid #bbf7d0",
+    borderRadius: "26px",
+    padding: "26px",
+    minHeight: "250px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
   },
-
-  imageWrap: {
-    height: "210px",
-    position: "relative",
-    background: "#f1f5f9",
+  eventActionCard: {
+    border: "1px solid #bfdbfe",
+    background:
+      "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
   },
-
-  propertyImage: {
+  actionIcon: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "20px",
+    display: "grid",
+    placeItems: "center",
+    fontSize: "30px",
+    background: "#ecfdf5",
+    marginBottom: "18px",
+  },
+  actionLabel: {
+    margin: 0,
+    color: "#0f7a43",
+    fontWeight: 900,
+    letterSpacing: "0.03em",
+    textTransform: "uppercase",
+    fontSize: "12px",
+  },
+  actionTitle: {
+    margin: "8px 0",
+    fontSize: "28px",
+  },
+  actionText: {
+    color: "#64748b",
+    lineHeight: 1.65,
+    margin: 0,
+  },
+  actionButton: {
+    marginTop: "20px",
+    display: "inline-flex",
+    width: "fit-content",
+    background: "#111827",
+    color: "#ffffff",
+    padding: "12px 16px",
+    borderRadius: "14px",
+    fontWeight: 900,
+  },
+  statsGrid: {
+    maxWidth: "1180px",
+    margin: "0 auto 22px",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+    gap: "16px",
+  },
+  statCard: {
+    background: "rgba(255,255,255,0.82)",
+    border: "1px solid #e2e8f0",
+    borderRadius: "22px",
+    padding: "20px",
+    boxShadow: "0 14px 34px rgba(15,23,42,0.06)",
+    display: "grid",
+    gap: "6px",
+  },
+  contentGrid: {
+    maxWidth: "1180px",
+    margin: "0 auto",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+    gap: "20px",
+  },
+  panel: {
+    padding: "24px",
+    borderRadius: "24px",
+  },
+  panelHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "14px",
+    marginBottom: "18px",
+  },
+  panelTitle: {
+    margin: 0,
+  },
+  panelSubtitle: {
+    margin: "6px 0 0",
+    color: "#64748b",
+  },
+  smallLink: {
+    textDecoration: "none",
+    color: "#0b63ce",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  mutedText: {
+    color: "#64748b",
+  },
+  emptyBox: {
+    padding: "24px",
+    borderRadius: "18px",
+    background: "#f8fafc",
+    textAlign: "center",
+    color: "#64748b",
+  },
+  listStack: {
+    display: "grid",
+    gap: "12px",
+  },
+  propertyRow: {
+    display: "grid",
+    gridTemplateColumns: "60px 1fr auto auto",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "18px",
+    background: "#ffffff",
+  },
+  eventRow: {
+    display: "grid",
+    gridTemplateColumns: "64px 1fr auto auto",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "18px",
+    background: "#ffffff",
+  },
+  thumbWrap: {
+    width: "60px",
+    height: "60px",
+    borderRadius: "16px",
+    overflow: "hidden",
+    background: "#ecfdf5",
+    display: "grid",
+    placeItems: "center",
+    color: "#0f7a43",
+    fontWeight: 900,
+  },
+  thumbImage: {
     width: "100%",
     height: "100%",
     objectFit: "cover",
   },
-
-  emptyImage: {
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#64748b",
-    fontWeight: "900",
+  thumbFallback: {
+    fontSize: "12px",
   },
-
-  logo: {
-    position: "absolute",
-    left: "16px",
-    bottom: "-28px",
-    width: "64px",
-    height: "64px",
-    objectFit: "contain",
-    background: "#ffffff",
-    borderRadius: "16px",
-    padding: "6px",
-    border: "1px solid #e5e7eb",
-    boxShadow: "0 10px 22px rgba(15, 23, 42, 0.18)",
+  rowMain: {
+    minWidth: 0,
   },
-
-  propertyContent: {
-    padding: "38px 18px 18px",
+  rowTitle: {
+    margin: 0,
+    fontSize: "16px",
   },
-
-  propertyTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "10px",
-  },
-
-  city: {
-    color: "#0b63ce",
-    fontWeight: "800",
-  },
-
-  description: {
-    color: "#64748b",
-    lineHeight: "1.5",
-  },
-
-  actionRow: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "16px",
-  },
-
-  manageBtn: {
-    flex: 1,
-    border: "none",
-    background: "#111827",
-    color: "#ffffff",
-    padding: "12px 14px",
-    borderRadius: "12px",
-    fontWeight: "900",
-    cursor: "pointer",
-  },
-
-  viewBtn: {
-    flex: 1,
-    background: "#eff6ff",
-    color: "#0b63ce",
-    padding: "12px 14px",
-    borderRadius: "12px",
-    fontWeight: "900",
-    textDecoration: "none",
-    textAlign: "center",
-  },
-
-  securityNote: {
-    marginTop: "12px",
+  rowText: {
+    margin: "4px 0 0",
     color: "#64748b",
     fontSize: "13px",
   },
+  rowButton: {
+    border: "none",
+    background: "#111827",
+    color: "#ffffff",
+    borderRadius: "12px",
+    padding: "10px 12px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  eventDateBox: {
+    width: "64px",
+    height: "60px",
+    borderRadius: "16px",
+    background: "#eff6ff",
+    color: "#0b63ce",
+    display: "grid",
+    placeItems: "center",
+    gap: "0",
+  },
+
+  editEventLink: {
+    textDecoration: "none",
+    border: "none",
+    background: "#0b63ce",
+    color: "#ffffff",
+    borderRadius: "12px",
+    padding: "10px 13px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  eventStatus: (status) => ({
+    padding: "8px 10px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: 900,
+    textTransform: "capitalize",
+    background:
+      status === "published" ? "#dcfce7" : status === "hidden" ? "#fee2e2" : "#fef3c7",
+    color:
+      status === "published" ? "#166534" : status === "hidden" ? "#991b1b" : "#92400e",
+  }),
 };
 
 export default PartnerDashboardPage;
