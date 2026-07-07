@@ -92,43 +92,69 @@ const formatDuration = (minutes) => {
 
 const starterRoutes = [
   {
-    id: "classic",
-    title: "Culture + Hill Country",
-    description: "A balanced first Sri Lanka route for new visitors.",
-    placeIds: [1, 2, 7, 3],
+    id: "island-highlights",
+    title: "Island Highlights",
+    label: "5-day classic",
+    description: "A first-time route through culture, hill country, coast, and heritage stays.",
+    placeIds: [1, 2, 3, 5, 4],
   },
   {
-    id: "south",
-    title: "South Coast Escape",
-    description: "Heritage, beaches, food, and wildlife along the southern belt.",
+    id: "heritage-sri-lanka",
+    title: "Heritage Sri Lanka",
+    label: "Culture route",
+    description: "Ancient kingdoms, sacred temples, and walkable old towns for culture lovers.",
+    placeIds: [1, 8, 2, 5],
+  },
+  {
+    id: "hill-country-slow",
+    title: "Hill Country Slow Route",
+    label: "Scenic route",
+    description: "Tea country, train views, mountain air, and relaxed evenings around Kandy and Ella.",
+    placeIds: [2, 3, 7, 10],
+  },
+  {
+    id: "south-coast-wildlife",
+    title: "South Coast + Wildlife",
+    label: "Beach + safari",
+    description: "Galle streets, Mirissa coast, and Yala safari days with hotel checks built in.",
     placeIds: [5, 4, 6],
-  },
-  {
-    id: "adventure",
-    title: "Adventure + Nature",
-    description: "Scenic train, waterfalls, hikes, and wildlife experiences.",
-    placeIds: [3, 8, 10, 6],
   },
 ];
 
 const guideSteps = [
   {
-    title: "Start from saved destinations",
-    text: "Use Explore first, read destination details, then click Add to Trip. Those saved places appear here as planning cards.",
+    title: "Choose your starting point",
+    text: "Start with saved destinations from Explore or pick a ready-made route template. You can change everything later.",
   },
   {
-    title: "Build the route day by day",
-    text: "Drag places into days or use quick buttons. The planner calculates activity cost and travel time for each day.",
+    title: "Arrange days naturally",
+    text: "Place each destination into a travel day. Keep nearby cities together to reduce travel time.",
   },
   {
-    title: "Connect each day with hotels",
-    text: "When a day has places but no accommodation, the planner shows a hotel alert and a direct hotel search link for that city.",
+    title: "Check stays for every night",
+    text: "When a day has destinations, use the hotel prompt to find stays near the city for that date.",
   },
   {
-    title: "Export a complete itinerary",
-    text: "After arranging your route, download a professional trip PDF with photos, experiences, tips, cost, and hotel status.",
+    title: "Save and download",
+    text: "Save the plan in the browser and export a detailed PDF itinerary with places, costs, notes, and hotel status.",
   },
 ];
+
+const visitServices = [
+  { title: "Explore places", text: "Open destination stories, photos, tips, and experiences.", to: "/explore", icon: "🧭" },
+  { title: "Find hotels", text: "Search approved stays near each planned city.", to: "/hotels", icon: "🏨" },
+  { title: "Events", text: "Add cultural events and seasonal experiences to the route.", to: "/events", icon: "🎉" },
+  { title: "Tourist guides", text: "Connect with local guide support for key destinations.", to: "/tourist-guides", icon: "🧑‍✈️" },
+];
+
+const beforeYouGo = [
+  "Check local weather and seasonal travel conditions.",
+  "Keep passport, booking reference, and emergency contacts ready.",
+  "Confirm hotel check-in time before long-distance travel.",
+  "Keep enough buffer time between cities and attractions.",
+];
+
+const daySlotLabels = ["Morning", "Midday", "Afternoon", "Evening", "Night"];
 
 const pdfTheme = {
   paper: [250, 244, 231],
@@ -666,17 +692,17 @@ function TripPlannerPage() {
     }
   };
 
-  return (
-    <main className="planner-shell">
+                          return (
+    <main className="trip-planner-page">
       <style>{plannerCss}</style>
 
       {showGuide && (
         <div className="planner-guide-backdrop" role="dialog" aria-modal="true">
           <section className="planner-guide-card">
-            <button className="planner-guide-close" onClick={() => setShowGuide(false)}>
+            <button className="planner-guide-close" onClick={() => setShowGuide(false)} aria-label="Close guide">
               ×
             </button>
-            <span className="planner-eyebrow">Planning guide</span>
+            <span className="planner-eyebrow">Trip guide</span>
             <h2>{guideSteps[activeGuideStep].title}</h2>
             <p>{guideSteps[activeGuideStep].text}</p>
             <div className="planner-guide-dots">
@@ -715,61 +741,74 @@ function TripPlannerPage() {
         </div>
       )}
 
-      <section className="planner-hero">
-        <div>
-          <span className="planner-eyebrow">Smart trip planner</span>
-          <h1>Organize saved places into a clear Sri Lanka route.</h1>
+      <section className="trip-planner-banner" aria-label="Plan your trip hero">
+        <div className="trip-banner-card">
+          <span className="planner-eyebrow">TourismHub LK</span>
+          <h1>Plan Your Trip</h1>
+          <i aria-hidden="true" />
+          <p>Discover Sri Lanka — one island, many routes.</p>
+        </div>
+      </section>
+
+      <nav className="trip-breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Home</Link>
+        <span>›</span>
+        <strong>Plan Your Trip</strong>
+      </nav>
+
+      <section className="trip-planner-intro" aria-label="Trip planning introduction">
+        <article className="intro-main-card">
+          <span className="planner-eyebrow light">Book your trip</span>
+          <h2>Create a Sri Lanka route before choosing your stay.</h2>
           <p>
-            This workspace keeps the Explore art identity, but uses a cleaner structure:
-            setup on the left, route summary on top, saved places on the side, and itinerary days in the center.
+            Start with a suggested itinerary or bring saved destinations from Explore. Then arrange
+            each day, check nearby hotels, and export a traveller-friendly PDF plan.
           </p>
+          <div className="intro-step-row">
+            {[
+              ["01", "Explore", "Save places"],
+              ["02", "Plan", "Arrange days"],
+              ["03", "Stay", "Find hotels"],
+              ["04", "Export", "Download PDF"],
+            ].map(([number, title, text]) => (
+              <div className="intro-step" key={title}>
+                <span>{number}</span>
+                <b>{title}</b>
+                <small>{text}</small>
+              </div>
+            ))}
+          </div>
           <div className="planner-hero-actions">
             <Link to="/explore" className="planner-primary-btn">Add places from Explore</Link>
-            <button className="planner-ghost-btn" onClick={() => setShowGuide(true)}>Show guide</button>
-            <button className="planner-dark-btn" onClick={() => buildStarterPlan()}>Auto build starter plan</button>
+            <button className="planner-dark-btn" onClick={() => buildStarterPlan()}>Use island highlights</button>
+            <button className="planner-ghost-btn" onClick={() => setShowGuide(true)}>How it works</button>
           </div>
-        </div>
+        </article>
 
-        <aside className="planner-readiness-card">
-          <span>Plan readiness</span>
-          <strong>{readiness}%</strong>
-          <div className="planner-progress"><i style={{ width: `${readiness}%` }} /></div>
-          <p>{totalPlaces} places • {formatLkr(totalCost)} activity cost • {formatDuration(totalTransit)} transit</p>
-          <button onClick={saveTripPlan}>Save current plan</button>
+        <aside className="plan-visit-menu" aria-label="Plan your visit menu">
+          <h3>Plan Your Visit</h3>
+          <a href="#suggested-itineraries">Suggested itineraries</a>
+          <Link to="/explore">Attractions</Link>
+          <Link to="/hotels">Accommodation</Link>
+          <Link to="/events">Events</Link>
+          <Link to="/tourist-guides">Tour guides</Link>
+          <button type="button" onClick={() => setShowGuide(true)}>Planner guide</button>
         </aside>
       </section>
 
       {notice && (
         <div className="planner-notice">
           <span>{notice}</span>
-          <button onClick={() => setNotice("")}>×</button>
+          <button onClick={() => setNotice("")} aria-label="Dismiss notification">×</button>
         </div>
       )}
 
-      <section className="planner-flow-row">
-        {[
-          ["Explore", "Save destinations"],
-          ["Plan", "Arrange days"],
-          ["Stay", "Check hotels"],
-          ["Export", "Download PDF"],
-        ].map(([title, text], index) => (
-          <article key={title}>
-            <strong>{index + 1}</strong>
-            <div>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="planner-workspace">
-        <aside className="planner-setup-card">
-          <div className="planner-card-title">
-            <span className="planner-mini-step">Step 1</span>
-            <h2>Trip setup</h2>
-          </div>
-
+      <section className="planner-settings-band" aria-label="Trip setup">
+        <div className="settings-header">
+          <span className="planner-eyebrow light">Trip basics</span>
+          <h2>Set the shape of your holiday</h2>
+        </div>
+        <div className="settings-grid">
           <label>
             Trip name
             <input value={tripName} onChange={(event) => setTripName(event.target.value)} />
@@ -779,7 +818,7 @@ function TripPlannerPage() {
             <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
           </label>
           <label>
-            Number of days
+            Days
             <input
               type="number"
               min="1"
@@ -789,7 +828,7 @@ function TripPlannerPage() {
             />
           </label>
           <label>
-            Travel style
+            Style
             <select value={travelStyle} onChange={(event) => setTravelStyle(event.target.value)}>
               {travelStyles.map((style) => (
                 <option key={style}>{style}</option>
@@ -797,7 +836,7 @@ function TripPlannerPage() {
             </select>
           </label>
           <label>
-            Budget level
+            Budget
             <select value={budgetLevel} onChange={(event) => setBudgetLevel(event.target.value)}>
               {Object.keys(budgetDailyTargets).map((level) => (
                 <option key={level}>{level}</option>
@@ -805,159 +844,76 @@ function TripPlannerPage() {
             </select>
           </label>
           <label>
-            Travel pace
+            Pace
             <select value={travelPace} onChange={(event) => setTravelPace(event.target.value)}>
               <option>Relaxed</option>
               <option>Balanced</option>
               <option>Packed</option>
             </select>
           </label>
+          <button className="planner-primary-btn apply-btn" onClick={applyTripSettings}>Apply</button>
+        </div>
+      </section>
 
-          <button className="planner-primary-btn full" onClick={applyTripSettings}>Apply setup</button>
-
-          <div className="planner-template-box">
-            <span className="planner-mini-step">Starter routes</span>
-            {starterRoutes.map((route) => (
-              <button key={route.id} onClick={() => buildStarterPlan(route.placeIds)}>
-                <strong>{route.title}</strong>
-                <small>{route.description}</small>
-              </button>
-            ))}
+      <section className="route-template-section" id="suggested-itineraries">
+        <div className="section-heading-line">
+          <div>
+            <span className="planner-eyebrow light">Suggested itineraries</span>
+            <h2>Start with a route, then make it yours</h2>
           </div>
-        </aside>
+          <p>Templates are editable. Add, remove, reorder, and connect hotels after selecting one.</p>
+        </div>
+        <div className="template-grid">
+          {starterRoutes.map((route) => {
+            const routePlaces = route.placeIds.map(getPlaceById).filter(Boolean);
+            const cover = routePlaces[0]?.image;
+            const cities = routePlaces.map((place) => place.city).filter(Boolean);
 
-        <section className="planner-board">
-          <div className="planner-summary-card">
+            return (
+              <article className="template-card" key={route.id}>
+                <div className="template-image">
+                  {cover ? <img src={cover} alt={route.title} /> : <span>{route.title}</span>}
+                  <b>{route.label}</b>
+                </div>
+                <div className="template-body">
+                  <h3>{route.title}</h3>
+                  <p>{route.description}</p>
+                  <small>{cities.join(" → ")}</small>
+                  <button onClick={() => buildStarterPlan(route.placeIds)}>Use this route</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="planner-services-strip" aria-label="Plan your visit links">
+        {visitServices.map((service) => (
+          <Link to={service.to} className="visit-service-card" key={service.title}>
+            <span>{service.icon}</span>
             <div>
-              <span className="planner-eyebrow">Route preview</span>
-              <h2>{routeCities.length ? routeCities.join(" → ") : "No route yet"}</h2>
-              <p>
-                Budget target per day: {formatLkr(dailyBudgetTarget)} • Hotels covered: {hotelCoveredDays}/{days.length} days
-              </p>
+              <h3>{service.title}</h3>
+              <p>{service.text}</p>
             </div>
-            <div className="planner-board-actions">
-              <button onClick={downloadPdf}>Download detailed PDF</button>
-              <button onClick={saveTripPlan}>Save</button>
-              <button className="danger" onClick={clearPlan}>Clear</button>
+          </Link>
+        ))}
+      </section>
+
+      <section className="planner-dashboard-grid">
+        <aside className="saved-destinations-panel">
+          <div className="panel-title-row">
+            <div>
+              <span className="planner-eyebrow light">From Explore</span>
+              <h2>Saved destinations</h2>
             </div>
+            <Link to="/explore">Open Explore</Link>
           </div>
-
-          <div className="planner-days-grid">
-            {days.map((day, dayIndex) => {
-              const dayCost = calculateDayCost(day);
-              const transitMinutes = calculateTransitMinutes(day);
-              const isOverBudget = dayCost > dailyBudgetTarget;
-              const city = day.places[0]?.city || "";
-
-              return (
-                <article
-                  className="planner-day-card"
-                  key={day.dayNumber}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => handleDropOnDay(dayIndex)}
-                >
-                  <header>
-                    <div>
-                      <span>Day {day.dayNumber}</span>
-                      <h3>{formatDate(day.date)}</h3>
-                    </div>
-                    <button
-                      className={day.hotelBooked ? "hotel-ok" : "hotel-missing"}
-                      onClick={() => toggleHotel(dayIndex)}
-                    >
-                      {day.hotelBooked ? "Hotel selected" : "Need hotel"}
-                    </button>
-                  </header>
-
-                  <div className="planner-day-metrics">
-                    <span className={isOverBudget ? "over" : ""}>Cost: {formatLkr(dayCost)}</span>
-                    <span>Transit: {formatDuration(transitMinutes)}</span>
-                    <span>{day.places.length} places</span>
-                  </div>
-
-                  {!day.places.length ? (
-                    <div className="planner-empty-day">
-                      Drag saved places here or use quick buttons from the saved place rail.
-                    </div>
-                  ) : (
-                    <div className="planner-place-list">
-                      {day.places.map((place, placeIndex) => {
-                        const travel = placeIndex
-                          ? getTravelTime(day.places[placeIndex - 1].city, place.city)
-                          : null;
-
-                        return (
-                          <div key={place.id}>
-                            {travel && (
-                              <div className="planner-transit-pill">
-                                {travel.mode}: {travel.label}
-                              </div>
-                            )}
-                            <article
-                              className="planner-planned-place"
-                              draggable
-                              onDragStart={() => handleDragStart({ source: "day", dayIndex, place })}
-                            >
-                              <img src={place.image} alt={place.name} />
-                              <div>
-                                <h4>{place.name}</h4>
-                                <p>{place.city} • {place.duration}</p>
-                                <small>{formatLkr(Number(place.estimatedCost || 0))}</small>
-                              </div>
-                              <div className="planner-place-actions">
-                                <button onClick={() => movePlaceWithinDay(dayIndex, placeIndex, -1)}>↑</button>
-                                <button onClick={() => movePlaceWithinDay(dayIndex, placeIndex, 1)}>↓</button>
-                                <button onClick={() => removePlaceFromDay(dayIndex, place.id)}>×</button>
-                              </div>
-                            </article>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {day.places.length > 0 && !day.hotelBooked && (
-                    <div className="planner-hotel-alert">
-                      <strong>Accommodation check</strong>
-                      <p>You are visiting {city}. Choose a hotel for this night.</p>
-                      <Link to={getHotelSearchLink(day)}>Find hotels in {city}</Link>
-                    </div>
-                  )}
-
-                  {day.places.length > 0 && day.hotelBooked && (
-                    <div className="planner-hotel-selected">
-                      Accommodation is marked as selected for this day.
-                    </div>
-                  )}
-
-                  <label className="planner-notes-field">
-                    Day note
-                    <textarea
-                      value={day.notes}
-                      onChange={(event) => updateDayNotes(dayIndex, event.target.value)}
-                      placeholder="Example: Start early, keep evening free, check train schedule..."
-                    />
-                  </label>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <aside className="planner-saved-rail">
-          <div className="planner-card-title">
-            <span className="planner-mini-step">Step 2</span>
-            <h2>Saved places</h2>
-          </div>
-          <p>
-            Drag places into a day card. If this list is empty, quick-add popular places or return to Explore.
-          </p>
 
           {unusedSavedPlaces.length ? (
-            <div className="planner-saved-list">
+            <div className="saved-place-list">
               {unusedSavedPlaces.map((place) => (
                 <article
-                  className="planner-saved-card"
+                  className="saved-place-card"
                   key={place.id}
                   draggable
                   onDragStart={() => handleDragStart({ source: "saved", place })}
@@ -965,9 +921,9 @@ function TripPlannerPage() {
                   <img src={place.image} alt={place.name} />
                   <div>
                     <h3>{place.name}</h3>
-                    <p>{place.city} • {place.budget}</p>
-                    <div className="planner-quick-days">
-                      {days.slice(0, 4).map((day, index) => (
+                    <p>{place.city} • {place.region}</p>
+                    <div className="quick-day-row">
+                      {days.slice(0, 5).map((day, index) => (
                         <button key={day.dayNumber} onClick={() => addPlaceToDay(place, index)}>
                           D{index + 1}
                         </button>
@@ -978,17 +934,175 @@ function TripPlannerPage() {
               ))}
             </div>
           ) : (
-            <div className="planner-popular-box">
+            <div className="quick-add-box">
               <strong>No unused saved places</strong>
-              <p>Quick-add a few places or open Explore for more details first.</p>
-              {popularPlaces.map((place) => (
-                <button key={place.id} onClick={() => addPopularToSaved(place)}>
-                  + {place.name}
-                </button>
-              ))}
-              <Link to="/explore">Open Explore →</Link>
+              <p>Save destinations from Explore, or add a few popular places now.</p>
+              <div className="quick-add-list">
+                {popularPlaces.map((place) => (
+                  <button key={place.id} onClick={() => addPopularToSaved(place)}>
+                    + {place.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+        </aside>
+
+        <section className="itinerary-board">
+          <div className="route-overview-card">
+            <div>
+              <span className="planner-eyebrow light">Route overview</span>
+              <h2>{routeCities.length ? routeCities.join(" → ") : "Choose destinations to create your route"}</h2>
+              <p>
+                {totalPlaces} places • {formatLkr(totalCost)} activity estimate • {formatDuration(totalTransit)} travel time
+              </p>
+            </div>
+            <div className="route-actions">
+              <button onClick={downloadPdf}>Download PDF</button>
+              <button onClick={saveTripPlan}>Save</button>
+              <button className="danger" onClick={clearPlan}>Clear</button>
+            </div>
+          </div>
+
+          <div className="day-route-list">
+            {days.map((day, dayIndex) => {
+              const dayCost = calculateDayCost(day);
+              const transitMinutes = calculateTransitMinutes(day);
+              const isOverBudget = dayCost > dailyBudgetTarget;
+              const city = day.places[0]?.city || "this city";
+
+              return (
+                <article
+                  className="day-itinerary-card"
+                  key={day.dayNumber}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleDropOnDay(dayIndex)}
+                >
+                  <div className="day-number-rail">
+                    <span>{String(day.dayNumber).padStart(2, "0")}</span>
+                  </div>
+
+                  <div className="day-card-content">
+                    <header className="day-card-header">
+                      <div>
+                        <strong>Day {day.dayNumber}</strong>
+                        <h3>{formatDate(day.date)}</h3>
+                      </div>
+                      <button
+                        className={day.hotelBooked ? "hotel-status selected" : "hotel-status missing"}
+                        onClick={() => toggleHotel(dayIndex)}
+                      >
+                        {day.hotelBooked ? "Hotel selected" : "Need hotel"}
+                      </button>
+                    </header>
+
+                    <div className="day-metrics-row">
+                      <span className={isOverBudget ? "warning" : ""}>Cost {formatLkr(dayCost)}</span>
+                      <span>Transit {formatDuration(transitMinutes)}</span>
+                      <span>{day.places.length} places</span>
+                    </div>
+
+                    {!day.places.length ? (
+                      <div className="empty-drop-zone">
+                        <strong>Drop destinations here</strong>
+                        <p>Use saved places from the left panel or apply a suggested itinerary.</p>
+                      </div>
+                    ) : (
+                      <div className="scheduled-place-list">
+                        {day.places.map((place, placeIndex) => {
+                          const travel = placeIndex
+                            ? getTravelTime(day.places[placeIndex - 1].city, place.city)
+                            : null;
+
+                          return (
+                            <div className="place-schedule-block" key={place.id}>
+                              {travel && (
+                                <div className="travel-connector">
+                                  <span>{travel.mode}</span>
+                                  <p>{travel.label} from {day.places[placeIndex - 1].city} to {place.city}</p>
+                                </div>
+                              )}
+
+                              <article
+                                className="scheduled-place-card"
+                                draggable
+                                onDragStart={() => handleDragStart({ source: "day", dayIndex, place })}
+                              >
+                                <div className="place-time-badge">{daySlotLabels[placeIndex] || "Later"}</div>
+                                <img src={place.image} alt={place.name} />
+                                <div className="scheduled-place-info">
+                                  <h4>{place.name}</h4>
+                                  <p>{place.city} • {place.duration}</p>
+                                  <div className="place-tags-row">
+                                    <span>{place.budget}</span>
+                                    <span>{formatLkr(Number(place.estimatedCost || 0))}</span>
+                                  </div>
+                                </div>
+                                <div className="place-action-stack">
+                                  <Link to={`/explore?place=${place.id}`}>Details</Link>
+                                  <button onClick={() => movePlaceWithinDay(dayIndex, placeIndex, -1)}>↑</button>
+                                  <button onClick={() => movePlaceWithinDay(dayIndex, placeIndex, 1)}>↓</button>
+                                  <button onClick={() => removePlaceFromDay(dayIndex, place.id)}>Remove</button>
+                                </div>
+                              </article>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {day.places.length > 0 && !day.hotelBooked && (
+                      <div className="stay-check-card">
+                        <div>
+                          <strong>Stay check</strong>
+                          <p>You are visiting {city}. Choose a hotel for this night.</p>
+                        </div>
+                        <Link to={getHotelSearchLink(day)}>Find hotels in {city}</Link>
+                      </div>
+                    )}
+
+                    {day.places.length > 0 && day.hotelBooked && (
+                      <div className="stay-selected-card">Stay selected for this day.</div>
+                    )}
+
+                    <label className="day-note-field">
+                      Day note
+                      <textarea
+                        value={day.notes}
+                        onChange={(event) => updateDayNotes(dayIndex, event.target.value)}
+                        placeholder="Example: Start early, keep evening free, check train times..."
+                      />
+                    </label>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <aside className="plan-assistant-panel">
+          <div className="assistant-card plan-health-card">
+            <span className="planner-eyebrow light">Plan health</span>
+            <strong>{readiness}%</strong>
+            <div className="planner-progress"><i style={{ width: `${readiness}%` }} /></div>
+            <p>{hotelCoveredDays}/{days.length} days have stay status checked.</p>
+          </div>
+
+          <div className="assistant-card before-card">
+            <span className="planner-eyebrow light">Before you go</span>
+            <ul>
+              {beforeYouGo.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="assistant-card export-card">
+            <span className="planner-eyebrow light">Final step</span>
+            <h3>Ready to share?</h3>
+            <p>Download a detailed itinerary with images, day notes, hotel status, travel time, and cost estimates.</p>
+            <button onClick={downloadPdf}>Download itinerary PDF</button>
+          </div>
         </aside>
       </section>
     </main>
@@ -996,253 +1110,531 @@ function TripPlannerPage() {
 }
 
 const plannerCss = `
-  .planner-shell {
+  .trip-planner-page {
     min-height: 100vh;
     background:
-      radial-gradient(circle at 12% 10%, rgba(226, 162, 26, 0.18), transparent 26%),
-      radial-gradient(circle at 92% 6%, rgba(13, 148, 136, 0.12), transparent 22%),
-      linear-gradient(180deg, #fbf7ee 0%, #fffaf0 54%, #f8fbf7 100%);
+      radial-gradient(circle at 8% 8%, rgba(255, 199, 44, 0.16), transparent 28%),
+      radial-gradient(circle at 90% 12%, rgba(15, 118, 110, 0.12), transparent 26%),
+      linear-gradient(180deg, #fffaf0 0%, #f3fffb 46%, #fffdf7 100%);
     color: #12302d;
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    padding-bottom: 70px;
+    padding-bottom: 82px;
   }
 
-  .planner-hero,
-  .planner-flow-row,
-  .planner-workspace,
-  .planner-notice {
-    max-width: 1220px;
+
+  .trip-planner-banner {
+    min-height: 300px;
+    background:
+      linear-gradient(90deg, rgba(5, 24, 39, 0.72), rgba(5, 124, 111, 0.35)),
+      url("https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1800&q=85") center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    padding: 54px max(18px, 8vw);
+    border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+  }
+
+  .trip-banner-card {
+    width: min(420px, 92vw);
+    border-radius: 18px;
+    padding: 28px 30px;
+    background: rgba(12, 24, 34, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 24px 65px rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+  }
+
+  .trip-banner-card .planner-eyebrow {
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    padding: 0;
+  }
+
+  .trip-banner-card h1 {
+    margin: 14px 0 8px;
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 0.98;
+    letter-spacing: -1px;
+  }
+
+  .trip-banner-card i {
+    display: block;
+    width: 54px;
+    height: 4px;
+    border-radius: 999px;
+    background: #18d0bf;
+    margin: 14px 0 18px;
+  }
+
+  .trip-banner-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 700;
+    line-height: 1.7;
+  }
+
+  .trip-breadcrumb {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 18px 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .trip-breadcrumb a {
+    color: #0f766e;
+    text-decoration: none;
+  }
+
+  .trip-breadcrumb strong { color: #0f172a; }
+
+  .trip-planner-intro {
+    max-width: 1180px;
+    margin: 46px auto 26px;
+    padding: 0 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .intro-main-card,
+  .plan-visit-menu {
+    background: #ffffff;
+    border: 1px solid #d8eee8;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+  }
+
+  .intro-main-card {
+    border-radius: 28px;
+    padding: 34px;
+    border-left: 6px solid #0f766e;
+  }
+
+  .intro-main-card h2 {
+    margin: 12px 0 12px;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.02;
+    letter-spacing: -1.4px;
+    color: #063d38;
+  }
+
+  .intro-main-card > p {
+    margin: 0;
+    max-width: 760px;
+    color: #52625e;
+    font-weight: 750;
+    line-height: 1.8;
+  }
+
+  .intro-step-row {
+    margin: 26px 0 4px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .intro-step {
+    border-radius: 18px;
+    background: #f7fffc;
+    border: 1px solid #ccfbf1;
+    padding: 14px;
+  }
+
+  .intro-step span {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0f766e;
+    color: #ffffff;
+    font-weight: 950;
+    margin-bottom: 10px;
+  }
+
+  .intro-step b,
+  .intro-step small { display: block; }
+
+  .intro-step b { color: #0f172a; font-weight: 950; }
+  .intro-step small { color: #64748b; font-weight: 800; margin-top: 3px; }
+
+  .plan-visit-menu {
+    border-radius: 22px;
+    overflow: hidden;
+    position: sticky;
+    top: 104px;
+  }
+
+  .plan-visit-menu h3 {
+    margin: 0;
+    padding: 20px 22px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #0f172a, #0f766e);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .plan-visit-menu a,
+  .plan-visit-menu button {
+    display: block;
+    width: 100%;
+    padding: 15px 22px;
+    border: 0;
+    border-bottom: 1px solid #edf3f1;
+    background: #ffffff;
+    color: #334155;
+    text-align: left;
+    text-decoration: none;
+    font-weight: 850;
+    cursor: pointer;
+  }
+
+  .plan-visit-menu a:hover,
+  .plan-visit-menu button:hover {
+    background: #ecfdf5;
+    color: #0f766e;
+  }
+
+  .planner-hero-pro,
+  .planner-notice,
+  .planner-settings-band,
+  .route-template-section,
+  .planner-services-strip,
+  .planner-dashboard-grid {
+    max-width: 1240px;
     margin-left: auto;
     margin-right: auto;
     padding-left: 22px;
     padding-right: 22px;
   }
 
-  .planner-hero {
+  .planner-hero-pro {
     padding-top: 58px;
-    padding-bottom: 22px;
+    padding-bottom: 24px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) 380px;
     gap: 28px;
-    align-items: end;
+    align-items: stretch;
   }
 
-  .planner-eyebrow,
-  .planner-mini-step {
+  .planner-hero-copy {
+    min-height: 350px;
+    border-radius: 34px;
+    padding: 42px;
+    color: #ffffff;
+    overflow: hidden;
+    position: relative;
+    background:
+      linear-gradient(90deg, rgba(4, 47, 46, 0.94), rgba(15, 118, 110, 0.74)),
+      url("https://images.pexels.com/photos/38253196/pexels-photo-38253196.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=1400") center/cover;
+    box-shadow: 0 30px 80px rgba(6, 65, 61, 0.18);
+  }
+  .planner-hero-copy::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    bottom: -100px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: rgba(255, 199, 44, 0.18);
+  }
+
+  .planner-eyebrow {
     display: inline-flex;
     width: fit-content;
-    background: #06413d;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
     color: #fffdf5;
-    padding: 8px 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 13px;
     font-size: 12px;
     font-weight: 950;
-    box-shadow: 4px 4px 0 #e2a21a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .planner-eyebrow.light {
+    background: #d7fff4;
+    color: #0f766e;
+    border-color: #a7f3d0;
   }
 
-  .planner-mini-step {
-    background: #fff4d4;
-    color: #06413d;
-    box-shadow: none;
-    border: 1.6px solid #d3b97c;
+  .planner-hero-copy h1 {
+    position: relative;
+    z-index: 1;
+    max-width: 750px;
+    margin: 22px 0 16px;
+    font-size: clamp(42px, 6vw, 74px);
+    line-height: 0.96;
+    letter-spacing: -0.06em;
   }
-
-  .planner-hero h1 {
-    margin: 20px 0 16px;
-    max-width: 800px;
-    color: #06413d;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(42px, 6vw, 68px);
-    line-height: 0.98;
-    letter-spacing: -0.055em;
-  }
-
-  .planner-hero p,
-  .planner-saved-rail p,
-  .planner-template-box small,
-  .planner-summary-card p,
-  .planner-empty-day,
-  .planner-hotel-alert p,
-  .planner-guide-card p {
-    color: #52625e;
-    font-weight: 740;
-    line-height: 1.62;
+  .planner-hero-copy p {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0;
+    color: #dcfffa;
+    font-size: 18px;
+    line-height: 1.65;
+    font-weight: 800;
   }
 
   .planner-hero-actions,
   .planner-guide-actions,
-  .planner-board-actions,
-  .planner-quick-days {
+  .settings-grid,
+  .route-actions,
+  .quick-day-row,
+  .place-tags-row {
     display: flex;
-    gap: 10px;
     flex-wrap: wrap;
+    gap: 10px;
     align-items: center;
   }
+  .planner-hero-actions { position: relative; z-index: 1; margin-top: 28px; }
 
   .planner-primary-btn,
   .planner-ghost-btn,
   .planner-dark-btn,
-  .planner-readiness-card button,
-  .planner-board-actions button,
-  .planner-template-box button,
-  .planner-popular-box button,
-  .planner-popular-box a,
-  .planner-hotel-alert a {
-    border-radius: 0;
-    border: 1.8px solid #06413d;
+  .apply-btn,
+  .template-card button,
+  .route-actions button,
+  .quick-add-list button,
+  .export-card button,
+  .stay-check-card a,
+  .panel-title-row a,
+  .place-action-stack a,
+  .place-action-stack button {
+    border: none;
+    border-radius: 999px;
     min-height: 42px;
-    padding: 10px 15px;
+    padding: 11px 17px;
     font-weight: 950;
     text-decoration: none;
     cursor: pointer;
-    transition: transform 0.18s ease;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
   }
-
   .planner-primary-btn,
-  .planner-readiness-card button,
-  .planner-board-actions button:first-child {
-    background: #e2a21a;
-    color: #111827;
-    box-shadow: 5px 5px 0 rgba(6, 65, 61, 0.18);
+  .template-card button,
+  .route-actions button:first-child,
+  .export-card button {
+    background: #ffc72c;
+    color: #10201e;
+    box-shadow: 0 16px 35px rgba(255, 199, 44, 0.25);
   }
-
-  .planner-ghost-btn,
-  .planner-board-actions button {
-    background: #fffdf5;
-    color: #06413d;
-  }
-
   .planner-dark-btn,
-  .planner-hotel-alert a {
-    background: #06413d;
-    color: #fffdf5;
+  .stay-check-card a,
+  .panel-title-row a {
+    background: #0f766e;
+    color: #ffffff;
   }
-
-  .planner-primary-btn.full { width: 100%; }
-
-  .planner-board-actions .danger,
+  .planner-ghost-btn,
+  .route-actions button,
+  .place-action-stack a,
+  .place-action-stack button {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+  .route-actions button,
+  .place-action-stack a,
+  .place-action-stack button {
+    background: #ffffff;
+    color: #0f766e;
+    border: 1px solid #b7eee6;
+  }
+  .route-actions .danger,
   .planner-guide-close {
-    background: #fde8e6;
-    color: #a23128;
-    border-color: #a23128;
+    background: #fee2e2;
+    color: #b91c1c;
   }
-
   .planner-primary-btn:hover,
   .planner-ghost-btn:hover,
   .planner-dark-btn:hover,
-  .planner-readiness-card button:hover,
-  .planner-board-actions button:hover,
-  .planner-template-box button:hover,
-  .planner-popular-box button:hover,
-  .planner-hotel-alert a:hover {
+  .apply-btn:hover,
+  .template-card button:hover,
+  .route-actions button:hover,
+  .quick-add-list button:hover,
+  .export-card button:hover,
+  .stay-check-card a:hover,
+  .panel-title-row a:hover,
+  .place-action-stack a:hover,
+  .place-action-stack button:hover {
     transform: translateY(-2px);
   }
 
-  .planner-readiness-card,
-  .planner-setup-card,
-  .planner-saved-rail,
-  .planner-summary-card,
-  .planner-day-card,
-  .planner-flow-row article,
+  .planner-flow-panel,
+  .planner-settings-band,
+  .template-card,
+  .visit-service-card,
+  .saved-destinations-panel,
+  .route-overview-card,
+  .day-itinerary-card,
+  .assistant-card,
   .planner-guide-card {
-    background: #fffdf5;
-    border: 1.8px solid #d3b97c;
-    box-shadow: 8px 8px 0 rgba(6, 65, 61, 0.08);
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #c8f1e7;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
   }
 
-  .planner-readiness-card { padding: 24px; }
-  .planner-readiness-card span { color: #52625e; font-weight: 950; text-transform: uppercase; font-size: 12px; }
-  .planner-readiness-card strong { display: block; margin: 8px 0; color: #06413d; font-size: 44px; font-family: Georgia, "Times New Roman", serif; }
-  .planner-progress { height: 10px; background: #e8ddc2; overflow: hidden; border: 1px solid #d3b97c; }
-  .planner-progress i { display: block; height: 100%; background: linear-gradient(90deg, #e2a21a, #0f766e); }
-
-  .planner-notice {
-    margin-top: 12px;
+  .planner-flow-panel {
+    border-radius: 32px;
+    padding: 24px;
+    display: grid;
+    gap: 18px;
+  }
+  .flow-panel-header {
     display: flex;
     justify-content: space-between;
+    gap: 14px;
     align-items: center;
-    gap: 12px;
-    color: #06413d;
-    font-weight: 950;
   }
-  .planner-notice span { background: #fff4d4; border: 1.6px solid #d3b97c; padding: 12px 14px; flex: 1; }
-  .planner-notice button { border: none; background: transparent; font-size: 24px; color: #06413d; cursor: pointer; }
+  .flow-panel-header span,
+  .settings-header h2,
+  .section-heading-line h2,
+  .panel-title-row h2,
+  .route-overview-card h2,
+  .assistant-card h3 {
+    color: #063f3a;
+  }
+  .flow-panel-header span { font-weight: 950; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
+  .flow-panel-header strong { color: #0f766e; font-size: 26px; }
+  .planner-progress { height: 10px; background: #e1f5f1; border-radius: 999px; overflow: hidden; }
+  .planner-progress i { display: block; height: 100%; background: linear-gradient(90deg, #ffc72c, #0f766e); border-radius: 999px; }
+  .flow-steps-list { display: grid; gap: 12px; }
+  .flow-steps-list article { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; }
+  .flow-steps-list article span { width: 44px; height: 44px; border-radius: 16px; background: #063f3a; color: #fff; display: grid; place-items: center; font-weight: 950; }
+  .flow-steps-list h3 { margin: 0 0 3px; color: #063f3a; }
+  .flow-steps-list p { margin: 0; color: #64748b; font-weight: 760; }
 
-  .planner-flow-row {
+  .planner-notice {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .planner-notice span { flex: 1; padding: 14px 16px; border-radius: 18px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 950; }
+  .planner-notice button { border: none; background: transparent; font-size: 24px; color: #0f766e; cursor: pointer; }
+
+  .planner-settings-band {
+    margin-top: 28px;
+    border-radius: 30px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+  .settings-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+  .settings-header h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.04em; }
+  .settings-grid { align-items: end; }
+  .settings-grid label {
+    flex: 1 1 140px;
+    display: grid;
+    gap: 7px;
+    color: #334155;
+    font-weight: 950;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .settings-grid input,
+  .settings-grid select,
+  .day-note-field textarea {
+    width: 100%;
+    border: 1px solid #b7eee6;
+    border-radius: 16px;
+    background: #f8fffc;
+    color: #12302d;
+    padding: 13px 14px;
+    font-weight: 850;
+    outline: none;
+  }
+  .apply-btn { background: #063f3a; color: white; }
+
+  .route-template-section { padding-top: 42px; }
+  .section-heading-line {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 22px;
+    margin-bottom: 20px;
+  }
+  .section-heading-line h2 { margin: 12px 0 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: -0.05em; }
+  .section-heading-line p { max-width: 410px; color: #64748b; font-weight: 780; line-height: 1.5; }
+  .template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .template-card { border-radius: 26px; overflow: hidden; }
+  .template-image { height: 150px; position: relative; overflow: hidden; background: #0f766e; color: white; }
+  .template-image img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(0.72); transition: transform 0.35s ease; }
+  .template-card:hover .template-image img { transform: scale(1.06); }
+  .template-image b { position: absolute; left: 12px; bottom: 12px; background: #ffc72c; color: #10201e; border-radius: 999px; padding: 7px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .template-body { padding: 16px; }
+  .template-body h3 { margin: 0 0 8px; color: #063f3a; font-size: 20px; }
+  .template-body p { margin: 0 0 10px; color: #64748b; line-height: 1.5; font-weight: 720; }
+  .template-body small { display: block; min-height: 34px; color: #0f766e; font-weight: 900; }
+  .template-body button { margin-top: 12px; width: 100%; }
+
+  .planner-services-strip {
+    padding-top: 34px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    padding-top: 22px;
-    padding-bottom: 28px;
   }
-  .planner-flow-row article { display: flex; gap: 12px; align-items: center; padding: 16px; }
-  .planner-flow-row strong { width: 34px; height: 34px; display: grid; place-items: center; background: #06413d; color: #fff; }
-  .planner-flow-row h3 { margin: 0 0 4px; color: #06413d; }
-  .planner-flow-row p { margin: 0; color: #52625e; font-weight: 760; }
+  .visit-service-card {
+    border-radius: 24px;
+    padding: 18px;
+    display: flex;
+    gap: 13px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.18s ease;
+  }
+  .visit-service-card:hover { transform: translateY(-3px); }
+  .visit-service-card span { width: 46px; height: 46px; border-radius: 16px; background: #d7fff4; display: grid; place-items: center; font-size: 22px; }
+  .visit-service-card h3 { margin: 0 0 5px; color: #063f3a; }
+  .visit-service-card p { margin: 0; color: #64748b; font-weight: 730; line-height: 1.45; }
 
-  .planner-workspace {
+  .planner-dashboard-grid {
+    padding-top: 34px;
     display: grid;
-    grid-template-columns: 290px minmax(0, 1fr) 300px;
+    grid-template-columns: 300px minmax(0, 1fr) 280px;
     gap: 20px;
     align-items: start;
   }
-
-  .planner-setup-card,
-  .planner-saved-rail {
-    position: sticky;
-    top: 96px;
-    padding: 18px;
-  }
-
-  .planner-card-title h2 {
-    margin: 12px 0 18px;
-    color: #06413d;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 30px;
-    line-height: 1;
-  }
-
-  .planner-setup-card label,
-  .planner-notes-field {
+  .saved-destinations-panel,
+  .plan-assistant-panel { position: sticky; top: 96px; }
+  .saved-destinations-panel,
+  .assistant-card { border-radius: 28px; padding: 18px; }
+  .panel-title-row { display: flex; justify-content: space-between; align-items: start; gap: 14px; margin-bottom: 14px; }
+  .panel-title-row h2 { margin: 10px 0 0; font-size: 28px; letter-spacing: -0.04em; }
+  .panel-title-row a { font-size: 13px; min-height: auto; padding: 9px 12px; }
+  .saved-place-list { display: grid; gap: 12px; max-height: 670px; overflow: auto; padding-right: 4px; }
+  .saved-place-card {
     display: grid;
-    gap: 7px;
-    margin-bottom: 12px;
-    color: #06413d;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 12px;
-    font-weight: 950;
+    grid-template-columns: 78px 1fr;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 20px;
+    background: #f8fffc;
+    border: 1px solid #d7f8ef;
+    cursor: grab;
   }
+  .saved-place-card img { width: 78px; height: 72px; object-fit: cover; border-radius: 15px; }
+  .saved-place-card h3 { margin: 0 0 4px; color: #063f3a; font-size: 16px; }
+  .saved-place-card p { margin: 0; color: #64748b; font-weight: 750; font-size: 13px; }
+  .quick-day-row { margin-top: 8px; }
+  .quick-day-row button { border: none; border-radius: 999px; background: #e5fdf7; color: #0f766e; font-weight: 950; padding: 6px 8px; cursor: pointer; }
+  .quick-add-box { display: grid; gap: 10px; color: #64748b; font-weight: 750; }
+  .quick-add-list { display: grid; gap: 7px; }
+  .quick-add-list button { text-align: left; background: #f8fffc; color: #063f3a; border: 1px solid #d7f8ef; border-radius: 14px; }
 
-  .planner-setup-card input,
-  .planner-setup-card select,
-  .planner-notes-field textarea {
-    border: 1.8px solid #ccb987;
-    background: #fffaf0;
-    color: #12302d;
-    padding: 11px;
-    font-weight: 800;
-    outline: none;
-    width: 100%;
-  }
-  .planner-notes-field textarea { min-height: 74px; resize: vertical; }
-
-  .planner-template-box {
-    margin-top: 20px;
-    display: grid;
-    gap: 10px;
-  }
-  .planner-template-box button {
-    display: grid;
-    gap: 4px;
-    text-align: left;
-    background: #fffaf0;
-    color: #06413d;
-    box-shadow: none;
-  }
-
-  .planner-summary-card {
+  .itinerary-board { min-width: 0; }
+  .route-overview-card {
+    border-radius: 28px;
     padding: 22px;
     display: flex;
     justify-content: space-between;
@@ -1250,70 +1642,88 @@ const plannerCss = `
     align-items: center;
     margin-bottom: 18px;
   }
-  .planner-summary-card h2 { color: #06413d; margin: 14px 0 6px; font-size: 28px; }
+  .route-overview-card h2 { margin: 12px 0 6px; font-size: 30px; line-height: 1.08; letter-spacing: -0.04em; }
+  .route-overview-card p { margin: 0; color: #64748b; font-weight: 800; }
+  .route-actions { justify-content: flex-end; }
 
-  .planner-days-grid { display: grid; gap: 18px; }
-  .planner-day-card { padding: 18px; }
-  .planner-day-card header { display: flex; justify-content: space-between; gap: 12px; align-items: start; border-bottom: 1px dashed #d3b97c; padding-bottom: 14px; }
-  .planner-day-card header span { color: #a23128; font-weight: 950; text-transform: uppercase; font-size: 12px; }
-  .planner-day-card header h3 { margin: 5px 0 0; color: #06413d; font-size: 24px; font-family: Georgia, "Times New Roman", serif; }
-  .hotel-ok,
-  .hotel-missing { border: 1.6px solid #06413d; padding: 8px 10px; font-weight: 950; cursor: pointer; }
-  .hotel-ok { background: #e2f7e8; color: #166534; border-color: #166534; }
-  .hotel-missing { background: #fde8e6; color: #a23128; border-color: #a23128; }
-
-  .planner-day-metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-  .planner-day-metrics span { background: #fff4d4; border: 1px solid #d3b97c; padding: 7px 9px; color: #06413d; font-weight: 950; font-size: 12px; }
-  .planner-day-metrics .over { background: #fde8e6; color: #a23128; border-color: #a23128; }
-
-  .planner-empty-day {
-    border: 1.6px dashed #d3b97c;
-    background: rgba(255, 250, 240, 0.7);
-    padding: 22px;
-    text-align: center;
-  }
-  .planner-place-list { display: grid; gap: 12px; }
-  .planner-transit-pill { margin: 4px 0 8px 58px; color: #0f766e; font-weight: 950; font-size: 12px; }
-  .planner-planned-place,
-  .planner-saved-card {
+  .day-route-list { display: grid; gap: 18px; }
+  .day-itinerary-card {
+    border-radius: 30px;
     display: grid;
-    grid-template-columns: 76px 1fr auto;
-    gap: 12px;
+    grid-template-columns: 70px 1fr;
+    overflow: hidden;
+  }
+  .day-number-rail { background: linear-gradient(180deg, #063f3a, #0f766e); display: flex; justify-content: center; padding-top: 24px; }
+  .day-number-rail span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #ffc72c; color: #10201e; font-weight: 950; }
+  .day-card-content { padding: 20px; }
+  .day-card-header { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
+  .day-card-header strong { color: #0f766e; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
+  .day-card-header h3 { margin: 6px 0 0; color: #063f3a; font-size: 26px; }
+  .hotel-status { border: none; border-radius: 999px; padding: 10px 13px; font-weight: 950; cursor: pointer; }
+  .hotel-status.selected { background: #dcfce7; color: #166534; }
+  .hotel-status.missing { background: #fee2e2; color: #b91c1c; }
+  .day-metrics-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .day-metrics-row span { background: #f8fffc; border: 1px solid #d7f8ef; border-radius: 999px; color: #0f766e; padding: 7px 10px; font-weight: 950; font-size: 12px; }
+  .day-metrics-row .warning { background: #fff7ed; color: #b45309; border-color: #fed7aa; }
+  .empty-drop-zone { border: 1.5px dashed #98d9cd; border-radius: 22px; padding: 28px; text-align: center; background: #f8fffc; color: #64748b; font-weight: 760; }
+  .empty-drop-zone strong { display: block; color: #063f3a; font-size: 20px; margin-bottom: 6px; }
+  .scheduled-place-list { display: grid; gap: 12px; }
+  .travel-connector { display: flex; align-items: center; gap: 10px; margin: 5px 0 10px 88px; color: #0f766e; font-weight: 850; }
+  .travel-connector span { background: #d7fff4; border-radius: 999px; padding: 6px 10px; font-size: 12px; text-transform: uppercase; }
+  .travel-connector p { margin: 0; color: #64748b; font-size: 13px; }
+  .scheduled-place-card {
+    display: grid;
+    grid-template-columns: 86px 132px minmax(0, 1fr) auto;
+    gap: 14px;
     align-items: center;
-    background: #fffaf0;
-    border: 1.6px solid #d3b97c;
-    padding: 10px;
+    background: #f8fffc;
+    border: 1px solid #d7f8ef;
+    border-radius: 24px;
+    padding: 12px;
   }
-  .planner-planned-place img,
-  .planner-saved-card img { width: 76px; height: 64px; object-fit: cover; }
-  .planner-planned-place h4,
-  .planner-saved-card h3 { margin: 0 0 4px; color: #06413d; }
-  .planner-planned-place p,
-  .planner-saved-card p { margin: 0 0 4px; color: #52625e; font-weight: 760; }
-  .planner-planned-place small { color: #a23128; font-weight: 950; }
-  .planner-place-actions { display: flex; flex-direction: column; gap: 4px; }
-  .planner-place-actions button,
-  .planner-quick-days button { border: 1px solid #06413d; background: #fffdf5; color: #06413d; font-weight: 950; cursor: pointer; }
-
-  .planner-hotel-alert,
-  .planner-hotel-selected {
-    margin: 14px 0;
-    padding: 13px;
-    border: 1.6px solid #a23128;
-    background: #fde8e6;
+  .place-time-badge { background: #063f3a; color: white; border-radius: 999px; padding: 8px 10px; text-align: center; font-weight: 950; font-size: 12px; }
+  .scheduled-place-card img { width: 132px; height: 90px; object-fit: cover; border-radius: 18px; }
+  .scheduled-place-info h4 { margin: 0 0 6px; color: #063f3a; font-size: 20px; }
+  .scheduled-place-info p { margin: 0 0 9px; color: #64748b; font-weight: 760; }
+  .place-tags-row span { background: #ecfdf5; color: #0f766e; border-radius: 999px; padding: 6px 9px; font-weight: 950; font-size: 12px; }
+  .place-action-stack { display: grid; gap: 6px; justify-items: stretch; }
+  .place-action-stack a,
+  .place-action-stack button { min-height: auto; padding: 7px 9px; font-size: 12px; text-align: center; }
+  .stay-check-card,
+  .stay-selected-card {
+    margin-top: 14px;
+    border-radius: 22px;
+    padding: 16px;
   }
-  .planner-hotel-alert strong { color: #a23128; }
-  .planner-hotel-alert a { display: inline-block; margin-top: 6px; }
-  .planner-hotel-selected { background: #e7f7ec; border-color: #166534; color: #166534; font-weight: 950; }
+  .stay-check-card { display: flex; justify-content: space-between; gap: 14px; align-items: center; background: #fff7ed; border: 1px solid #fed7aa; }
+  .stay-check-card strong { color: #b45309; }
+  .stay-check-card p { margin: 5px 0 0; color: #7c2d12; font-weight: 760; }
+  .stay-selected-card { background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; font-weight: 950; }
+  .day-note-field { display: grid; gap: 8px; margin-top: 14px; color: #334155; font-weight: 950; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .day-note-field textarea { min-height: 74px; resize: vertical; }
 
-  .planner-saved-list { display: grid; gap: 12px; }
-  .planner-saved-card { grid-template-columns: 68px 1fr; cursor: grab; }
-  .planner-saved-card img { width: 68px; height: 58px; }
-  .planner-quick-days { margin-top: 7px; }
-  .planner-popular-box { display: grid; gap: 9px; }
-  .planner-popular-box strong { color: #06413d; }
-  .planner-popular-box button,
-  .planner-popular-box a { text-align: left; background: #fffaf0; color: #06413d; box-shadow: none; }
+  .plan-assistant-panel { display: grid; gap: 14px; }
+  .assistant-card { color: #64748b; font-weight: 760; }
+  .plan-health-card strong { display: block; color: #0f766e; font-size: 46px; line-height: 1; margin: 12px 0; }
+  .before-card ul { margin: 14px 0 0; padding-left: 18px; display: grid; gap: 10px; }
+  .before-card li { line-height: 1.45; }
+  .export-card h3 { margin: 12px 0 8px; font-size: 24px; }
+  .export-card p { line-height: 1.55; }
+  .export-card button { width: 100%; }
+
+
+  @media (max-width: 980px) {
+    .trip-planner-intro { grid-template-columns: 1fr; }
+    .plan-visit-menu { position: static; }
+    .intro-step-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 640px) {
+    .trip-planner-banner { min-height: 260px; padding: 36px 18px; }
+    .trip-banner-card { padding: 22px; }
+    .intro-main-card { padding: 24px; }
+    .intro-step-row { grid-template-columns: 1fr; }
+  }
 
   .planner-guide-backdrop {
     position: fixed;
@@ -1321,39 +1731,235 @@ const plannerCss = `
     z-index: 2000;
     display: grid;
     place-items: center;
-    background: rgba(4, 28, 26, 0.68);
+    background: rgba(4, 28, 26, 0.66);
     padding: 20px;
   }
-  .planner-guide-card { width: min(620px, 100%); padding: 28px; position: relative; }
-  .planner-guide-card h2 { margin: 22px 0 12px; color: #06413d; font-family: Georgia, "Times New Roman", serif; font-size: 34px; }
-  .planner-guide-close { position: absolute; top: 12px; right: 14px; width: 38px; height: 38px; font-size: 24px; cursor: pointer; }
+  .planner-guide-card { width: min(620px, 100%); border-radius: 28px; padding: 28px; position: relative; }
+  .planner-guide-card h2 { margin: 22px 0 12px; color: #063f3a; font-size: 34px; letter-spacing: -0.04em; }
+  .planner-guide-card p { color: #64748b; font-weight: 760; line-height: 1.6; }
+  .planner-guide-close { position: absolute; top: 12px; right: 14px; width: 38px; height: 38px; font-size: 24px; border: none; border-radius: 50%; cursor: pointer; }
   .planner-guide-dots { display: flex; gap: 8px; margin: 22px 0; }
-  .planner-guide-dots button { width: 34px; height: 34px; border: 1.8px solid #06413d; background: #fffaf0; color: #06413d; font-weight: 950; cursor: pointer; }
-  .planner-guide-dots button.active { background: #06413d; color: white; }
+  .planner-guide-dots button { width: 34px; height: 34px; border-radius: 999px; border: none; background: #d7fff4; color: #0f766e; font-weight: 950; cursor: pointer; }
+  .planner-guide-dots button.active { background: #0f766e; color: white; }
   .planner-guide-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  @media (max-width: 1120px) {
-    .planner-workspace { grid-template-columns: 1fr; }
-    .planner-setup-card,
-    .planner-saved-rail { position: static; }
+  @media (max-width: 1180px) {
+    .planner-dashboard-grid { grid-template-columns: 1fr; }
+    .saved-destinations-panel,
+    .plan-assistant-panel { position: static; }
   }
-
-  @media (max-width: 880px) {
-    .planner-hero,
-    .planner-flow-row { grid-template-columns: 1fr; }
-    .planner-summary-card { flex-direction: column; align-items: flex-start; }
+  @media (max-width: 980px) {
+    .planner-hero-pro { grid-template-columns: 1fr; }
+    .template-grid,
+    .planner-services-strip { grid-template-columns: repeat(2, 1fr); }
   }
-
-  @media (max-width: 620px) {
-    .planner-hero { padding-top: 36px; }
-    .planner-hero-actions,
-    .planner-board-actions { align-items: stretch; }
+  @media (max-width: 760px) {
+    .planner-hero-copy { border-radius: 0; margin-left: -22px; margin-right: -22px; padding: 34px 22px; }
+    .settings-header,
+    .section-heading-line,
+    .route-overview-card,
+    .stay-check-card { flex-direction: column; align-items: flex-start; }
+    .settings-grid label { flex-basis: 100%; }
+    .apply-btn { width: 100%; }
+    .day-itinerary-card { grid-template-columns: 1fr; }
+    .day-number-rail { padding: 12px; justify-content: flex-start; }
+    .scheduled-place-card { grid-template-columns: 1fr; }
+    .scheduled-place-card img { width: 100%; height: 180px; }
+    .place-action-stack { grid-template-columns: repeat(4, 1fr); }
+    .travel-connector { margin-left: 0; }
+  }
+  @media (max-width: 560px) {
+    .template-grid,
+    .planner-services-strip { grid-template-columns: 1fr; }
     .planner-hero-actions a,
     .planner-hero-actions button,
-    .planner-board-actions button { width: 100%; text-align: center; }
-    .planner-planned-place { grid-template-columns: 58px 1fr; }
-    .planner-planned-place img { width: 58px; height: 52px; }
-    .planner-place-actions { grid-column: 1 / -1; flex-direction: row; }
+    .route-actions button { width: 100%; text-align: center; }
+    .planner-dashboard-grid,
+  
+  .trip-planner-banner {
+    min-height: 300px;
+    background:
+      linear-gradient(90deg, rgba(5, 24, 39, 0.72), rgba(5, 124, 111, 0.35)),
+      url("https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1800&q=85") center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    padding: 54px max(18px, 8vw);
+    border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+  }
+
+  .trip-banner-card {
+    width: min(420px, 92vw);
+    border-radius: 18px;
+    padding: 28px 30px;
+    background: rgba(12, 24, 34, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 24px 65px rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+  }
+
+  .trip-banner-card .planner-eyebrow {
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    padding: 0;
+  }
+
+  .trip-banner-card h1 {
+    margin: 14px 0 8px;
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 0.98;
+    letter-spacing: -1px;
+  }
+
+  .trip-banner-card i {
+    display: block;
+    width: 54px;
+    height: 4px;
+    border-radius: 999px;
+    background: #18d0bf;
+    margin: 14px 0 18px;
+  }
+
+  .trip-banner-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 700;
+    line-height: 1.7;
+  }
+
+  .trip-breadcrumb {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 18px 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .trip-breadcrumb a {
+    color: #0f766e;
+    text-decoration: none;
+  }
+
+  .trip-breadcrumb strong { color: #0f172a; }
+
+  .trip-planner-intro {
+    max-width: 1180px;
+    margin: 46px auto 26px;
+    padding: 0 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .intro-main-card,
+  .plan-visit-menu {
+    background: #ffffff;
+    border: 1px solid #d8eee8;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+  }
+
+  .intro-main-card {
+    border-radius: 28px;
+    padding: 34px;
+    border-left: 6px solid #0f766e;
+  }
+
+  .intro-main-card h2 {
+    margin: 12px 0 12px;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.02;
+    letter-spacing: -1.4px;
+    color: #063d38;
+  }
+
+  .intro-main-card > p {
+    margin: 0;
+    max-width: 760px;
+    color: #52625e;
+    font-weight: 750;
+    line-height: 1.8;
+  }
+
+  .intro-step-row {
+    margin: 26px 0 4px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .intro-step {
+    border-radius: 18px;
+    background: #f7fffc;
+    border: 1px solid #ccfbf1;
+    padding: 14px;
+  }
+
+  .intro-step span {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0f766e;
+    color: #ffffff;
+    font-weight: 950;
+    margin-bottom: 10px;
+  }
+
+  .intro-step b,
+  .intro-step small { display: block; }
+
+  .intro-step b { color: #0f172a; font-weight: 950; }
+  .intro-step small { color: #64748b; font-weight: 800; margin-top: 3px; }
+
+  .plan-visit-menu {
+    border-radius: 22px;
+    overflow: hidden;
+    position: sticky;
+    top: 104px;
+  }
+
+  .plan-visit-menu h3 {
+    margin: 0;
+    padding: 20px 22px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #0f172a, #0f766e);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .plan-visit-menu a,
+  .plan-visit-menu button {
+    display: block;
+    width: 100%;
+    padding: 15px 22px;
+    border: 0;
+    border-bottom: 1px solid #edf3f1;
+    background: #ffffff;
+    color: #334155;
+    text-align: left;
+    text-decoration: none;
+    font-weight: 850;
+    cursor: pointer;
+  }
+
+  .plan-visit-menu a:hover,
+  .plan-visit-menu button:hover {
+    background: #ecfdf5;
+    color: #0f766e;
+  }
+
+  .planner-hero-pro,
+    .planner-settings-band,
+    .route-template-section,
+    .planner-services-strip,
+    .planner-notice { padding-left: 14px; padding-right: 14px; }
   }
 `;
 
