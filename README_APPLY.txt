@@ -1,23 +1,16 @@
-Explore location map fix
+Explore Location Final Fix
+==========================
 
-Replace these files:
-
+Replace this file:
 admin-client/src/pages/ExploreManagerPage.jsx
-client/src/pages/PlaceDetailsPage.jsx
 
 What changed:
-- Admin Explore Manager has a new Map Location section.
-- Admin can search Sri Lanka locations using OpenStreetMap search.
-- Admin can pick a search result and latitude/longitude fill automatically.
-- Admin can manually fine tune latitude and longitude.
-- Place details page shows a Location Map card when coordinates exist.
-- Quick info card shows an Open Map button when coordinates exist.
+- Location helper no longer depends only on one weak online map query.
+- It now tries multiple cleaner queries automatically.
+- It also includes trusted local Sri Lanka suggestions for common places such as Anuradhapura, Sigiriya, Dambulla, Kandy, Ella, Mirissa, Galle, Yala, Trincomalee and others.
+- Selecting a result updates only latitude and longitude. Other typed form changes stay safe.
+- No database change is needed.
 
-No database change is needed because explore_places already has lat and lng columns.
-
-After replacing:
+After replacing run:
 cd admin-client
-npm run dev
-
-cd client
 npm run dev

@@ -206,46 +206,354 @@ function Field({ label, children }) {
   );
 }
 
-function MapLocationPicker({ lat, lng, placeName, onSelect }) {
-  const [query, setQuery] = useState(placeName || "");
+const normalizeLocationText = (value) => {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const removeGenericLocationWords = (value) => {
+  return String(value || "")
+    .replace(/\b(ancient city|rock fortress|fortress|temple|beach|national park|cave temple|rock|fort|bridge|whale watching|tea plantations|sacred|relic)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const knownSriLankaLocations = [
+  {
+    id: "local-anuradhapura",
+    name: "Anuradhapura Ancient City",
+    city: "Anuradhapura",
+    district: "Anuradhapura",
+    region: "Cultural Triangle",
+    lat: "8.345185",
+    lon: "80.388133",
+    keywords: ["anuradhapura", "ancient city", "sacred city", "ruwanwelisaya", "jaya sri maha bodhi"],
+  },
+  {
+    id: "local-sigiriya",
+    name: "Sigiriya Rock Fortress",
+    city: "Sigiriya",
+    district: "Matale",
+    region: "Cultural Triangle",
+    lat: "7.957000",
+    lon: "80.760300",
+    keywords: ["sigiriya", "lion rock", "rock fortress"],
+  },
+  {
+    id: "local-dambulla",
+    name: "Dambulla Cave Temple",
+    city: "Dambulla",
+    district: "Matale",
+    region: "Cultural Triangle",
+    lat: "7.856700",
+    lon: "80.649200",
+    keywords: ["dambulla", "cave temple", "golden temple"],
+  },
+  {
+    id: "local-tooth-relic",
+    name: "Temple of the Sacred Tooth Relic",
+    city: "Kandy",
+    district: "Kandy",
+    region: "Hill Country",
+    lat: "7.293600",
+    lon: "80.641300",
+    keywords: ["temple of the sacred tooth relic", "tooth relic", "sri dalada maligawa", "dalada maligawa", "kandy"],
+  },
+  {
+    id: "local-nine-arch",
+    name: "Nine Arch Bridge",
+    city: "Ella",
+    district: "Badulla",
+    region: "Hill Country",
+    lat: "6.876800",
+    lon: "81.060800",
+    keywords: ["nine arch bridge", "ella", "demodara"],
+  },
+  {
+    id: "local-mirissa",
+    name: "Mirissa Beach",
+    city: "Mirissa",
+    district: "Matara",
+    region: "South Coast",
+    lat: "5.948300",
+    lon: "80.471600",
+    keywords: ["mirissa", "mirissa beach", "whale watching"],
+  },
+  {
+    id: "local-galle-fort",
+    name: "Galle Fort",
+    city: "Galle",
+    district: "Galle",
+    region: "South Coast",
+    lat: "6.026900",
+    lon: "80.216800",
+    keywords: ["galle fort", "galle", "dutch fort"],
+  },
+  {
+    id: "local-yala",
+    name: "Yala National Park",
+    city: "Yala",
+    district: "Hambantota",
+    region: "South Coast",
+    lat: "6.372500",
+    lon: "81.520700",
+    keywords: ["yala", "yala national park", "safari"],
+  },
+  {
+    id: "local-nuwara-eliya",
+    name: "Nuwara Eliya",
+    city: "Nuwara Eliya",
+    district: "Nuwara Eliya",
+    region: "Hill Country",
+    lat: "6.949700",
+    lon: "80.789100",
+    keywords: ["nuwara eliya", "tea plantations", "tea estate"],
+  },
+  {
+    id: "local-trincomalee",
+    name: "Trincomalee Beaches",
+    city: "Trincomalee",
+    district: "Trincomalee",
+    region: "East Coast",
+    lat: "8.587400",
+    lon: "81.215200",
+    keywords: ["trincomalee", "nilaveli", "uppuveli", "trincomalee beach"],
+  },
+  {
+    id: "local-adams-peak",
+    name: "Adam's Peak",
+    city: "Nallathanniya",
+    district: "Ratnapura",
+    region: "Hill Country",
+    lat: "6.809600",
+    lon: "80.499400",
+    keywords: ["adam s peak", "adams peak", "sri pada", "samanala kanda"],
+  },
+  {
+    id: "local-colombo",
+    name: "Colombo",
+    city: "Colombo",
+    district: "Colombo",
+    region: "West Coast",
+    lat: "6.927100",
+    lon: "79.861200",
+    keywords: ["colombo", "fort", "pettah", "galle face"],
+  },
+  {
+    id: "local-polonnaruwa",
+    name: "Polonnaruwa Ancient City",
+    city: "Polonnaruwa",
+    district: "Polonnaruwa",
+    region: "Cultural Triangle",
+    lat: "7.940300",
+    lon: "81.018800",
+    keywords: ["polonnaruwa", "ancient city", "gal vihara"],
+  },
+  {
+    id: "local-udawalawe",
+    name: "Udawalawe National Park",
+    city: "Udawalawe",
+    district: "Ratnapura",
+    region: "South Coast",
+    lat: "6.474600",
+    lon: "80.888900",
+    keywords: ["udawalawe", "udawalawa", "national park", "elephant"],
+  },
+  {
+    id: "local-hikkaduwa",
+    name: "Hikkaduwa Beach",
+    city: "Hikkaduwa",
+    district: "Galle",
+    region: "South Coast",
+    lat: "6.140700",
+    lon: "80.101200",
+    keywords: ["hikkaduwa", "beach", "coral reef"],
+  },
+];
+
+const createLocalMapResults = ({ placeName, city, district, region }) => {
+  const combinedText = normalizeLocationText([placeName, city, district, region].filter(Boolean).join(" "));
+  if (!combinedText) return [];
+
+  const words = combinedText.split(" ").filter((word) => word.length > 2);
+
+  return knownSriLankaLocations
+    .map((location) => {
+      const haystack = normalizeLocationText([
+        location.name,
+        location.city,
+        location.district,
+        location.region,
+        ...(location.keywords || []),
+      ].join(" "));
+
+      let score = 0;
+      if (combinedText.includes(normalizeLocationText(location.name))) score += 15;
+      if (normalizeLocationText(location.name).includes(combinedText)) score += 10;
+      if (city && normalizeLocationText(city) === normalizeLocationText(location.city)) score += 8;
+      if (district && normalizeLocationText(district) === normalizeLocationText(location.district)) score += 5;
+      if (region && normalizeLocationText(region) === normalizeLocationText(location.region)) score += 2;
+
+      words.forEach((word) => {
+        if (haystack.includes(word)) score += 2;
+      });
+
+      return {
+        ...location,
+        place_id: location.id,
+        display_name: `${location.name}, ${location.city}, ${location.district}, Sri Lanka`,
+        source: "Local Sri Lanka suggestion",
+        score,
+      };
+    })
+    .filter((location) => location.score >= 4)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+};
+
+function MapLocationPicker({ lat, lng, placeName, city, district, region, onSelect }) {
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [mapMessage, setMapMessage] = useState("");
   const hasSelectedLocation = hasMapCoordinates(lat, lng);
 
-  useEffect(() => {
-    if (placeName) setQuery(placeName);
-  }, [placeName]);
+  const createSearchQueries = () => {
+    const cleanPlace = String(placeName || "").trim();
+    const cleanCity = String(city || "").trim();
+    const cleanDistrict = String(district || "").trim();
+    const simplePlace = removeGenericLocationWords(cleanPlace);
 
-  const searchLocation = async (event) => {
-    event.preventDefault();
-    const searchText = query.trim();
+    const queryList = [
+      [cleanPlace, cleanCity, cleanDistrict, "Sri Lanka"],
+      [cleanPlace, cleanCity, "Sri Lanka"],
+      [cleanPlace, cleanDistrict, "Sri Lanka"],
+      [cleanPlace, "Sri Lanka"],
+      [simplePlace, cleanCity, "Sri Lanka"],
+      [simplePlace, cleanDistrict, "Sri Lanka"],
+      [simplePlace, "Sri Lanka"],
+      [cleanCity, cleanDistrict, "Sri Lanka"],
+      [cleanCity, "Sri Lanka"],
+      [cleanDistrict, "Sri Lanka"],
+    ]
+      .map((parts) => parts.map((part) => String(part || "").trim()).filter(Boolean).join(", "))
+      .filter(Boolean);
 
-    if (!searchText) {
-      setMapMessage("Type a place name first. Example: Sigiriya Rock Fortress");
+    return [...new Set(queryList)];
+  };
+
+  const visibleSearchText = createSearchQueries()[0] || "Place name, city, district, Sri Lanka";
+
+  const normaliseOnlineResult = (result, sourceName) => ({
+    place_id: `${sourceName}-${result.place_id || result.osm_id || result.id || result.lat}-${result.lon}`,
+    name: result.name || result.display_name?.split(",")[0] || "Map result",
+    display_name: result.display_name || `${result.name || "Map result"}, Sri Lanka`,
+    lat: String(result.lat),
+    lon: String(result.lon),
+    source: sourceName,
+  });
+
+  const findFromNominatim = async (query) => {
+    const searchUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=lk&addressdetails=1&q=${encodeURIComponent(query)}`;
+    const response = await fetch(searchUrl, { headers: { Accept: "application/json" } });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data.map((item) => normaliseOnlineResult(item, "OpenStreetMap")) : [];
+  };
+
+  const findFromPhoton = async (query) => {
+    const searchUrl = `https://photon.komoot.io/api/?limit=6&lang=en&q=${encodeURIComponent(query)}`;
+    const response = await fetch(searchUrl, { headers: { Accept: "application/json" } });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const features = Array.isArray(data.features) ? data.features : [];
+
+    return features
+      .filter((feature) => {
+        const properties = feature.properties || {};
+        const country = normalizeLocationText(properties.country || "");
+        const state = normalizeLocationText(properties.state || "");
+        return country.includes("sri lanka") || state.includes("sri lanka") || country.includes("lk") || !properties.country;
+      })
+      .map((feature, index) => {
+        const properties = feature.properties || {};
+        const coordinates = feature.geometry?.coordinates || [];
+        return normaliseOnlineResult({
+          place_id: properties.osm_id || `photon-${index}`,
+          name: properties.name || properties.city || properties.county || "Map result",
+          display_name: [properties.name, properties.city, properties.county, properties.state, properties.country]
+            .filter(Boolean)
+            .join(", "),
+          lat: coordinates[1],
+          lon: coordinates[0],
+        }, "Photon map search");
+      });
+  };
+
+  const mergeUniqueResults = (items) => {
+    const seen = new Set();
+    return items
+      .filter((item) => hasMapCoordinates(item.lat, item.lon))
+      .filter((item) => {
+        const key = `${Number(item.lat).toFixed(4)}-${Number(item.lon).toFixed(4)}-${normalizeLocationText(item.name)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 10);
+  };
+
+  const findCoordinates = async () => {
+    if (!String(placeName || "").trim() && !String(city || "").trim() && !String(district || "").trim()) {
+      setMapMessage("Fill at least Place name, City or District first. Then click Create location.");
       setResults([]);
       return;
     }
 
+    const localResults = createLocalMapResults({ placeName, city, district, region });
+    const queries = createSearchQueries();
+
     try {
       setSearching(true);
-      setMapMessage("");
-      const searchUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=lk&q=${encodeURIComponent(searchText)}`;
-      const response = await fetch(searchUrl, { headers: { Accept: "application/json" } });
+      setResults(localResults);
+      setMapMessage(localResults.length ? "Choose a local suggestion below. I am also checking online map results..." : "Checking online map results...");
 
-      if (!response.ok) {
-        throw new Error("Map search failed");
+      let onlineResults = [];
+
+      for (const query of queries) {
+        const nominatimResults = await findFromNominatim(query);
+        onlineResults = mergeUniqueResults([...onlineResults, ...nominatimResults]);
+        if (onlineResults.length >= 3) break;
       }
 
-      const data = await response.json();
-      setResults(Array.isArray(data) ? data : []);
-
-      if (!Array.isArray(data) || data.length === 0) {
-        setMapMessage("No Sri Lanka map results found. Try a nearby town or type latitude and longitude manually.");
+      if (onlineResults.length === 0) {
+        for (const query of queries.slice(0, 4)) {
+          const photonResults = await findFromPhoton(query);
+          onlineResults = mergeUniqueResults([...onlineResults, ...photonResults]);
+          if (onlineResults.length >= 3) break;
+        }
       }
+
+      const finalResults = mergeUniqueResults([...localResults, ...onlineResults]);
+      setResults(finalResults);
+
+      if (finalResults.length === 0) {
+        setMapMessage("No result found. Type the nearest city only like Anuradhapura or enter latitude and longitude manually below.");
+        return;
+      }
+
+      setMapMessage("Choose the correct result below. Only latitude and longitude will change. Your other typed details will stay safe.");
     } catch (error) {
-      setResults([]);
-      setMapMessage("Map search is temporarily unavailable. You can still type latitude and longitude manually.");
+      if (localResults.length > 0) {
+        setResults(localResults);
+        setMapMessage("Online map search failed but local Sri Lanka suggestions are available. Choose the correct one below.");
+      } else {
+        setResults([]);
+        setMapMessage("Map search is temporarily unavailable. Type the nearest city only or enter latitude and longitude manually below.");
+      }
     } finally {
       setSearching(false);
     }
@@ -254,7 +562,7 @@ function MapLocationPicker({ lat, lng, placeName, onSelect }) {
   const selectResult = (result) => {
     onSelect({ lat: Number(result.lat).toFixed(6), lng: Number(result.lon).toFixed(6) });
     setResults([]);
-    setMapMessage("Location selected ✅ Save the place to keep this map location.");
+    setMapMessage("Location selected ✅ Only latitude and longitude were updated. Save the place to keep this location.");
   };
 
   const clearLocation = () => {
@@ -267,23 +575,18 @@ function MapLocationPicker({ lat, lng, placeName, onSelect }) {
     <div className="location-picker-card">
       <div className="location-picker-info">
         <div>
-          <strong>🗺️ Place Location Finder</strong>
-          <span>Search the place, pick the correct result and the latitude/longitude will fill automatically.</span>
+          <strong>🗺️ Place Location Helper</strong>
+          <span>Click Create location and choose the correct result. The system fills latitude and longitude automatically.</span>
+          <small>Search will try: {visibleSearchText}</small>
         </div>
-        {hasSelectedLocation ? (
-          <a href={getDirectionsUrl(lat, lng)} target="_blank" rel="noreferrer">Open selected location</a>
-        ) : null}
       </div>
 
-      <form className="map-search-row" onSubmit={searchLocation}>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search place location. Example: Sigiriya Rock Fortress"
-        />
-        <button type="submit" disabled={searching}>{searching ? "Searching..." : "Search Map"}</button>
-        {hasSelectedLocation ? <button type="button" className="clear-location-btn" onClick={clearLocation}>Clear</button> : null}
-      </form>
+      <div className="map-action-row">
+        <button type="button" onClick={findCoordinates} disabled={searching}>
+          {searching ? "Finding location..." : "Create location"}
+        </button>
+        {hasSelectedLocation ? <button type="button" className="clear-location-btn" onClick={clearLocation}>Remove location</button> : null}
+      </div>
 
       {mapMessage ? <p className="map-message">{mapMessage}</p> : null}
 
@@ -294,6 +597,7 @@ function MapLocationPicker({ lat, lng, placeName, onSelect }) {
               <div>
                 <strong>{result.name || result.display_name?.split(",")[0]}</strong>
                 <span>{result.display_name}</span>
+                <small>{result.source ? `${result.source} • ` : ""}Lat: {Number(result.lat).toFixed(6)} | Lng: {Number(result.lon).toFixed(6)}</small>
               </div>
               <button type="button" onClick={() => selectResult(result)}>Use this location</button>
             </article>
@@ -311,7 +615,7 @@ function MapLocationPicker({ lat, lng, placeName, onSelect }) {
           {hasSelectedLocation ? (
             <span>Selected coordinates: <strong>{lat}</strong>, <strong>{lng}</strong></span>
           ) : (
-            <span>No location selected yet. Search and choose a result above.</span>
+            <span>No location selected yet. Click Create location or type latitude and longitude manually below.</span>
           )}
         </div>
       </div>
@@ -800,6 +1104,9 @@ export default function ExploreManagerPage() {
               lat={form.lat}
               lng={form.lng}
               placeName={form.name}
+              city={form.city}
+              district={form.district}
+              region={form.region}
               onSelect={({ lat, lng }) => setForm((current) => ({ ...current, lat, lng }))}
             />
             <div className="form-grid location-manual-grid">
@@ -944,6 +1251,6 @@ export default function ExploreManagerPage() {
 }
 
 const css = `
-.explore-admin-page{color:#0b2530}.explore-admin-hero{display:grid;grid-template-columns:1fr 150px 150px 150px;gap:18px;align-items:stretch;background:linear-gradient(135deg,#064e45,#0f766e);border-radius:28px;padding:28px;color:#fff;margin-bottom:20px}.explore-admin-hero p{margin:0 0 10px;color:#ffe68b;font-weight:900;letter-spacing:.25em;font-size:12px}.explore-admin-hero h1{margin:0;font-size:42px}.explore-admin-hero span{display:block;margin-top:8px;color:#d6fff8}.hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center}.hero-stat strong{font-size:36px}.hero-stat small{color:#d6fff8;font-weight:800}.admin-notice{background:#fff7d1;border:1px solid #f4d97b;color:#5a3c00;padding:14px 18px;border-radius:16px;margin:14px 0;font-weight:800}.explore-admin-tabs{display:flex;gap:10px;margin:16px 0;align-items:center;flex-wrap:wrap}.explore-admin-tabs button{border:1px solid #dbe7e2;background:#fff;border-radius:999px;padding:12px 26px;min-width:110px;font-weight:900;cursor:pointer;color:#064e45!important;-webkit-text-fill-color:#064e45!important;display:inline-flex;align-items:center;justify-content:center;line-height:1.1;text-align:center;white-space:nowrap}.explore-admin-tabs button.on{background:#064e45;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#064e45}.manager-grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:22px;align-items:start}.manager-grid.single{grid-template-columns:1fr 1fr}.manager-card{background:#fff;border:1px solid #e2ebe5;border-radius:26px;box-shadow:0 18px 45px rgba(0,0,0,.06);padding:22px}.form-title-row,.list-head{display:flex;justify-content:space-between;gap:16px;align-items:start}.title-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.manager-card h2{margin:0 0 8px;color:#064e45}.manager-card h3{margin:26px 0 14px;color:#0f766e;border-top:1px solid #edf4ef;padding-top:18px}.manager-card p{margin:0;color:#64748b}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.form-grid.two{grid-template-columns:1fr 1fr}.explore-field{display:flex;flex-direction:column;gap:7px;font-weight:800;color:#334155}.explore-field input,.explore-field select,.explore-field textarea,.list-head input{border:1px solid #dbe7e2;border-radius:14px;padding:12px 14px;font:inherit;font-weight:650;outline:none;background:#fff}.explore-field textarea{resize:vertical}.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.month-grid button{border:1px solid #dbe7e2;background:#fff;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.month-grid button.on{background:#ffc22b;color:#063c38;border-color:#ffc22b}.drop-box{position:relative;border:2px dashed #b9d8ce;background:#f4fbf7;border-radius:20px;min-height:130px;display:grid;place-items:center;text-align:center;color:#064e45;overflow:hidden;padding:18px}.drop-box input{position:absolute;inset:0;opacity:0;cursor:pointer}.drop-box strong{font-size:18px}.drop-box span{color:#64748b;font-weight:800}.gallery-callout{display:flex;justify-content:space-between;gap:18px;align-items:center;border:1px solid #dbe7e2;background:linear-gradient(135deg,#f4fbf7,#fffdf2);border-radius:20px;padding:18px}.gallery-callout div{display:flex;flex-direction:column;gap:6px}.gallery-callout strong{color:#064e45;font-size:18px}.gallery-callout span{color:#64748b;font-weight:800}.gallery-callout button,.gallery-soft-btn{border:none;background:#ffc22b;color:#063c38;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer;white-space:nowrap}.gallery-callout button:disabled{opacity:.6;cursor:not-allowed}.publish-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;align-items:center}.publish-row label{font-weight:900;display:flex;gap:8px;align-items:center}.publish-row input,.publish-row select{border:1px solid #dbe7e2;border-radius:10px;padding:8px}.save-btn,.mini-form button,.soft-btn{border:none;background:#064e45;color:#fff;border-radius:16px;padding:14px 20px;font-weight:900;cursor:pointer;margin-top:20px}.soft-btn{background:#e8f5ef;color:#064e45;margin:0}.gallery-soft-btn{margin:0}.place-list-card{position:sticky;top:18px}.admin-place-list{display:flex;flex-direction:column;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.admin-place-item{display:grid;grid-template-columns:70px 1fr auto auto auto;gap:10px;align-items:center;border:1px solid #edf3ef;border-radius:18px;padding:10px}.admin-place-item img{width:70px;height:64px;object-fit:cover;border-radius:14px;background:#e5e7eb}.admin-place-item strong{display:block;color:#064e45}.admin-place-item span,.admin-place-item small{display:block;color:#64748b;font-size:12px;font-weight:800}.admin-place-item button{border:none;background:#e8f5ef;color:#064e45;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.admin-place-item button.gallery{background:#fff3c4;color:#5a3c00}.admin-place-item button.danger{background:#fee2e2;color:#991b1b}.mini-form{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px;align-items:end}.cat-list{display:flex;gap:10px;flex-wrap:wrap}.cat-list span{background:#f0faf6;border:1px solid #dbe7e2;border-radius:999px;padding:10px 14px;font-weight:900}.cat-list small{color:#64748b;margin-left:4px}.field-helper{color:#64748b;font-size:12px;font-weight:800;line-height:1.45}.list-editor-wrap{background:#fbfefc;border:1px solid #edf4ef;border-radius:18px;padding:14px}.simple-list-editor,.object-list-editor{display:flex;flex-direction:column;gap:10px}.empty-list-note{margin:0!important;color:#94a3b8!important;font-size:13px;font-weight:800}.list-editor-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.list-editor-row input,.object-fields-grid input,.object-fields-grid textarea{border:1px solid #dbe7e2;border-radius:12px;padding:10px 12px;font:inherit;font-weight:650;outline:none;background:#fff}.add-mini-btn,.remove-mini-btn{border:none;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.add-mini-btn{background:#064e45;color:#fff;align-self:flex-start}.remove-mini-btn{background:#fee2e2;color:#991b1b}.object-item-card{border:1px solid #e5efe9;background:#fff;border-radius:16px;padding:12px}.object-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;color:#064e45}.object-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.object-fields-grid label{display:flex;flex-direction:column;gap:6px;color:#334155;font-weight:800}.object-fields-grid label.full{grid-column:1/-1}.wide-editor{min-height:100%}.gallery-overlay{position:fixed;inset:0;background:rgba(6,78,69,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}.gallery-modal{width:min(1120px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 30px 90px rgba(0,0,0,.28);padding:24px}.gallery-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;border-bottom:1px solid #edf4ef;padding-bottom:18px;margin-bottom:18px}.gallery-head p{margin:0 0 8px;color:#f97316;font-weight:900;letter-spacing:.22em;font-size:12px}.gallery-head h2{margin:0;color:#064e45;font-size:34px}.gallery-head span{display:block;color:#64748b;font-weight:750;margin-top:6px}.close-gallery-btn{border:none;background:#fee2e2;color:#991b1b;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer}.gallery-body-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px}.gallery-panel{border:1px solid #e2ebe5;border-radius:22px;padding:18px;background:#fbfefc}.gallery-panel h3{margin:0 0 6px;color:#0f766e}.gallery-help{margin:0 0 14px!important;color:#64748b!important;font-weight:750}.empty-gallery-note{border:1px dashed #b9d8ce;border-radius:18px;padding:28px;text-align:center;color:#64748b;font-weight:900;background:#fff}.existing-photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.existing-photo-card{background:#fff;border:1px solid #e5efe9;border-radius:18px;padding:10px;display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center}.existing-photo-card img{width:120px;height:92px;object-fit:cover;border-radius:14px;background:#e5e7eb}.existing-photo-card strong{display:block;color:#064e45}.existing-photo-card small{display:block;color:#64748b;font-weight:800;margin-top:4px}.existing-photo-card em{grid-column:1/-1;color:#b45309;font-style:normal;font-size:12px;font-weight:800}.delete-photo-btn{grid-column:2;border:none;background:#fee2e2;color:#991b1b;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.delete-photo-btn:disabled{opacity:.6;cursor:not-allowed}.gallery-drop-box{min-height:180px}.selected-files-list{display:flex;flex-direction:column;gap:8px;margin:14px 0}.selected-files-list span{background:#fff;border:1px solid #e2ebe5;border-radius:12px;padding:10px;color:#334155;font-weight:800;word-break:break-word}.upload-gallery-btn{border:none;background:#064e45;color:#fff;border-radius:14px;padding:14px 18px;font-weight:900;cursor:pointer;width:100%}.upload-gallery-btn:disabled{opacity:.6;cursor:not-allowed}.location-picker-card{border:1px solid #dbe7e2;background:linear-gradient(135deg,#f8ffff,#fbfefc);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}.location-picker-info{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.location-picker-info div{display:flex;flex-direction:column;gap:5px}.location-picker-info strong{color:#064e45;font-size:18px}.location-picker-info span{color:#64748b;font-weight:800}.location-picker-info a{background:#e8f5ef;color:#064e45;border-radius:999px;padding:10px 14px;text-decoration:none;font-weight:900;white-space:nowrap}.map-search-row{display:grid;grid-template-columns:1fr auto auto;gap:10px}.map-search-row input{border:1px solid #dbe7e2;border-radius:14px;padding:12px 14px;font:inherit;font-weight:750;outline:none;background:#fff}.map-search-row button{border:none;background:#064e45;color:#fff;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer}.map-search-row button:disabled{opacity:.65;cursor:not-allowed}.map-search-row .clear-location-btn{background:#fee2e2;color:#991b1b}.map-message{margin:0!important;background:#fff7d1;border:1px solid #f4d97b;color:#5a3c00;border-radius:14px;padding:10px 12px;font-weight:850}.map-result-list{display:flex;flex-direction:column;gap:10px}.map-result-list article{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid #e2ebe5;border-radius:16px;padding:12px}.map-result-list strong{display:block;color:#064e45}.map-result-list span{display:block;color:#64748b;font-size:12px;font-weight:750;line-height:1.45;margin-top:4px}.map-result-list button{border:none;background:#ffc22b;color:#063c38;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.map-preview-card{border:1px solid #dbe7e2;border-radius:18px;overflow:hidden;background:#fff}.map-preview-card iframe{width:100%;height:300px;border:0;display:block}.map-coordinate-note{padding:12px 14px;background:#f8fafc;color:#64748b;font-weight:850}.map-coordinate-note strong{color:#064e45}.location-manual-grid{margin-top:14px}
-@media(max-width:1100px){.explore-admin-hero,.manager-grid,.manager-grid.single,.gallery-body-grid{grid-template-columns:1fr}.place-list-card{position:static}.mini-form{grid-template-columns:1fr 1fr}.admin-place-item{grid-template-columns:70px 1fr auto}.admin-place-item button.danger{grid-column:3}.existing-photo-grid{grid-template-columns:1fr}}@media(max-width:700px){.form-grid,.form-grid.two,.month-grid,.mini-form,.map-search-row,.map-result-list article{grid-template-columns:1fr}.admin-place-item{grid-template-columns:60px 1fr}.admin-place-item button{grid-column:span 1}.explore-admin-hero{padding:20px}.explore-admin-hero h1{font-size:34px}.gallery-overlay{padding:10px}.gallery-modal{padding:16px}.gallery-head{flex-direction:column}.existing-photo-card{grid-template-columns:1fr}.existing-photo-card img{width:100%;height:180px}.delete-photo-btn{grid-column:1}.gallery-callout{flex-direction:column;align-items:stretch}.gallery-callout button{width:100%}}
+.explore-admin-page{color:#0b2530}.explore-admin-hero{display:grid;grid-template-columns:1fr 150px 150px 150px;gap:18px;align-items:stretch;background:linear-gradient(135deg,#064e45,#0f766e);border-radius:28px;padding:28px;color:#fff;margin-bottom:20px}.explore-admin-hero p{margin:0 0 10px;color:#ffe68b;font-weight:900;letter-spacing:.25em;font-size:12px}.explore-admin-hero h1{margin:0;font-size:42px}.explore-admin-hero span{display:block;margin-top:8px;color:#d6fff8}.hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center}.hero-stat strong{font-size:36px}.hero-stat small{color:#d6fff8;font-weight:800}.admin-notice{background:#fff7d1;border:1px solid #f4d97b;color:#5a3c00;padding:14px 18px;border-radius:16px;margin:14px 0;font-weight:800}.explore-admin-tabs{display:flex;gap:10px;margin:16px 0;align-items:center;flex-wrap:wrap}.explore-admin-tabs button{border:1px solid #dbe7e2;background:#fff;border-radius:999px;padding:12px 26px;min-width:110px;font-weight:900;cursor:pointer;color:#064e45!important;-webkit-text-fill-color:#064e45!important;display:inline-flex;align-items:center;justify-content:center;line-height:1.1;text-align:center;white-space:nowrap}.explore-admin-tabs button.on{background:#064e45;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#064e45}.manager-grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:22px;align-items:start}.manager-grid.single{grid-template-columns:1fr 1fr}.manager-card{background:#fff;border:1px solid #e2ebe5;border-radius:26px;box-shadow:0 18px 45px rgba(0,0,0,.06);padding:22px}.form-title-row,.list-head{display:flex;justify-content:space-between;gap:16px;align-items:start}.title-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.manager-card h2{margin:0 0 8px;color:#064e45}.manager-card h3{margin:26px 0 14px;color:#0f766e;border-top:1px solid #edf4ef;padding-top:18px}.manager-card p{margin:0;color:#64748b}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.form-grid.two{grid-template-columns:1fr 1fr}.explore-field{display:flex;flex-direction:column;gap:7px;font-weight:800;color:#334155}.explore-field input,.explore-field select,.explore-field textarea,.list-head input{border:1px solid #dbe7e2;border-radius:14px;padding:12px 14px;font:inherit;font-weight:650;outline:none;background:#fff}.explore-field textarea{resize:vertical}.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.month-grid button{border:1px solid #dbe7e2;background:#fff;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.month-grid button.on{background:#ffc22b;color:#063c38;border-color:#ffc22b}.drop-box{position:relative;border:2px dashed #b9d8ce;background:#f4fbf7;border-radius:20px;min-height:130px;display:grid;place-items:center;text-align:center;color:#064e45;overflow:hidden;padding:18px}.drop-box input{position:absolute;inset:0;opacity:0;cursor:pointer}.drop-box strong{font-size:18px}.drop-box span{color:#64748b;font-weight:800}.gallery-callout{display:flex;justify-content:space-between;gap:18px;align-items:center;border:1px solid #dbe7e2;background:linear-gradient(135deg,#f4fbf7,#fffdf2);border-radius:20px;padding:18px}.gallery-callout div{display:flex;flex-direction:column;gap:6px}.gallery-callout strong{color:#064e45;font-size:18px}.gallery-callout span{color:#64748b;font-weight:800}.gallery-callout button,.gallery-soft-btn{border:none;background:#ffc22b;color:#063c38;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer;white-space:nowrap}.gallery-callout button:disabled{opacity:.6;cursor:not-allowed}.publish-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;align-items:center}.publish-row label{font-weight:900;display:flex;gap:8px;align-items:center}.publish-row input,.publish-row select{border:1px solid #dbe7e2;border-radius:10px;padding:8px}.save-btn,.mini-form button,.soft-btn{border:none;background:#064e45;color:#fff;border-radius:16px;padding:14px 20px;font-weight:900;cursor:pointer;margin-top:20px}.soft-btn{background:#e8f5ef;color:#064e45;margin:0}.gallery-soft-btn{margin:0}.place-list-card{position:sticky;top:18px}.admin-place-list{display:flex;flex-direction:column;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.admin-place-item{display:grid;grid-template-columns:70px 1fr auto auto auto;gap:10px;align-items:center;border:1px solid #edf3ef;border-radius:18px;padding:10px}.admin-place-item img{width:70px;height:64px;object-fit:cover;border-radius:14px;background:#e5e7eb}.admin-place-item strong{display:block;color:#064e45}.admin-place-item span,.admin-place-item small{display:block;color:#64748b;font-size:12px;font-weight:800}.admin-place-item button{border:none;background:#e8f5ef;color:#064e45;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.admin-place-item button.gallery{background:#fff3c4;color:#5a3c00}.admin-place-item button.danger{background:#fee2e2;color:#991b1b}.mini-form{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px;align-items:end}.cat-list{display:flex;gap:10px;flex-wrap:wrap}.cat-list span{background:#f0faf6;border:1px solid #dbe7e2;border-radius:999px;padding:10px 14px;font-weight:900}.cat-list small{color:#64748b;margin-left:4px}.field-helper{color:#64748b;font-size:12px;font-weight:800;line-height:1.45}.list-editor-wrap{background:#fbfefc;border:1px solid #edf4ef;border-radius:18px;padding:14px}.simple-list-editor,.object-list-editor{display:flex;flex-direction:column;gap:10px}.empty-list-note{margin:0!important;color:#94a3b8!important;font-size:13px;font-weight:800}.list-editor-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.list-editor-row input,.object-fields-grid input,.object-fields-grid textarea{border:1px solid #dbe7e2;border-radius:12px;padding:10px 12px;font:inherit;font-weight:650;outline:none;background:#fff}.add-mini-btn,.remove-mini-btn{border:none;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.add-mini-btn{background:#064e45;color:#fff;align-self:flex-start}.remove-mini-btn{background:#fee2e2;color:#991b1b}.object-item-card{border:1px solid #e5efe9;background:#fff;border-radius:16px;padding:12px}.object-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;color:#064e45}.object-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.object-fields-grid label{display:flex;flex-direction:column;gap:6px;color:#334155;font-weight:800}.object-fields-grid label.full{grid-column:1/-1}.wide-editor{min-height:100%}.gallery-overlay{position:fixed;inset:0;background:rgba(6,78,69,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}.gallery-modal{width:min(1120px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 30px 90px rgba(0,0,0,.28);padding:24px}.gallery-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;border-bottom:1px solid #edf4ef;padding-bottom:18px;margin-bottom:18px}.gallery-head p{margin:0 0 8px;color:#f97316;font-weight:900;letter-spacing:.22em;font-size:12px}.gallery-head h2{margin:0;color:#064e45;font-size:34px}.gallery-head span{display:block;color:#64748b;font-weight:750;margin-top:6px}.close-gallery-btn{border:none;background:#fee2e2;color:#991b1b;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer}.gallery-body-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px}.gallery-panel{border:1px solid #e2ebe5;border-radius:22px;padding:18px;background:#fbfefc}.gallery-panel h3{margin:0 0 6px;color:#0f766e}.gallery-help{margin:0 0 14px!important;color:#64748b!important;font-weight:750}.empty-gallery-note{border:1px dashed #b9d8ce;border-radius:18px;padding:28px;text-align:center;color:#64748b;font-weight:900;background:#fff}.existing-photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.existing-photo-card{background:#fff;border:1px solid #e5efe9;border-radius:18px;padding:10px;display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center}.existing-photo-card img{width:120px;height:92px;object-fit:cover;border-radius:14px;background:#e5e7eb}.existing-photo-card strong{display:block;color:#064e45}.existing-photo-card small{display:block;color:#64748b;font-weight:800;margin-top:4px}.existing-photo-card em{grid-column:1/-1;color:#b45309;font-style:normal;font-size:12px;font-weight:800}.delete-photo-btn{grid-column:2;border:none;background:#fee2e2;color:#991b1b;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.delete-photo-btn:disabled{opacity:.6;cursor:not-allowed}.gallery-drop-box{min-height:180px}.selected-files-list{display:flex;flex-direction:column;gap:8px;margin:14px 0}.selected-files-list span{background:#fff;border:1px solid #e2ebe5;border-radius:12px;padding:10px;color:#334155;font-weight:800;word-break:break-word}.upload-gallery-btn{border:none;background:#064e45;color:#fff;border-radius:14px;padding:14px 18px;font-weight:900;cursor:pointer;width:100%}.upload-gallery-btn:disabled{opacity:.6;cursor:not-allowed}.location-picker-card{border:1px solid #dbe7e2;background:linear-gradient(135deg,#f8ffff,#fbfefc);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}.location-picker-info{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.location-picker-info div{display:flex;flex-direction:column;gap:5px}.location-picker-info strong{color:#064e45;font-size:18px}.location-picker-info span{color:#64748b;font-weight:800}.location-picker-info a{background:#e8f5ef;color:#064e45;border-radius:999px;padding:10px 14px;text-decoration:none;font-weight:900;white-space:nowrap}.map-action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.map-action-row button{border:none;background:#064e45;color:#fff;border-radius:14px;padding:12px 18px;font-weight:900;cursor:pointer}.map-action-row button:disabled{opacity:.65;cursor:not-allowed}.map-action-row .clear-location-btn{background:#fee2e2;color:#991b1b}.location-picker-info small{display:block;margin-top:4px;color:#0f766e;font-weight:850}.map-message{margin:0!important;background:#fff7d1;border:1px solid #f4d97b;color:#5a3c00;border-radius:14px;padding:10px 12px;font-weight:850}.map-result-list{display:flex;flex-direction:column;gap:10px}.map-result-list article{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid #e2ebe5;border-radius:16px;padding:12px}.map-result-list strong{display:block;color:#064e45}.map-result-list span,.map-result-list small{display:block;color:#64748b;font-size:12px;font-weight:750;line-height:1.45;margin-top:4px}.map-result-list button{border:none;background:#ffc22b;color:#063c38;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.map-preview-card{border:1px solid #dbe7e2;border-radius:18px;overflow:hidden;background:#fff}.map-preview-card iframe{width:100%;height:300px;border:0;display:block}.map-coordinate-note{padding:12px 14px;background:#f8fafc;color:#64748b;font-weight:850}.map-coordinate-note strong{color:#064e45}.location-manual-grid{margin-top:14px}
+@media(max-width:1100px){.explore-admin-hero,.manager-grid,.manager-grid.single,.gallery-body-grid{grid-template-columns:1fr}.place-list-card{position:static}.mini-form{grid-template-columns:1fr 1fr}.admin-place-item{grid-template-columns:70px 1fr auto}.admin-place-item button.danger{grid-column:3}.existing-photo-grid{grid-template-columns:1fr}}@media(max-width:700px){.form-grid,.form-grid.two,.month-grid,.mini-form,.map-result-list article{grid-template-columns:1fr}.admin-place-item{grid-template-columns:60px 1fr}.admin-place-item button{grid-column:span 1}.explore-admin-hero{padding:20px}.explore-admin-hero h1{font-size:34px}.gallery-overlay{padding:10px}.gallery-modal{padding:16px}.gallery-head{flex-direction:column}.existing-photo-card{grid-template-columns:1fr}.existing-photo-card img{width:100%;height:180px}.delete-photo-btn{grid-column:1}.gallery-callout{flex-direction:column;align-items:stretch}.gallery-callout button{width:100%}}
 `;
