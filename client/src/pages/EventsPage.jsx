@@ -28,11 +28,11 @@ function EventsPage() {
         setLoading(true);
         setError("");
         const rows = await getTouristEvents();
-        setEvents(rows.length ? rows.map(normaliseEvent) : tourismEvents);
+        setEvents(rows.map(normaliseEvent));
       } catch (err) {
         console.warn("Using fallback event data:", err.message);
         setEvents(tourismEvents);
-        setError("Showing demo event data because the event API is not reachable.");
+        setError("Showing demo event data because the event API is not reachable. Approved database events will appear here when the API is running.");
       } finally {
         setLoading(false);
       }

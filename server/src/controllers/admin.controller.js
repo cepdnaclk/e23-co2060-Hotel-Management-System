@@ -1,13 +1,9 @@
 const pool = require("../config/db");
 
-const visibilitySql = `
-  p.status = 'approved'
-  AND p.registration_payment_status = 'Paid'
-  AND (
-    CURDATE() < DATE(p.next_monthly_due_date)
-    OR (p.monthly_payment_status = 'Paid' AND CURDATE() <= DATE(p.monthly_cycle_end))
-  )
-`;
+// Public visibility now matches the tourist pages: once admin approves a
+// property, it is allowed to appear in the Hotels page. Payment management
+// is still handled by Registration Fees and Monthly Fees pages.
+const visibilitySql = `p.status = 'approved'`;
 
 const insertPaymentTransaction = async (db, property, type, amount, notes = null) => {
   try {
@@ -272,7 +268,22 @@ const approveProperty = async (req, res) => {
       `UPDATE properties
        SET status = 'approved',
            is_verified = TRUE,
-           rejection_reason = NULL
+           rejection_reason = NULL,
+           registration_payment_status = 'Paid',
+           fee_payment_status = 'Paid',
+           registration_paid_at = COALESCE(registration_paid_at, NOW()),
+           monthly_payment_status = COALESCE(monthly_payment_status, 'Free Trial'),
+           monthly_cycle_start = COALESCE(monthly_cycle_start, NOW()),
+           monthly_cycle_end = CASE
+             WHEN monthly_cycle_end IS NULL OR monthly_cycle_end <= NOW()
+             THEN DATE_ADD(NOW(), INTERVAL 1 MONTH)
+             ELSE monthly_cycle_end
+           END,
+           next_monthly_due_date = CASE
+             WHEN next_monthly_due_date IS NULL OR next_monthly_due_date <= NOW()
+             THEN DATE_ADD(NOW(), INTERVAL 1 MONTH)
+             ELSE next_monthly_due_date
+           END
        WHERE id = ?`,
       [id]
     );
@@ -283,7 +294,7 @@ const approveProperty = async (req, res) => {
       [
         properties[0].partner_id,
         "Property approved",
-        `${properties[0].name} was approved. It displays only when payment rules are valid.`,
+        `${properties[0].name} was approved and is now visible on the tourist Hotels page.`,
         "approval",
       ]
     );

@@ -10,6 +10,11 @@ const parseJson = (value, fallback = []) => {
   }
 };
 
+const normalizeStatus = (status) => {
+  if (status === "published") return "approved";
+  return status || "pending";
+};
+
 const mapEvent = (row) => ({
   id: row.slug,
   event_id: row.id,
@@ -32,7 +37,10 @@ const mapEvent = (row) => ({
   price_type: row.price_type,
   priceType: row.price_type,
   price: Number(row.price || 0),
-  priceLabel: Number(row.price || 0) === 0 ? "Free entry" : `LKR ${Number(row.price || 0).toLocaleString()}`,
+  priceLabel:
+    Number(row.price || 0) === 0
+      ? "Free entry"
+      : `LKR ${Number(row.price || 0).toLocaleString()}`,
   duration: row.duration,
   short_description: row.short_description,
   shortDescription: row.short_description,
@@ -47,64 +55,81 @@ const mapEvent = (row) => ({
   guide_recommended: Boolean(row.guide_recommended),
   guideRecommended: Boolean(row.guide_recommended),
   featured: Boolean(row.featured),
-  status: row.status === "published" ? "approved" : row.status,
+  status: normalizeStatus(row.status),
 });
 
-const baseSelect = `
-  SELECT e.*
-  FROM tourist_events e
-`;
+const publicEventWhere = "e.status IN ('approved', 'published')";
+
+const buildEventFilters = (query = {}) => {
+  const conditions = [publicEventWhere];
+  const params = [];
+
+  const search = String(query.search || query.q || "").trim().toLowerCase();
+  const city = String(query.city || "").trim().toLowerCase();
+  const category = String(query.category || "").trim();
+  const month = String(query.month || "").trim();
+  const price = String(query.price || "").trim();
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(`(
+      LOWER(e.title) LIKE ? OR
+      LOWER(e.category) LIKE ? OR
+      LOWER(e.city) LIKE ? OR
+      LOWER(COALESCE(e.district, '')) LIKE ? OR
+      LOWER(COALESCE(e.venue, '')) LIKE ? OR
+      LOWER(COALESCE(e.short_description, '')) LIKE ? OR
+      LOWER(COALESCE(e.description, '')) LIKE ? OR
+      LOWER(COALESCE(CAST(e.near_hotels AS CHAR), '')) LIKE ? OR
+      LOWER(COALESCE(CAST(e.highlights AS CHAR), '')) LIKE ?
+    )`);
+    params.push(like, like, like, like, like, like, like, like, like);
+  }
+
+  if (city) {
+    conditions.push("LOWER(e.city) = ?");
+    params.push(city);
+  }
+
+  if (category && category !== "All") {
+    conditions.push("e.category = ?");
+    params.push(category);
+  }
+
+  if (month && month !== "All Months") {
+    conditions.push("e.month_name = ?");
+    params.push(month);
+  }
+
+  if (price && price !== "Any Price") {
+    conditions.push("e.price_type = ?");
+    params.push(price);
+  }
+
+  return { whereSql: conditions.join(" AND "), params };
+};
+
+const baseSelect = `SELECT e.* FROM tourist_events e`;
 
 const getTouristEvents = async (req, res) => {
   try {
-    const { search, category, city, month, price } = req.query;
-    const conditions = ["e.status IN ('approved', 'published')"];
-    const params = [];
-
-    if (search && search.trim()) {
-      const like = `%${search.trim().toLowerCase()}%`;
-      conditions.push(`(
-        LOWER(e.title) LIKE ? OR
-        LOWER(e.category) LIKE ? OR
-        LOWER(e.city) LIKE ? OR
-        LOWER(e.district) LIKE ? OR
-        LOWER(e.venue) LIKE ? OR
-        LOWER(JSON_EXTRACT(e.near_hotels, '$')) LIKE ?
-      )`);
-      params.push(like, like, like, like, like, like);
-    }
-
-    if (city && city.trim()) {
-      conditions.push("LOWER(e.city) = ?");
-      params.push(city.trim().toLowerCase());
-    }
-
-    if (category && category !== "All") {
-      conditions.push("e.category = ?");
-      params.push(category);
-    }
-
-    if (month && month !== "All Months") {
-      conditions.push("e.month_name = ?");
-      params.push(month);
-    }
-
-    if (price && price !== "Any Price") {
-      conditions.push("e.price_type = ?");
-      params.push(price);
-    }
+    const { whereSql, params } = buildEventFilters(req.query);
 
     const [rows] = await pool.query(
       `${baseSelect}
-       WHERE ${conditions.join(" AND ")}
-       ORDER BY e.featured DESC, e.month_number ASC, e.id ASC`,
+       WHERE ${whereSql}
+       ORDER BY e.featured DESC, COALESCE(e.month_number, 13) ASC, e.approved_at DESC, e.id DESC`,
       params
     );
 
     return res.json({ success: true, count: rows.length, events: rows.map(mapEvent) });
   } catch (error) {
     console.error("Get tourist events error:", error);
-    return res.status(500).json({ success: false, message: "Failed to load tourist events" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load approved tourist events",
+      error: process.env.NODE_ENV === "production" ? undefined : error.message,
+    });
   }
 };
 
@@ -112,18 +137,22 @@ const getTouristEventBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
     const [rows] = await pool.query(
-      `${baseSelect} WHERE e.slug = ? AND e.status IN ('approved', 'published') LIMIT 1`,
+      `${baseSelect} WHERE e.slug = ? AND ${publicEventWhere} LIMIT 1`,
       [slug]
     );
 
     if (!rows.length) {
-      return res.status(404).json({ success: false, message: "Event not found" });
+      return res.status(404).json({ success: false, message: "Event not found or not approved yet" });
     }
 
     return res.json({ success: true, event: mapEvent(rows[0]) });
   } catch (error) {
     console.error("Get tourist event error:", error);
-    return res.status(500).json({ success: false, message: "Failed to load tourist event" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load event details",
+      error: process.env.NODE_ENV === "production" ? undefined : error.message,
+    });
   }
 };
 
@@ -132,16 +161,20 @@ const getTouristEventsByPlace = async (req, res) => {
     const { placeId } = req.params;
     const [rows] = await pool.query(
       `${baseSelect}
-       WHERE e.status IN ('approved', 'published')
+       WHERE ${publicEventWhere}
        AND e.explore_place_id = ?
-       ORDER BY e.featured DESC, e.month_number ASC, e.id ASC`,
+       ORDER BY e.featured DESC, COALESCE(e.month_number, 13) ASC, e.id DESC`,
       [placeId]
     );
 
     return res.json({ success: true, count: rows.length, events: rows.map(mapEvent) });
   } catch (error) {
     console.error("Get tourist events by place error:", error);
-    return res.status(500).json({ success: false, message: "Failed to load place events" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load approved place events",
+      error: process.env.NODE_ENV === "production" ? undefined : error.message,
+    });
   }
 };
 
