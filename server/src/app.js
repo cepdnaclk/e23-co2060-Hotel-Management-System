@@ -13,6 +13,7 @@ const exploreRoutes = require("./routes/explore.routes");
 const adminExploreRoutes = require("./routes/adminExplore.routes");
 const bookingRoutes = require("./routes/booking.routes");
 const touristEventRoutes = require("./routes/touristEvent.routes");
+const partnerEventRoutes = require("./routes/partnerEvent.routes");
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use("/api", healthRoutes);
 app.use("/api", dbTestRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
+app.use("/api/partner/events", partnerEventRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/explore", adminExploreRoutes);

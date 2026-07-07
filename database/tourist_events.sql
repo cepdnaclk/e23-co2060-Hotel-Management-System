@@ -3,6 +3,8 @@ USE tourismhub_lk;
 CREATE TABLE IF NOT EXISTS tourist_events (
   id INT AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(160) NOT NULL UNIQUE,
+  partner_id INT NULL,
+  property_id INT NULL,
   explore_place_id INT NULL,
   title VARCHAR(180) NOT NULL,
   category VARCHAR(80) NOT NULL,
@@ -11,6 +13,7 @@ CREATE TABLE IF NOT EXISTS tourist_events (
   venue VARCHAR(180),
   month_name VARCHAR(40),
   month_number INT DEFAULT 1,
+  event_date DATE NULL,
   date_label VARCHAR(100),
   time_label VARCHAR(100),
   price_type ENUM('Free','Budget','Paid','Premium') DEFAULT 'Budget',
@@ -20,6 +23,9 @@ CREATE TABLE IF NOT EXISTS tourist_events (
   description TEXT,
   image_url TEXT,
   map_url TEXT,
+  contact_name VARCHAR(150) NULL,
+  contact_phone VARCHAR(30) NULL,
+  contact_email VARCHAR(150) NULL,
   near_hotels JSON,
   highlights JSON,
   guide_recommended BOOLEAN DEFAULT FALSE,
@@ -27,12 +33,20 @@ CREATE TABLE IF NOT EXISTS tourist_events (
   status ENUM('draft','published','hidden') DEFAULT 'published',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_tourist_events_partner
+    FOREIGN KEY (partner_id) REFERENCES users(id)
+    ON DELETE SET NULL,
+  CONSTRAINT fk_tourist_events_property
+    FOREIGN KEY (property_id) REFERENCES properties(id)
+    ON DELETE SET NULL,
   CONSTRAINT fk_tourist_events_place
     FOREIGN KEY (explore_place_id) REFERENCES explore_places(id)
     ON DELETE SET NULL
 );
 
 CREATE INDEX idx_tourist_events_status ON tourist_events(status);
+CREATE INDEX idx_tourist_events_partner ON tourist_events(partner_id, status);
+CREATE INDEX idx_tourist_events_property ON tourist_events(property_id, status);
 CREATE INDEX idx_tourist_events_filters ON tourist_events(status, category, city, month_name, price_type);
 CREATE INDEX idx_tourist_events_place ON tourist_events(explore_place_id, status);
 

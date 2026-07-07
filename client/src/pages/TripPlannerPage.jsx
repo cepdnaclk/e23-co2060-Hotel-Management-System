@@ -741,12 +741,19 @@ function TripPlannerPage() {
         </div>
       )}
 
-      <section className="trip-planner-banner" aria-label="Plan your trip hero">
-        <div className="trip-banner-card">
-          <span className="planner-eyebrow">TourismHub LK</span>
-          <h1>Plan Your Trip</h1>
-          <i aria-hidden="true" />
-          <p>Discover Sri Lanka — one island, many routes.</p>
+      <section className="trip-planner-banner trip-planner-hero-match" aria-label="Plan your trip hero">
+        <div className="trip-hero-overlay" aria-hidden="true" />
+        <div className="trip-hero-content">
+          <p>PLAN YOUR TRIP</p>
+          <h1>Design your Sri Lanka route</h1>
+          <span>Start with an island route, add places from Explore, check stays for each city, and carry a clear day-by-day plan.</span>
+
+          <div className="trip-hero-categories trip-hero-four-actions" aria-label="Trip planning actions">
+            <Link to="/explore">Explore Places</Link>
+            <a href="#saved-destinations">Saved Places</a>
+            <a href="#suggested-itineraries">Suggested Plans</a>
+            <a href="#custom-plan">Custom Plan</a>
+          </div>
         </div>
       </section>
 
@@ -803,7 +810,7 @@ function TripPlannerPage() {
         </div>
       )}
 
-      <section className="planner-settings-band" aria-label="Trip setup">
+      <section id="custom-plan" className="planner-settings-band" aria-label="Trip setup">
         <div className="settings-header">
           <span className="planner-eyebrow light">Trip basics</span>
           <h2>Set the shape of your holiday</h2>
@@ -899,7 +906,7 @@ function TripPlannerPage() {
         ))}
       </section>
 
-      <section className="planner-dashboard-grid">
+      <section className="planner-dashboard-grid" id="saved-destinations">
         <aside className="saved-destinations-panel">
           <div className="panel-title-row">
             <div>
@@ -948,7 +955,7 @@ function TripPlannerPage() {
           )}
         </aside>
 
-        <section className="itinerary-board">
+        <section className="itinerary-board" id="itinerary-board">
           <div className="route-overview-card">
             <div>
               <span className="planner-eyebrow light">Route overview</span>
@@ -1961,6 +1968,124 @@ const plannerCss = `
     .planner-services-strip,
     .planner-notice { padding-left: 14px; padding-right: 14px; }
   }
+
+  /* Explore-style Trip Planner landing hero */
+  .trip-planner-banner.trip-planner-hero-match {
+    position: relative;
+    min-height: 480px;
+    background:
+      linear-gradient(90deg, rgba(1, 55, 63, 0.86), rgba(1, 77, 78, 0.58), rgba(1, 38, 49, 0.88)),
+      url("https://images.pexels.com/photos/1971292/pexels-photo-1971292.jpeg?auto=compress&cs=tinysrgb&w=1800") center/cover no-repeat;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: #ffffff;
+    overflow: visible;
+    padding: 70px 22px 82px;
+    border-bottom: none;
+  }
+
+  .trip-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 26%, rgba(255, 255, 255, 0.16), transparent 22%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.32));
+    pointer-events: none;
+  }
+
+  .trip-hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .trip-hero-content > p {
+    margin: 0 0 20px;
+    color: #ffbc38;
+    font-size: 13px;
+    font-weight: 950;
+    letter-spacing: 0.46em;
+  }
+
+  .trip-hero-content h1 {
+    margin: 0 0 18px;
+    font-size: clamp(44px, 7vw, 76px);
+    line-height: 1.03;
+    letter-spacing: 0.04em;
+    font-weight: 950;
+    color: #ffffff;
+  }
+
+  .trip-hero-content > span {
+    display: block;
+    max-width: 820px;
+    margin: 0 auto;
+    color: #e5fffb;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.8;
+  }
+
+  .trip-hero-categories {
+    margin-top: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .trip-hero-categories a,
+  .trip-hero-categories button {
+    border: 0;
+    border-radius: 999px;
+    padding: 14px 30px;
+    background: #ffffff;
+    color: #182c2b;
+    text-decoration: none;
+    font-weight: 950;
+    cursor: pointer;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+  }
+
+  .trip-hero-categories a:first-child {
+    background: #0aa6c7;
+    color: #ffffff;
+  }
+
+  .trip-hero-four-actions {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .trip-breadcrumb {
+    margin-top: 34px;
+  }
+
+  @media (max-width: 780px) {
+    .trip-planner-banner.trip-planner-hero-match {
+      min-height: 520px;
+      padding: 58px 18px 74px;
+    }
+    .trip-hero-content h1 {
+      font-size: clamp(36px, 11vw, 54px);
+      letter-spacing: 0.02em;
+    }
+    .trip-hero-content > span {
+      font-size: 15px;
+    }
+    .trip-hero-categories a,
+    .trip-hero-categories button {
+      width: 100%;
+      padding: 13px 18px;
+    }
+    .trip-breadcrumb {
+      margin-top: 28px;
+    }
+  }
+
 `;
 
 export default TripPlannerPage;
