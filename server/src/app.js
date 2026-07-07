@@ -18,19 +18,28 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "http://127.0.0.1:5175",
+  "http://127.0.0.1:5176",
   "https://e23-co2060-hotel-management-system.vercel.app",
   process.env.CLIENT_URL,
   process.env.ADMIN_CLIENT_URL,
 ].filter(Boolean);
 
+const isLocalDevelopmentOrigin = (origin) => {
+  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin || "");
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow Postman, curl, direct browser requests, and server-to-server requests
     if (!origin) {
       return callback(null, true);
     }
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || isLocalDevelopmentOrigin(origin)) {
       return callback(null, true);
     }
 
@@ -41,11 +50,10 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// CORS must be before routes
 app.use(cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
@@ -93,6 +101,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     success: false,
     message: "Internal server error",
+    error: process.env.NODE_ENV === "production" ? undefined : err.message,
   });
 });
 
@@ -101,4 +110,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log("Allowed CORS origins:", allowedOrigins);
+  console.log("Local Vite development origins are allowed on any port.");
 });

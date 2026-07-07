@@ -283,14 +283,23 @@ const registerAdmin = async (req, res) => {
       admin_secret,
     } = req.body;
 
+    const cleanFullName = String(full_name || "").trim();
+    const cleanEmail = normalizeEmail(email);
+    const cleanPhone = String(phone || "").trim();
+    const cleanNationality = String(nationality || "").trim();
+    const cleanAdminSecret = String(admin_secret || "").trim();
+    const configuredAdminSecret = String(
+      process.env.ADMIN_REGISTRATION_SECRET || ""
+    ).trim();
+
     if (
-      !full_name ||
-      !email ||
+      !cleanFullName ||
+      !cleanEmail ||
       !password ||
       !confirm_password ||
-      !phone ||
-      !nationality ||
-      !admin_secret
+      !cleanPhone ||
+      !cleanNationality ||
+      !cleanAdminSecret
     ) {
       return res.status(400).json({
         success: false,
@@ -298,7 +307,15 @@ const registerAdmin = async (req, res) => {
       });
     }
 
-    if (!isValidPhone(phone)) {
+    if (!configuredAdminSecret) {
+      return res.status(500).json({
+        success: false,
+        message:
+          "ADMIN_REGISTRATION_SECRET is missing in server .env file. Add it and restart backend.",
+      });
+    }
+
+    if (!isValidPhone(cleanPhone)) {
       return res.status(400).json({
         success: false,
         message:
@@ -322,17 +339,15 @@ const registerAdmin = async (req, res) => {
       });
     }
 
-    if (admin_secret !== process.env.ADMIN_REGISTRATION_SECRET) {
+    if (cleanAdminSecret !== configuredAdminSecret) {
       return res.status(403).json({
         success: false,
         message: "Invalid admin secret key",
       });
     }
 
-    const cleanEmail = normalizeEmail(email);
-
     const [existingUsers] = await pool.query(
-      "SELECT id FROM users WHERE email = ?",
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
       [cleanEmail]
     );
 
@@ -347,15 +362,9 @@ const registerAdmin = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO users
-       (full_name, email, password_hash, phone, nationality, role, is_active)
-       VALUES (?, ?, ?, ?, ?, 'admin', TRUE)`,
-      [
-        String(full_name).trim(),
-        cleanEmail,
-        passwordHash,
-        String(phone).trim(),
-        nationality,
-      ]
+       (full_name, email, phone, nationality, national_id, password_hash, role, is_active)
+       VALUES (?, ?, ?, ?, NULL, ?, 'admin', TRUE)`,
+      [cleanFullName, cleanEmail, cleanPhone, cleanNationality, passwordHash]
     );
 
     return res.status(201).json({
@@ -363,15 +372,30 @@ const registerAdmin = async (req, res) => {
       message: "Admin registered successfully",
       data: {
         id: result.insertId,
-        full_name: String(full_name).trim(),
+        full_name: cleanFullName,
         email: cleanEmail,
-        phone: String(phone).trim(),
-        nationality,
+        phone: cleanPhone,
+        nationality: cleanNationality,
         role: "admin",
       },
     });
   } catch (error) {
     console.error("Admin register error:", error);
+
+    if (error && error.code === "ER_NO_SUCH_TABLE") {
+      return res.status(500).json({
+        success: false,
+        message:
+          "Database table 'users' does not exist. Run database/schema.sql and database/seed.sql again.",
+      });
+    }
+
+    if (error && error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        success: false,
+        message: "This email is already registered",
+      });
+    }
 
     return res.status(500).json({
       success: false,
