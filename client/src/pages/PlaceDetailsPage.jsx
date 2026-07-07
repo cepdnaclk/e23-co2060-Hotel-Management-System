@@ -1,346 +1,169 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { formatLkr } from "../data/exploreData";
-import { getDetailedPlaceById, getRelatedPlaces } from "../data/placeDetailsData";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { assetUrl, formatLkr, getExplorePlace } from "../services/exploreService";
 
 const SAVED_PLACES_KEY = "tourismhub_trip_places";
 
-const loadSavedPlaces = () => {
+const readSavedPlaces = () => {
   try {
-    return JSON.parse(localStorage.getItem(SAVED_PLACES_KEY)) || [];
+    return JSON.parse(localStorage.getItem(SAVED_PLACES_KEY) || "[]") || [];
   } catch {
     return [];
   }
 };
 
-function PlaceDetailsPage() {
+export default function PlaceDetailsPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const place = useMemo(() => getDetailedPlaceById(id), [id]);
-  const relatedPlaces = useMemo(() => getRelatedPlaces(id, 3), [id]);
-
-  const [savedPlaces, setSavedPlaces] = useState(loadSavedPlaces);
-  const [activeImage, setActiveImage] = useState(place?.photoGallery?.[0] || place?.image || "");
+  const [place, setPlace] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [mainImage, setMainImage] = useState("");
 
   useEffect(() => {
-    setActiveImage(place?.photoGallery?.[0] || place?.image || "");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [place]);
+    const loadPlace = async () => {
+      try {
+        setLoading(true);
+        const data = await getExplorePlace(id);
+        setPlace(data);
+        setMainImage(data.image || data.images?.[0] || "");
+      } catch (err) {
+        setError(err.response?.data?.message || "Place not found");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    if (!notice) return undefined;
-    const timer = setTimeout(() => setNotice(""), 3500);
-    return () => clearTimeout(timer);
-  }, [notice]);
+    loadPlace();
+  }, [id]);
 
-  if (!place) {
-    return (
-      <main className="place-details-page">
-        <style>{detailsCss}</style>
-        <section className="not-found-card">
-          <h1>Place not found</h1>
-          <p>The destination you selected is not available in Explore Sri Lanka.</p>
-          <Link to="/explore" className="btn-main">Back to Explore</Link>
-        </section>
-      </main>
-    );
-  }
-
-  const isSaved = savedPlaces.some((item) => item.id === place.id);
-
-  const addToTrip = () => {
-    const current = loadSavedPlaces();
-    const alreadySaved = current.some((item) => item.id === place.id);
-
-    if (alreadySaved) {
-      setNotice(`${place.name} is already saved in your trip planner.`);
+  const savePlace = () => {
+    const current = readSavedPlaces();
+    if (current.some((item) => item.id === place.id)) {
+      setNotice("This place is already saved.");
       return;
     }
-
-    const updated = [...current, place];
-    localStorage.setItem(SAVED_PLACES_KEY, JSON.stringify(updated));
-    setSavedPlaces(updated);
-    setNotice(`${place.name} added to your trip planner.`);
+    localStorage.setItem(SAVED_PLACES_KEY, JSON.stringify([...current, place]));
+    setNotice("✓ Added to your trip.");
   };
 
-  const removeFromTrip = () => {
-    const updated = loadSavedPlaces().filter((item) => item.id !== place.id);
-    localStorage.setItem(SAVED_PLACES_KEY, JSON.stringify(updated));
-    setSavedPlaces(updated);
-    setNotice(`${place.name} removed from your saved places.`);
-  };
+  if (loading) {
+    return <main className="place-detail-page"><style>{css}</style><div className="state">Loading place details...</div></main>;
+  }
 
-  const hotelSearchLink = `/hotels?city=${encodeURIComponent(place.city)}`;
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
+  if (error || !place) {
+    return <main className="place-detail-page"><style>{css}</style><div className="state error">{error || "Place not found"}</div></main>;
+  }
 
   return (
-    <main className="place-details-page">
-      <style>{detailsCss}</style>
+    <main className="place-detail-page">
+      <style>{css}</style>
+      {notice ? <div className="detail-toast">{notice}</div> : null}
 
-      <section className="details-hero" style={{ backgroundImage: `linear-gradient(90deg, rgba(8,38,35,0.88), rgba(8,38,35,0.35)), url(${place.image})` }}>
-        <div className="details-hero-content">
-          <button type="button" className="back-btn" onClick={() => navigate(-1)}>← Back</button>
-          <span className="place-kicker">{place.region} · {place.category}</span>
+      <section className="detail-hero">
+        <img src={assetUrl(mainImage)} alt={place.name} />
+        <div className="detail-hero-overlay" />
+        <div className="detail-hero-content">
+          <Link to="/explore" className="back-link">← Back to Explore</Link>
+          <span>{place.categoryIcon} {place.categoryLabel || place.category}</span>
           <h1>{place.name}</h1>
-          <p>{place.shortDescription}</p>
-
-          <div className="hero-info-row">
-            <span>📍 {place.city}, {place.district}</span>
-            <span>⏱️ {place.duration}</span>
-            <span>📅 {place.bestTime}</span>
-            <span>💰 {formatLkr(place.estimatedCost)} est.</span>
-          </div>
-
-          <div className="hero-actions">
-            {isSaved ? (
-              <button type="button" className="btn-muted" onClick={removeFromTrip}>✓ Saved — remove</button>
-            ) : (
-              <button type="button" className="btn-main" onClick={addToTrip}>+ Add to Trip</button>
-            )}
-            <Link to="/trip-planner" className="btn-light">Open Trip Planner</Link>
-            <Link to={hotelSearchLink} className="btn-light">Find Hotels near {place.city}</Link>
-          </div>
+          <p>📍 {place.city}, {place.district} · {place.region}</p>
         </div>
       </section>
 
-      {notice && <div className="details-notice">✨ {notice}</div>}
+      <section className="detail-wrap">
+        <aside className="quick-card">
+          <h3>Travel Info</h3>
+          <div><strong>⏱ Duration</strong><span>{place.duration}</span></div>
+          <div><strong>🗓 Best time</strong><span>{place.bestTime}</span></div>
+          <div><strong>💰 Cost</strong><span>{formatLkr(place.estimatedCost)}</span></div>
+          <div><strong>🎯 Budget</strong><span>{place.budget}</span></div>
+          <div><strong>🕒 Opening</strong><span>{place.openingHours}</span></div>
+          <div><strong>🎫 Entry</strong><span>{place.entryFee}</span></div>
+          <button type="button" onClick={savePlace}>+ Save to trip</button>
+          <Link to={`/hotels?city=${encodeURIComponent(place.city)}`}>Find Hotels</Link>
+        </aside>
 
-      <section className="flow-strip">
-        <div><strong>1</strong><span>Explore destination</span></div>
-        <div><strong>2</strong><span>Save to trip</span></div>
-        <div><strong>3</strong><span>Plan day-by-day route</span></div>
-        <div><strong>4</strong><span>Book nearby hotel</span></div>
-      </section>
+        <div className="detail-main">
+          <section className="white-card">
+            <h2>Overview</h2>
+            <p>{place.fullDescription || place.shortDescription}</p>
+            <div className="tags">{(place.tags || []).map((tag) => <span key={tag}>{tag}</span>)}</div>
+          </section>
 
-      <section className="details-layout">
-        <div className="main-column">
-          <div className="content-card">
-            <span className="section-pill">What is this place?</span>
-            <h2>About {place.name}</h2>
-            <p className="large-text">{place.overview}</p>
-          </div>
-
-          <div className="content-card">
-            <span className="section-pill">More photos</span>
-            <h2>Visual preview</h2>
-            <div className="gallery-preview">
-              <div className="active-photo-wrap">
-                <img src={activeImage} alt={place.name} />
-              </div>
-              <div className="thumb-row">
-                {place.photoGallery.map((photo) => (
-                  <button
-                    type="button"
-                    key={photo}
-                    className={activeImage === photo ? "thumb active" : "thumb"}
-                    onClick={() => setActiveImage(photo)}
-                  >
-                    <img src={photo} alt={`${place.name} preview`} />
+          {place.images?.length ? (
+            <section className="white-card">
+              <h2>Photos</h2>
+              <div className="gallery-row">
+                {place.images.map((image) => (
+                  <button key={image} type="button" onClick={() => setMainImage(image)}>
+                    <img src={assetUrl(image)} alt={place.name} />
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
+            </section>
+          ) : null}
 
-          <div className="content-card">
-            <span className="section-pill">Things tourists can experience</span>
-            <h2>Experiences around {place.city}</h2>
-            <div className="experience-list">
-              {place.experiences.map((experience, index) => (
-                <article className="experience-item" key={experience.title}>
-                  <div className="experience-number">{index + 1}</div>
-                  <div>
-                    <h3>{experience.title}</h3>
-                    <p>{experience.description}</p>
-                    <div className="mini-meta">
-                      <span>⏱️ {experience.time}</span>
-                      <span>💰 {experience.cost}</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
+          {place.highlights?.length ? (
+            <section className="white-card">
+              <h2>Highlights</h2>
+              <div className="highlight-grid">
+                {place.highlights.map((item, index) => (
+                  <article key={`${item.title}-${index}`}>
+                    <span>{item.icon || "✨"}</span>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-          <div className="content-card">
-            <span className="section-pill">Why visit?</span>
-            <h2>Best reasons to add this to your route</h2>
-            <div className="reason-grid">
-              {place.whyVisit.map((reason) => (
-                <div className="reason-card" key={reason}>✓ {reason}</div>
-              ))}
-            </div>
-          </div>
+          {place.experiences?.length ? (
+            <section className="white-card">
+              <h2>Experiences</h2>
+              <div className="experience-list">
+                {place.experiences.map((item, index) => (
+                  <article key={`${item.title}-${index}`}>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                    <span>{item.duration || item.time || ""} {item.cost !== undefined ? ` · ${formatLkr(item.cost)}` : ""}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-          <div className="content-card">
-            <span className="section-pill">Rule-based suggestions</span>
-            <h2>Good places to combine with this</h2>
-            <p className="muted-text">
-              These are not AI recommendations. The system simply checks same region, same category, same vibe, and same budget level.
-            </p>
-            <div className="related-grid">
-              {relatedPlaces.map((related) => (
-                <Link to={`/explore/${related.id}`} className="related-card" key={related.id}>
-                  <img src={related.image} alt={related.name} />
-                  <div>
-                    <strong>{related.name}</strong>
-                    <span>{related.city} · {related.region}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <section className="two-col">
+            {place.nearbyPlaces?.length ? (
+              <div className="white-card">
+                <h2>Nearby Places</h2>
+                <ul>
+                  {place.nearbyPlaces.map((item, index) => <li key={`${item.name}-${index}`}><strong>{item.name}</strong> — {item.distance} · {item.type}</li>)}
+                </ul>
+              </div>
+            ) : null}
+
+            {place.tips?.length ? (
+              <div className="white-card">
+                <h2>Tips</h2>
+                <ul>{place.tips.map((tip, index) => <li key={`${tip}-${index}`}>{tip}</li>)}</ul>
+              </div>
+            ) : null}
+          </section>
+
+          {place.facilities?.length ? (
+            <section className="white-card">
+              <h2>Facilities</h2>
+              <div className="tags">{place.facilities.map((item) => <span key={item}>✓ {item}</span>)}</div>
+            </section>
+          ) : null}
         </div>
-
-        <aside className="side-column">
-          <div className="side-card sticky-card">
-            <span className="section-pill">Travel guide</span>
-            <h2>Quick information</h2>
-            <dl className="info-list">
-              <div><dt>Best for</dt><dd>{place.practicalInfo.bestFor}</dd></div>
-              <div><dt>Suggested stay</dt><dd>{place.practicalInfo.suggestedStay}</dd></div>
-              <div><dt>Best time of day</dt><dd>{place.practicalInfo.bestTimeOfDay}</dd></div>
-              <div><dt>Difficulty</dt><dd>{place.practicalInfo.difficulty}</dd></div>
-              <div><dt>Dress / preparation</dt><dd>{place.practicalInfo.dressCode}</dd></div>
-            </dl>
-
-            <div className="tag-row">
-              {place.tags.map((tag) => <span key={tag}>{tag}</span>)}
-            </div>
-
-            <div className="side-actions">
-              <a href={mapLink} target="_blank" rel="noreferrer" className="btn-outline">Open Map</a>
-              <Link to={hotelSearchLink} className="btn-main block">Find Hotels</Link>
-              <Link to="/trip-planner" className="btn-outline">Plan this route</Link>
-            </div>
-          </div>
-
-          <div className="side-card">
-            <span className="section-pill">Tourist tips</span>
-            <ul className="tip-list">
-              {place.tips.map((tip) => <li key={tip}>{tip}</li>)}
-            </ul>
-          </div>
-        </aside>
       </section>
     </main>
   );
 }
 
-const detailsCss = `
-  @import url('https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
-
-  .place-details-page {
-    --ceylon-teal: #0E3B3A;
-    --ceylon-teal-deep: #082623;
-    --parchment: #F6F0E4;
-    --parchment-deep: #EFE6D3;
-    --turmeric: #D79922;
-    --vermillion: #A6392E;
-    --jade: #3B6E52;
-    --ink: #201C16;
-    --ink-soft: #4B463D;
-    min-height: 100vh;
-    background: var(--parchment);
-    color: var(--ink);
-    font-family: "Work Sans", sans-serif;
-    padding-bottom: 70px;
-  }
-
-  .place-details-page h1,
-  .place-details-page h2,
-  .place-details-page h3 { font-family: "Rozha One", serif; font-weight: 400; }
-
-  .details-hero {
-    min-height: 560px;
-    background-position: center;
-    background-size: cover;
-    color: var(--parchment);
-    display: flex;
-    align-items: center;
-    padding: 70px 18px;
-  }
-
-  .details-hero-content { max-width: 1180px; width: 100%; margin: 0 auto; }
-  .back-btn { background: rgba(246,240,228,0.14); color: var(--parchment); border: 1px solid rgba(246,240,228,0.35); padding: 10px 14px; cursor: pointer; font-weight: 800; margin-bottom: 22px; }
-  .place-kicker, .section-pill { display: inline-flex; width: fit-content; background: var(--turmeric); color: var(--ceylon-teal-deep); padding: 7px 13px; font-size: 12px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
-  .details-hero h1 { font-size: clamp(42px, 7vw, 86px); line-height: 0.92; margin: 18px 0; max-width: 860px; }
-  .details-hero p { max-width: 760px; font-size: 19px; line-height: 1.7; color: #f5ead4; font-weight: 600; }
-  .hero-info-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0; }
-  .hero-info-row span { background: rgba(246,240,228,0.14); border: 1px solid rgba(246,240,228,0.25); padding: 9px 12px; font-weight: 800; }
-  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-
-  .btn-main, .btn-light, .btn-muted, .btn-outline { border: none; padding: 12px 17px; font-weight: 900; cursor: pointer; text-decoration: none; display: inline-flex; justify-content: center; align-items: center; }
-  .btn-main { background: var(--turmeric); color: var(--ceylon-teal-deep); }
-  .btn-light { background: var(--parchment); color: var(--ceylon-teal); }
-  .btn-muted { background: #f1dcd8; color: var(--vermillion); border: 1px dashed var(--vermillion); }
-  .btn-outline { background: transparent; color: var(--ceylon-teal); border: 1px solid var(--ceylon-teal); }
-  .block { display: flex; width: 100%; }
-
-  .details-notice { max-width: 1180px; margin: 18px auto 0; background: #eef3ea; color: var(--ceylon-teal); border-left: 5px solid var(--jade); padding: 14px 18px; font-weight: 900; }
-
-  .flow-strip { max-width: 1180px; margin: -36px auto 34px; position: relative; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0 18px; }
-  .flow-strip div { background: #ffffff; border: 1px solid #e4d9bf; padding: 18px; box-shadow: 0 14px 30px rgba(14,59,58,0.12); }
-  .flow-strip strong { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; background: var(--ceylon-teal); color: var(--parchment); margin-right: 8px; }
-  .flow-strip span { font-weight: 900; color: var(--ceylon-teal); }
-
-  .details-layout { max-width: 1180px; margin: 0 auto; padding: 0 18px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
-  .main-column { display: flex; flex-direction: column; gap: 22px; }
-  .content-card, .side-card, .not-found-card { background: #ffffff; border: 1px solid #e4d9bf; padding: 24px; box-shadow: 0 16px 36px rgba(14,59,58,0.08); }
-  .not-found-card { max-width: 760px; margin: 80px auto; }
-  .content-card h2, .side-card h2 { color: var(--ceylon-teal); font-size: 34px; margin: 12px 0 14px; }
-  .large-text { font-size: 17px; line-height: 1.85; color: var(--ink-soft); font-weight: 600; }
-  .muted-text { color: var(--ink-soft); font-weight: 600; line-height: 1.65; }
-
-  .gallery-preview { display: grid; gap: 12px; }
-  .active-photo-wrap { height: 420px; overflow: hidden; background: var(--parchment-deep); }
-  .active-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .thumb-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .thumb { border: 3px solid transparent; padding: 0; cursor: pointer; height: 100px; overflow: hidden; background: transparent; }
-  .thumb.active { border-color: var(--turmeric); }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-  .experience-list { display: grid; gap: 14px; }
-  .experience-item { display: grid; grid-template-columns: 46px 1fr; gap: 14px; padding: 16px; border: 1px dashed #c9bb92; background: var(--parchment); }
-  .experience-number { width: 42px; height: 42px; background: var(--ceylon-teal); color: var(--parchment); display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: "IBM Plex Mono", monospace; }
-  .experience-item h3 { margin: 0 0 8px; color: var(--ceylon-teal); font-size: 24px; }
-  .experience-item p { margin: 0; color: var(--ink-soft); line-height: 1.65; font-weight: 600; }
-  .mini-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-  .mini-meta span { background: #ffffff; border: 1px solid #e4d9bf; padding: 6px 9px; font-weight: 800; font-size: 12px; }
-
-  .reason-grid, .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .reason-card { background: var(--parchment); border: 1px solid #e4d9bf; padding: 14px; color: var(--ceylon-teal); font-weight: 800; line-height: 1.55; }
-  .related-card { text-decoration: none; color: var(--ink); background: var(--parchment); border: 1px solid #e4d9bf; overflow: hidden; }
-  .related-card img { width: 100%; height: 120px; object-fit: cover; display: block; }
-  .related-card div { padding: 12px; }
-  .related-card strong { display: block; color: var(--ceylon-teal); font-weight: 900; }
-  .related-card span { display: block; margin-top: 4px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
-
-  .sticky-card { position: sticky; top: 94px; }
-  .info-list { display: grid; gap: 12px; margin: 16px 0; }
-  .info-list div { border-bottom: 1px solid #e4d9bf; padding-bottom: 10px; }
-  .info-list dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--jade); font-weight: 900; }
-  .info-list dd { margin: 5px 0 0; color: var(--ink-soft); line-height: 1.5; font-weight: 700; }
-  .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
-  .tag-row span { background: var(--parchment); border: 1px solid #e4d9bf; padding: 6px 9px; font-size: 12px; font-weight: 900; color: var(--ceylon-teal); }
-  .side-actions { display: grid; gap: 10px; }
-  .tip-list { margin: 14px 0 0; padding-left: 18px; color: var(--ink-soft); font-weight: 700; line-height: 1.75; }
-
-  @media (max-width: 960px) {
-    .details-layout { grid-template-columns: 1fr; }
-    .flow-strip { grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
-    .sticky-card { position: static; }
-    .reason-grid, .related-grid { grid-template-columns: 1fr; }
-  }
-
-  @media (max-width: 640px) {
-    .details-hero { min-height: auto; padding: 46px 16px; }
-    .hero-actions, .hero-info-row { flex-direction: column; align-items: stretch; }
-    .flow-strip { grid-template-columns: 1fr; }
-    .active-photo-wrap { height: 260px; }
-    .thumb-row { grid-template-columns: 1fr 1fr 1fr; }
-  }
+const css = `
+.place-detail-page{background:#f7faf5;min-height:100vh;color:#102936;font-family:Inter,system-ui,Arial,sans-serif}.detail-toast{position:fixed;right:22px;bottom:22px;background:#064e45;color:#fff;padding:14px 18px;border-radius:14px;z-index:50;font-weight:900}.state{max-width:850px;margin:70px auto;background:#fff;border:1px solid #e2ebe5;border-radius:20px;padding:30px;text-align:center;font-weight:900}.state.error{color:#991b1b}.detail-hero{height:460px;position:relative;overflow:hidden}.detail-hero>img{width:100%;height:100%;object-fit:cover}.detail-hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(1,48,45,.86),rgba(1,48,45,.32))}.detail-hero-content{position:absolute;left:clamp(22px,8vw,110px);bottom:60px;color:#fff;max-width:850px}.back-link{display:inline-block;color:#fff;text-decoration:none;background:rgba(255,255,255,.18);padding:10px 16px;border-radius:999px;font-weight:900;margin-bottom:24px}.detail-hero-content span{display:inline-block;color:#ffe68b;font-weight:900;text-transform:uppercase;letter-spacing:.15em}.detail-hero-content h1{font-size:clamp(42px,7vw,74px);margin:12px 0;letter-spacing:-.04em}.detail-hero-content p{font-size:19px;font-weight:800}.detail-wrap{max-width:1250px;margin:-56px auto 70px;padding:0 22px;display:grid;grid-template-columns:330px 1fr;gap:26px;position:relative;z-index:3}.quick-card,.white-card{background:#fff;border:1px solid #e2ebe5;border-radius:26px;box-shadow:0 20px 50px rgba(0,0,0,.08)}.quick-card{padding:22px;position:sticky;top:20px;height:max-content}.quick-card h3,.white-card h2{margin:0 0 18px;color:#064e45}.quick-card div{display:flex;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #eef3ef}.quick-card strong{color:#52616f}.quick-card span{text-align:right;font-weight:900}.quick-card button,.quick-card a{display:block;width:100%;box-sizing:border-box;text-align:center;border:none;text-decoration:none;margin-top:14px;border-radius:16px;padding:14px;font-weight:900;cursor:pointer}.quick-card button{background:#ffc22b;color:#063c38}.quick-card a{background:#064e45;color:#fff}.detail-main{display:flex;flex-direction:column;gap:22px}.white-card{padding:26px}.white-card p{line-height:1.85;color:#475569;font-weight:600;white-space:pre-line}.tags{display:flex;gap:9px;flex-wrap:wrap}.tags span{background:#f0faf6;color:#064e45;border-radius:999px;padding:8px 12px;font-weight:800}.gallery-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.gallery-row button{border:none;border-radius:16px;overflow:hidden;padding:0;cursor:pointer;height:160px}.gallery-row img{width:100%;height:100%;object-fit:cover}.highlight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.highlight-grid article,.experience-list article{border:1px solid #e2ebe5;background:#fbfdf9;border-radius:18px;padding:18px}.highlight-grid span{font-size:34px}.highlight-grid h3,.experience-list h3{color:#064e45;margin:8px 0}.highlight-grid p,.experience-list p{margin:0;white-space:normal}.experience-list{display:grid;gap:14px}.experience-list span{display:inline-block;margin-top:10px;color:#b45309;font-weight:900}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:22px}.white-card ul{padding-left:20px;margin:0}.white-card li{margin:10px 0;line-height:1.6;color:#475569;font-weight:650}@media(max-width:900px){.detail-wrap{grid-template-columns:1fr}.quick-card{position:static}.two-col,.highlight-grid,.gallery-row{grid-template-columns:1fr}.detail-hero{height:420px}}
 `;
-
-export default PlaceDetailsPage;
