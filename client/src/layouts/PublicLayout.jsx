@@ -78,9 +78,14 @@ function PublicLayout() {
             type="button"
             className="mobile-menu-button"
             onClick={() => setMenuOpen((current) => !current)}
-            aria-label="Open navigation menu"
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={menuOpen}
           >
-            ☰
+            <span className="hamburger-lines" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
           </button>
 
           <nav className={`main-navigation ${menuOpen ? "main-navigation-open" : ""}`}>
@@ -98,7 +103,7 @@ function PublicLayout() {
             ))}
           </nav>
 
-          <div className="header-actions">
+          <div className={`header-actions ${menuOpen ? "header-actions-open" : ""}`}>
             <Link to="/list-your-property" className="property-link">
               List your property
             </Link>
@@ -427,42 +432,116 @@ const layoutCss = `
 
   @media (max-width: 760px) {
     .site-header-inner {
-      padding: 10px 14px;
+      padding: 11px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-link {
+      min-width: 0;
+      overflow: hidden;
     }
 
     .brand-name {
-      font-size: 21px;
+      font-size: 22px;
+      letter-spacing: -0.04em;
+      white-space: nowrap;
+    }
+
+    .brand-icon {
+      font-size: 22px;
     }
 
     .mobile-menu-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-left: auto;
-    }
-
-    .main-navigation {
-      display: none;
-      order: 4;
-      width: 100%;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0;
+      justify-self: end;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(8, 117, 104, 0.28);
       background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 8px;
-      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+      border-radius: 12px;
+      color: var(--hub-green);
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(8, 117, 104, 0.08);
     }
 
-    .main-navigation-open {
+    .hamburger-lines {
+      width: 19px;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hamburger-lines span {
+      display: block;
+      height: 2px;
+      width: 100%;
+      background: var(--hub-green-dark);
+      border-radius: 999px;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .mobile-menu-button[aria-expanded="true"] .hamburger-lines span:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
+    }
+
+    .mobile-menu-button[aria-expanded="true"] .hamburger-lines span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .mobile-menu-button[aria-expanded="true"] .hamburger-lines span:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+
+    .main-navigation,
+    .header-actions {
+      grid-column: 1 / -1;
+      display: none;
+    }
+
+    .main-navigation.main-navigation-open {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px;
+      background: #ffffff;
+      border: 1px solid rgba(8, 117, 104, 0.12);
+      border-radius: 18px 18px 8px 8px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .header-actions.header-actions-open {
       display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 0 12px 13px;
+      margin-top: -10px;
+      background: #ffffff;
+      border: 1px solid rgba(8, 117, 104, 0.12);
+      border-top: 0;
+      border-radius: 0 0 18px 18px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
     }
 
     .nav-item {
       width: 100%;
-      padding: 12px 10px;
-      border-radius: 10px;
+      padding: 11px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1;
+      background: #f8fafc;
+      border: 1px solid rgba(8, 117, 104, 0.11);
+      text-align: center;
     }
 
     .nav-item-active::after {
@@ -470,15 +549,79 @@ const layoutCss = `
     }
 
     .nav-item-active {
+      color: var(--hub-green);
       background: #ecfdf5;
+      border-color: rgba(8, 117, 104, 0.28);
     }
 
-    .header-actions {
-      order: 3;
-      width: 100%;
-      justify-content: flex-start;
-      overflow-x: auto;
-      padding-bottom: 4px;
+    .property-link,
+    .login-link,
+    .register-link,
+    .logout-button,
+    .booking-link {
+      min-height: 36px;
+      padding: 0 14px;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .cart-icon-link {
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      min-height: 38px;
+      padding: 0;
+      font-size: 18px;
+      border-radius: 13px;
+    }
+
+    .clean-select {
+      height: 36px;
+      padding: 0 9px;
+      flex: 0 0 auto;
+    }
+
+    .clean-select select {
+      max-width: 76px;
+      font-size: 12px;
+    }
+
+    .user-greeting {
+      max-width: 160px;
+      font-size: 12px;
+      flex: 1 1 100%;
+      text-align: center;
+      order: -1;
+      color: var(--hub-green-dark);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .site-header-inner {
+      padding-left: 11px;
+      padding-right: 11px;
+    }
+
+    .brand-name {
+      font-size: 20px;
+    }
+
+    .main-navigation.main-navigation-open {
+      grid-template-columns: 1fr;
+    }
+
+    .header-actions.header-actions-open {
+      justify-content: center;
+    }
+
+    .property-link {
+      flex: 1 1 100%;
+    }
+
+    .logout-button,
+    .register-link,
+    .login-link {
+      min-width: 104px;
     }
   }
 `;
