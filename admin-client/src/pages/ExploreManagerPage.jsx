@@ -69,6 +69,81 @@ const fromLines = (value) => {
   return text.split("\n").map((line) => line.trim()).filter(Boolean);
 };
 
+
+
+const ensureArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return trimmed.split("\n").map((line) => line.trim()).filter(Boolean);
+      }
+    }
+
+    return trimmed.split("\n").map((line) => line.trim()).filter(Boolean);
+  }
+
+  return [];
+};
+
+const cleanStringArray = (value) => {
+  return ensureArray(value)
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") return String(item.title || item.name || item.label || "").trim();
+      return String(item || "").trim();
+    })
+    .filter(Boolean);
+};
+
+const cleanObjectArray = (value, fields) => {
+  return ensureArray(value)
+    .map((item) => {
+      const objectItem = item && typeof item === "object" ? item : { [fields[0].name]: String(item || "") };
+      const cleaned = {};
+
+      fields.forEach((field) => {
+        const rawValue = objectItem[field.name];
+        if (field.type === "number") {
+          const numberValue = Number(rawValue || 0);
+          cleaned[field.name] = Number.isNaN(numberValue) ? 0 : numberValue;
+        } else {
+          cleaned[field.name] = String(rawValue || "").trim();
+        }
+      });
+
+      return cleaned;
+    })
+    .filter((item) => fields.some((field) => String(item[field.name] || "").trim() !== ""));
+};
+
+const experienceFields = [
+  { name: "title", label: "Experience title", placeholder: "Sunrise Climb" },
+  { name: "description", label: "Description", placeholder: "Describe what visitors can do here", textarea: true },
+  { name: "duration", label: "Duration", placeholder: "2-3 hours" },
+  { name: "cost", label: "Cost", placeholder: "8500", type: "number" },
+];
+
+const highlightFields = [
+  { name: "icon", label: "Icon", placeholder: "🏛️" },
+  { name: "title", label: "Highlight title", placeholder: "UNESCO World Heritage" },
+  { name: "description", label: "Description", placeholder: "Why this place is special", textarea: true },
+];
+
+const nearbyPlaceFields = [
+  { name: "name", label: "Place name", placeholder: "Pidurangala Rock" },
+  { name: "distance", label: "Distance", placeholder: "1.5 km" },
+  { name: "type", label: "Type", placeholder: "Viewpoint" },
+];
+
 const placeForForm = (place, categories) => ({
   ...emptyPlace,
   ...place,
@@ -93,6 +168,119 @@ function Field({ label, children }) {
     </label>
   );
 }
+
+
+function SimpleListEditor({ label, helper, value, onChange, placeholder }) {
+  // Important: do not use cleanStringArray here.
+  // cleanStringArray removes empty strings, so after clicking + Add item the new blank
+  // input disappears immediately. We keep blank rows while editing and only clean them
+  // when saving in buildFormData().
+  const items = ensureArray(value).map((item) => {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") {
+      return String(item.title || item.name || item.label || "");
+    }
+    return String(item || "");
+  });
+
+  const updateItem = (index, itemValue) => {
+    const next = [...items];
+    next[index] = itemValue;
+    onChange(next);
+  };
+
+  const removeItem = (index) => {
+    onChange(items.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const addItem = () => {
+    onChange([...items, ""]);
+  };
+
+  return (
+    <div className="explore-field list-editor-wrap">
+      <span>{label}</span>
+      {helper ? <small className="field-helper">{helper}</small> : null}
+      <div className="simple-list-editor">
+        {items.length === 0 ? <p className="empty-list-note">No items added yet.</p> : null}
+        {items.map((item, index) => (
+          <div className="list-editor-row" key={`${label}-${index}`}>
+            <input
+              value={item}
+              onChange={(e) => updateItem(index, e.target.value)}
+              placeholder={placeholder || "Type here"}
+            />
+            <button type="button" className="remove-mini-btn" onClick={() => removeItem(index)}>Remove</button>
+          </div>
+        ))}
+        <button type="button" className="add-mini-btn" onClick={addItem}>+ Add item</button>
+      </div>
+    </div>
+  );
+}
+
+function ObjectListEditor({ label, helper, value, onChange, fields, emptyItem, addLabel }) {
+  const items = ensureArray(value).map((item) => {
+    if (item && typeof item === "object") return { ...emptyItem, ...item };
+    return { ...emptyItem, [fields[0].name]: String(item || "") };
+  });
+
+  const updateItem = (index, key, itemValue) => {
+    const next = [...items];
+    next[index] = { ...next[index], [key]: itemValue };
+    onChange(next);
+  };
+
+  const removeItem = (index) => {
+    onChange(items.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const addItem = () => {
+    onChange([...items, { ...emptyItem }]);
+  };
+
+  return (
+    <div className="explore-field list-editor-wrap wide-editor">
+      <span>{label}</span>
+      {helper ? <small className="field-helper">{helper}</small> : null}
+      <div className="object-list-editor">
+        {items.length === 0 ? <p className="empty-list-note">No items added yet.</p> : null}
+        {items.map((item, index) => (
+          <div className="object-item-card" key={`${label}-${index}`}>
+            <div className="object-item-head">
+              <strong>{label} {index + 1}</strong>
+              <button type="button" className="remove-mini-btn" onClick={() => removeItem(index)}>Remove</button>
+            </div>
+            <div className="object-fields-grid">
+              {fields.map((field) => (
+                <label key={field.name} className={field.textarea ? "full" : ""}>
+                  <span>{field.label}</span>
+                  {field.textarea ? (
+                    <textarea
+                      value={item[field.name] || ""}
+                      onChange={(e) => updateItem(index, field.name, e.target.value)}
+                      placeholder={field.placeholder}
+                      rows="3"
+                    />
+                  ) : (
+                    <input
+                      type={field.type || "text"}
+                      value={item[field.name] ?? ""}
+                      onChange={(e) => updateItem(index, field.name, e.target.value)}
+                      placeholder={field.placeholder}
+                    />
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        <button type="button" className="add-mini-btn" onClick={addItem}>+ {addLabel || "Add item"}</button>
+      </div>
+    </div>
+  );
+}
+
 
 export default function ExploreManagerPage() {
   const [places, setPlaces] = useState([]);
@@ -162,8 +350,17 @@ export default function ExploreManagerPage() {
   const buildFormData = () => {
     const fd = new FormData();
     const jsonFields = ["best_months", "tags", "experiences", "highlights", "nearby_places", "tips", "facilities"];
+    const cleanForm = {
+      ...form,
+      tags: cleanStringArray(form.tags),
+      tips: cleanStringArray(form.tips),
+      facilities: cleanStringArray(form.facilities),
+      experiences: cleanObjectArray(form.experiences, experienceFields),
+      highlights: cleanObjectArray(form.highlights, highlightFields),
+      nearby_places: cleanObjectArray(form.nearby_places, nearbyPlaceFields),
+    };
 
-    Object.entries(form).forEach(([key, value]) => {
+    Object.entries(cleanForm).forEach(([key, value]) => {
       if (key === "id" || key === "images") return;
       if (jsonFields.includes(key)) {
         fd.append(key, JSON.stringify(value || []));
@@ -319,16 +516,58 @@ export default function ExploreManagerPage() {
 
             <h3>4. Simple List Fields</h3>
             <div className="form-grid two">
-              <Field label="Tags - one per line"><textarea value={toLines(form.tags)} onChange={(e) => update("tags", fromLines(e.target.value))} rows="5" /></Field>
-              <Field label="Tips - one per line"><textarea value={toLines(form.tips)} onChange={(e) => update("tips", fromLines(e.target.value))} rows="5" /></Field>
-              <Field label="Facilities - one per line"><textarea value={toLines(form.facilities)} onChange={(e) => update("facilities", fromLines(e.target.value))} rows="5" /></Field>
-              <Field label="Nearby places JSON"><textarea value={toLines(form.nearby_places)} onChange={(e) => update("nearby_places", fromLines(e.target.value))} rows="5" /></Field>
+              <SimpleListEditor
+                label="Tags"
+                helper="Example: UNESCO, Hiking, Photography. Add them one by one."
+                value={form.tags}
+                onChange={(value) => update("tags", value)}
+                placeholder="UNESCO"
+              />
+              <SimpleListEditor
+                label="Tips"
+                helper="Example: Start early to avoid crowds."
+                value={form.tips}
+                onChange={(value) => update("tips", value)}
+                placeholder="Start early to avoid crowds"
+              />
+              <SimpleListEditor
+                label="Facilities"
+                helper="Example: Parking, Washrooms, Guided Tours."
+                value={form.facilities}
+                onChange={(value) => update("facilities", value)}
+                placeholder="Parking"
+              />
+              <ObjectListEditor
+                label="Nearby places"
+                helper="Add nearby places without writing JSON."
+                value={form.nearby_places}
+                onChange={(value) => update("nearby_places", value)}
+                fields={nearbyPlaceFields}
+                emptyItem={{ name: "", distance: "", type: "" }}
+                addLabel="Add nearby place"
+              />
             </div>
 
-            <h3>5. Detailed JSON Fields</h3>
+            <h3>5. Experiences and Highlights</h3>
             <div className="form-grid two">
-              <Field label="Experiences JSON"><textarea value={toLines(form.experiences)} onChange={(e) => update("experiences", fromLines(e.target.value))} rows="8" /></Field>
-              <Field label="Highlights JSON"><textarea value={toLines(form.highlights)} onChange={(e) => update("highlights", fromLines(e.target.value))} rows="8" /></Field>
+              <ObjectListEditor
+                label="Experience"
+                helper="Add activities visitors can do at this place."
+                value={form.experiences}
+                onChange={(value) => update("experiences", value)}
+                fields={experienceFields}
+                emptyItem={{ title: "", description: "", duration: "", cost: 0 }}
+                addLabel="Add experience"
+              />
+              <ObjectListEditor
+                label="Highlight"
+                helper="Add important facts shown in the place detail page."
+                value={form.highlights}
+                onChange={(value) => update("highlights", value)}
+                fields={highlightFields}
+                emptyItem={{ icon: "", title: "", description: "" }}
+                addLabel="Add highlight"
+              />
             </div>
 
             <h3>6. Photos and Publishing</h3>
@@ -382,5 +621,5 @@ export default function ExploreManagerPage() {
 }
 
 const css = `
-.explore-admin-page{color:#0b2530}.explore-admin-hero{display:grid;grid-template-columns:1fr 150px 150px 150px;gap:18px;align-items:stretch;background:linear-gradient(135deg,#064e45,#0f766e);border-radius:28px;padding:28px;color:#fff;margin-bottom:20px}.explore-admin-hero p{margin:0 0 10px;color:#ffe68b;font-weight:900;letter-spacing:.25em;font-size:12px}.explore-admin-hero h1{margin:0;font-size:42px}.explore-admin-hero span{display:block;margin-top:8px;color:#d6fff8}.hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center}.hero-stat strong{font-size:36px}.hero-stat small{color:#d6fff8;font-weight:800}.admin-notice{background:#fff7d1;border:1px solid #f4d97b;color:#5a3c00;padding:14px 18px;border-radius:16px;margin:14px 0;font-weight:800}.explore-admin-tabs{display:flex;gap:10px;margin:16px 0}.explore-admin-tabs button{border:1px solid #dbe7e2;background:#fff;border-radius:999px;padding:12px 22px;font-weight:900;cursor:pointer}.explore-admin-tabs button.on{background:#064e45;color:#fff}.manager-grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:22px;align-items:start}.manager-grid.single{grid-template-columns:1fr 1fr}.manager-card{background:#fff;border:1px solid #e2ebe5;border-radius:26px;box-shadow:0 18px 45px rgba(0,0,0,.06);padding:22px}.form-title-row,.list-head{display:flex;justify-content:space-between;gap:16px;align-items:start}.manager-card h2{margin:0 0 8px;color:#064e45}.manager-card h3{margin:26px 0 14px;color:#0f766e;border-top:1px solid #edf4ef;padding-top:18px}.manager-card p{margin:0;color:#64748b}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.form-grid.two{grid-template-columns:1fr 1fr}.explore-field{display:flex;flex-direction:column;gap:7px;font-weight:800;color:#334155}.explore-field input,.explore-field select,.explore-field textarea,.list-head input{border:1px solid #dbe7e2;border-radius:14px;padding:12px 14px;font:inherit;font-weight:650;outline:none;background:#fff}.explore-field textarea{resize:vertical}.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.month-grid button{border:1px solid #dbe7e2;background:#fff;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.month-grid button.on{background:#ffc22b;color:#063c38;border-color:#ffc22b}.drop-box{position:relative;border:2px dashed #b9d8ce;background:#f4fbf7;border-radius:20px;min-height:130px;display:grid;place-items:center;text-align:center;color:#064e45;overflow:hidden}.drop-box input{position:absolute;inset:0;opacity:0;cursor:pointer}.drop-box strong{font-size:18px}.drop-box span{color:#64748b;font-weight:800}.publish-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;align-items:center}.publish-row label{font-weight:900;display:flex;gap:8px;align-items:center}.publish-row input,.publish-row select{border:1px solid #dbe7e2;border-radius:10px;padding:8px}.save-btn,.mini-form button,.soft-btn{border:none;background:#064e45;color:#fff;border-radius:16px;padding:14px 20px;font-weight:900;cursor:pointer;margin-top:20px}.soft-btn{background:#e8f5ef;color:#064e45;margin:0}.place-list-card{position:sticky;top:18px}.admin-place-list{display:flex;flex-direction:column;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.admin-place-item{display:grid;grid-template-columns:70px 1fr auto auto;gap:10px;align-items:center;border:1px solid #edf3ef;border-radius:18px;padding:10px}.admin-place-item img{width:70px;height:64px;object-fit:cover;border-radius:14px;background:#e5e7eb}.admin-place-item strong{display:block;color:#064e45}.admin-place-item span,.admin-place-item small{display:block;color:#64748b;font-size:12px;font-weight:800}.admin-place-item button{border:none;background:#e8f5ef;color:#064e45;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.admin-place-item button.danger{background:#fee2e2;color:#991b1b}.mini-form{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px;align-items:end}.cat-list{display:flex;gap:10px;flex-wrap:wrap}.cat-list span{background:#f0faf6;border:1px solid #dbe7e2;border-radius:999px;padding:10px 14px;font-weight:900}.cat-list small{color:#64748b;margin-left:4px}@media(max-width:1100px){.explore-admin-hero,.manager-grid,.manager-grid.single{grid-template-columns:1fr}.place-list-card{position:static}.mini-form{grid-template-columns:1fr 1fr}}@media(max-width:700px){.form-grid,.form-grid.two,.month-grid,.mini-form{grid-template-columns:1fr}.admin-place-item{grid-template-columns:60px 1fr}.admin-place-item button{grid-column:span 1}.explore-admin-hero{padding:20px}.explore-admin-hero h1{font-size:34px}}
+.explore-admin-page{color:#0b2530}.explore-admin-hero{display:grid;grid-template-columns:1fr 150px 150px 150px;gap:18px;align-items:stretch;background:linear-gradient(135deg,#064e45,#0f766e);border-radius:28px;padding:28px;color:#fff;margin-bottom:20px}.explore-admin-hero p{margin:0 0 10px;color:#ffe68b;font-weight:900;letter-spacing:.25em;font-size:12px}.explore-admin-hero h1{margin:0;font-size:42px}.explore-admin-hero span{display:block;margin-top:8px;color:#d6fff8}.hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center}.hero-stat strong{font-size:36px}.hero-stat small{color:#d6fff8;font-weight:800}.admin-notice{background:#fff7d1;border:1px solid #f4d97b;color:#5a3c00;padding:14px 18px;border-radius:16px;margin:14px 0;font-weight:800}.explore-admin-tabs{display:flex;gap:10px;margin:16px 0}.explore-admin-tabs button{border:1px solid #dbe7e2;background:#fff;border-radius:999px;padding:12px 22px;font-weight:900;cursor:pointer}.explore-admin-tabs button.on{background:#064e45;color:#fff}.manager-grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:22px;align-items:start}.manager-grid.single{grid-template-columns:1fr 1fr}.manager-card{background:#fff;border:1px solid #e2ebe5;border-radius:26px;box-shadow:0 18px 45px rgba(0,0,0,.06);padding:22px}.form-title-row,.list-head{display:flex;justify-content:space-between;gap:16px;align-items:start}.manager-card h2{margin:0 0 8px;color:#064e45}.manager-card h3{margin:26px 0 14px;color:#0f766e;border-top:1px solid #edf4ef;padding-top:18px}.manager-card p{margin:0;color:#64748b}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.form-grid.two{grid-template-columns:1fr 1fr}.explore-field{display:flex;flex-direction:column;gap:7px;font-weight:800;color:#334155}.explore-field input,.explore-field select,.explore-field textarea,.list-head input{border:1px solid #dbe7e2;border-radius:14px;padding:12px 14px;font:inherit;font-weight:650;outline:none;background:#fff}.explore-field textarea{resize:vertical}.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.month-grid button{border:1px solid #dbe7e2;background:#fff;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.month-grid button.on{background:#ffc22b;color:#063c38;border-color:#ffc22b}.drop-box{position:relative;border:2px dashed #b9d8ce;background:#f4fbf7;border-radius:20px;min-height:130px;display:grid;place-items:center;text-align:center;color:#064e45;overflow:hidden}.drop-box input{position:absolute;inset:0;opacity:0;cursor:pointer}.drop-box strong{font-size:18px}.drop-box span{color:#64748b;font-weight:800}.publish-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;align-items:center}.publish-row label{font-weight:900;display:flex;gap:8px;align-items:center}.publish-row input,.publish-row select{border:1px solid #dbe7e2;border-radius:10px;padding:8px}.save-btn,.mini-form button,.soft-btn{border:none;background:#064e45;color:#fff;border-radius:16px;padding:14px 20px;font-weight:900;cursor:pointer;margin-top:20px}.soft-btn{background:#e8f5ef;color:#064e45;margin:0}.place-list-card{position:sticky;top:18px}.admin-place-list{display:flex;flex-direction:column;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.admin-place-item{display:grid;grid-template-columns:70px 1fr auto auto;gap:10px;align-items:center;border:1px solid #edf3ef;border-radius:18px;padding:10px}.admin-place-item img{width:70px;height:64px;object-fit:cover;border-radius:14px;background:#e5e7eb}.admin-place-item strong{display:block;color:#064e45}.admin-place-item span,.admin-place-item small{display:block;color:#64748b;font-size:12px;font-weight:800}.admin-place-item button{border:none;background:#e8f5ef;color:#064e45;border-radius:12px;padding:10px;font-weight:900;cursor:pointer}.admin-place-item button.danger{background:#fee2e2;color:#991b1b}.mini-form{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px;align-items:end}.cat-list{display:flex;gap:10px;flex-wrap:wrap}.cat-list span{background:#f0faf6;border:1px solid #dbe7e2;border-radius:999px;padding:10px 14px;font-weight:900}.cat-list small{color:#64748b;margin-left:4px}.field-helper{color:#64748b;font-size:12px;font-weight:800;line-height:1.45}.list-editor-wrap{background:#fbfefc;border:1px solid #edf4ef;border-radius:18px;padding:14px}.simple-list-editor,.object-list-editor{display:flex;flex-direction:column;gap:10px}.empty-list-note{margin:0!important;color:#94a3b8!important;font-size:13px;font-weight:800}.list-editor-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.list-editor-row input,.object-fields-grid input,.object-fields-grid textarea{border:1px solid #dbe7e2;border-radius:12px;padding:10px 12px;font:inherit;font-weight:650;outline:none;background:#fff}.add-mini-btn,.remove-mini-btn{border:none;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}.add-mini-btn{background:#064e45;color:#fff;align-self:flex-start}.remove-mini-btn{background:#fee2e2;color:#991b1b}.object-item-card{border:1px solid #e5efe9;background:#fff;border-radius:16px;padding:12px}.object-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;color:#064e45}.object-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.object-fields-grid label{display:flex;flex-direction:column;gap:6px;color:#334155;font-weight:800}.object-fields-grid label.full{grid-column:1/-1}.wide-editor{min-height:100%}@media(max-width:1100px){.explore-admin-hero,.manager-grid,.manager-grid.single{grid-template-columns:1fr}.place-list-card{position:static}.mini-form{grid-template-columns:1fr 1fr}}@media(max-width:700px){.form-grid,.form-grid.two,.month-grid,.mini-form{grid-template-columns:1fr}.admin-place-item{grid-template-columns:60px 1fr}.admin-place-item button{grid-column:span 1}.explore-admin-hero{padding:20px}.explore-admin-hero h1{font-size:34px}}
 `;
