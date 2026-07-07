@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const pool = require("../config/db");
 
 const monthNames = [
@@ -69,14 +71,46 @@ const uniqueSlug = async (name, currentId = null) => {
   }
 };
 
-const mapPlace = (row, images = []) => {
-  const imageList = images.length
-    ? images.map((img) => img.image_url)
-    : row.image_url
-      ? [row.image_url]
-      : [];
+const normaliseImageRows = (images = [], row = {}) => {
+  const imageRows = Array.isArray(images) ? images : [];
 
-  const mainImage = row.image_url || imageList[0] || "";
+  if (imageRows.length > 0) {
+    return imageRows.map((img, index) => ({
+      id: img.id,
+      place_id: img.place_id,
+      image_url: img.image_url,
+      image: img.image_url,
+      url: img.image_url,
+      alt_text: img.alt_text || `${row.name || "Place"} photo ${index + 1}`,
+      is_main: Boolean(img.is_main),
+      sort_order: Number(img.sort_order || index + 1),
+      created_at: img.created_at,
+    }));
+  }
+
+  if (row.image_url) {
+    return [
+      {
+        id: null,
+        place_id: row.id,
+        image_url: row.image_url,
+        image: row.image_url,
+        url: row.image_url,
+        alt_text: `${row.name || "Place"} main photo`,
+        is_main: true,
+        sort_order: 1,
+      },
+    ];
+  }
+
+  return [];
+};
+
+const mapPlace = (row, images = []) => {
+  const photoRecords = normaliseImageRows(images, row);
+  const imageList = photoRecords.map((img) => img.image_url).filter(Boolean);
+  const mainImageRecord = photoRecords.find((img) => img.is_main) || photoRecords[0] || null;
+  const mainImage = row.image_url || mainImageRecord?.image_url || "";
 
   return {
     id: row.id,
@@ -92,6 +126,8 @@ const mapPlace = (row, images = []) => {
     image: mainImage,
     image_url: mainImage,
     images: imageList,
+    photos: photoRecords,
+    imageRecords: photoRecords,
     shortDescription: row.short_description || "",
     short_description: row.short_description || "",
     fullDescription: row.full_description || "",
@@ -144,6 +180,45 @@ const getImagesForPlaces = async (placeIds) => {
     acc[img.place_id].push(img);
     return acc;
   }, {});
+};
+
+const deleteLocalUploadFile = (imageUrl) => {
+  if (!imageUrl || !String(imageUrl).startsWith("/uploads/")) return;
+
+  const safeFileName = path.basename(imageUrl);
+  const filePath = path.join(__dirname, "../../uploads", safeFileName);
+
+  fs.unlink(filePath, (error) => {
+    if (error && error.code !== "ENOENT") {
+      console.warn("Could not delete uploaded image file:", error.message);
+    }
+  });
+};
+
+const refreshPlaceMainImage = async (connection, placeId) => {
+  const [images] = await connection.query(
+    `SELECT * FROM explore_place_images
+     WHERE place_id = ?
+     ORDER BY is_main DESC, sort_order ASC, id ASC`,
+    [placeId]
+  );
+
+  if (!images.length) {
+    await connection.query("UPDATE explore_places SET image_url = NULL WHERE id = ?", [placeId]);
+    return null;
+  }
+
+  let mainImage = images.find((img) => Boolean(img.is_main)) || images[0];
+
+  const hasMain = images.some((img) => Boolean(img.is_main));
+  if (!hasMain) {
+    await connection.query("UPDATE explore_place_images SET is_main = FALSE WHERE place_id = ?", [placeId]);
+    await connection.query("UPDATE explore_place_images SET is_main = TRUE WHERE id = ?", [mainImage.id]);
+    mainImage = { ...mainImage, is_main: true };
+  }
+
+  await connection.query("UPDATE explore_places SET image_url = ? WHERE id = ?", [mainImage.image_url, placeId]);
+  return mainImage.image_url;
 };
 
 const basePlaceSelect = `
@@ -510,8 +585,7 @@ const adminCreateExplorePlace = async (req, res) => {
        (slug, name, city, district, region, category_id, image_url, short_description, full_description,
         duration, best_time, best_months, budget, budget_score, estimated_cost, lat, lng, featured, vibe,
         tags, experiences, highlights, nearby_places, tips, opening_hours, entry_fee, facilities, status, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ?, ?,
-        CAST(? AS JSON), CAST(? AS JSON), CAST(? AS JSON), CAST(? AS JSON), CAST(? AS JSON), ?, ?, CAST(? AS JSON), ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       values
     );
 
@@ -522,6 +596,14 @@ const adminCreateExplorePlace = async (req, res) => {
         `INSERT INTO explore_place_images (place_id, image_url, alt_text, is_main, sort_order)
          VALUES (?, ?, ?, ?, ?)`,
         [placeId, `/uploads/${files[i].filename}`, `${req.body.name} photo ${i + 1}`, i === 0, i + 1]
+      );
+    }
+
+    if (!files.length && req.body.image_url) {
+      await connection.query(
+        `INSERT INTO explore_place_images (place_id, image_url, alt_text, is_main, sort_order)
+         VALUES (?, ?, ?, TRUE, 1)`,
+        [placeId, req.body.image_url, `${req.body.name} main photo`]
       );
     }
 
@@ -555,11 +637,10 @@ const adminUpdateExplorePlace = async (req, res) => {
     await connection.query(
       `UPDATE explore_places SET
         slug = ?, name = ?, city = ?, district = ?, region = ?, category_id = ?, image_url = COALESCE(?, image_url),
-        short_description = ?, full_description = ?, duration = ?, best_time = ?, best_months = CAST(? AS JSON),
+        short_description = ?, full_description = ?, duration = ?, best_time = ?, best_months = ?,
         budget = ?, budget_score = ?, estimated_cost = ?, lat = ?, lng = ?, featured = ?, vibe = ?,
-        tags = CAST(? AS JSON), experiences = CAST(? AS JSON), highlights = CAST(? AS JSON),
-        nearby_places = CAST(? AS JSON), tips = CAST(? AS JSON), opening_hours = ?, entry_fee = ?,
-        facilities = CAST(? AS JSON), status = ?, sort_order = ?
+        tags = ?, experiences = ?, highlights = ?, nearby_places = ?, tips = ?, opening_hours = ?, entry_fee = ?,
+        facilities = ?, status = ?, sort_order = ?
        WHERE id = ?`,
       [...values, id]
     );
@@ -567,9 +648,13 @@ const adminUpdateExplorePlace = async (req, res) => {
     for (let i = 0; i < files.length; i += 1) {
       await connection.query(
         `INSERT INTO explore_place_images (place_id, image_url, alt_text, is_main, sort_order)
-         VALUES (?, ?, ?, ?, ?)`,
-        [id, `/uploads/${files[i].filename}`, `${req.body.name} photo ${i + 1}`, false, i + 1]
+         VALUES (?, ?, ?, FALSE, ?)`,
+        [id, `/uploads/${files[i].filename}`, `${req.body.name} photo ${i + 1}`, i + 1]
       );
+    }
+
+    if (files.length) {
+      await refreshPlaceMainImage(connection, id);
     }
 
     await connection.commit();
@@ -584,23 +669,115 @@ const adminUpdateExplorePlace = async (req, res) => {
   }
 };
 
-const adminDeleteExplorePlace = async (req, res) => {
+const adminUploadExploreImages = async (req, res) => {
+  const connection = await pool.getConnection();
+
   try {
-    await pool.query("DELETE FROM explore_places WHERE id = ?", [req.params.id]);
+    const { id } = req.params;
+    const files = req.files || [];
+
+    if (!files.length) {
+      return res.status(400).json({ success: false, message: "Please choose at least one photo" });
+    }
+
+    await connection.beginTransaction();
+
+    const [placeRows] = await connection.query("SELECT id, name, image_url FROM explore_places WHERE id = ? LIMIT 1", [id]);
+    if (!placeRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Place not found" });
+    }
+
+    const place = placeRows[0];
+    const [existingImages] = await connection.query(
+      "SELECT id, is_main FROM explore_place_images WHERE place_id = ? ORDER BY sort_order ASC, id ASC",
+      [id]
+    );
+
+    const alreadyHasMain = existingImages.some((img) => Boolean(img.is_main));
+    const startOrder = existingImages.length + 1;
+
+    for (let i = 0; i < files.length; i += 1) {
+      const shouldBeMain = existingImages.length === 0 && !alreadyHasMain && i === 0;
+      await connection.query(
+        `INSERT INTO explore_place_images (place_id, image_url, alt_text, is_main, sort_order)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, `/uploads/${files[i].filename}`, `${place.name} photo ${startOrder + i}`, shouldBeMain, startOrder + i]
+      );
+    }
+
+    await refreshPlaceMainImage(connection, id);
+    await connection.commit();
+
+    return res.status(201).json({ success: true, message: "Photos uploaded successfully" });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Upload explore images error:", error);
+    return res.status(500).json({ success: false, message: "Failed to upload photos" });
+  } finally {
+    connection.release();
+  }
+};
+
+const adminDeleteExplorePlace = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const { id } = req.params;
+
+    await connection.beginTransaction();
+
+    const [images] = await connection.query("SELECT image_url FROM explore_place_images WHERE place_id = ?", [id]);
+    await connection.query("DELETE FROM explore_places WHERE id = ?", [id]);
+
+    await connection.commit();
+
+    images.forEach((image) => deleteLocalUploadFile(image.image_url));
+
     return res.json({ success: true, message: "Place deleted successfully" });
   } catch (error) {
+    await connection.rollback();
     console.error("Delete explore place error:", error);
     return res.status(500).json({ success: false, message: "Failed to delete place" });
+  } finally {
+    connection.release();
   }
 };
 
 const adminDeleteExploreImage = async (req, res) => {
+  const connection = await pool.getConnection();
+
   try {
-    await pool.query("DELETE FROM explore_place_images WHERE id = ?", [req.params.imageId]);
+    const { imageId } = req.params;
+
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query(
+      "SELECT id, place_id, image_url, is_main FROM explore_place_images WHERE id = ? LIMIT 1",
+      [imageId]
+    );
+
+    if (!rows.length) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Image not found" });
+    }
+
+    const image = rows[0];
+
+    await connection.query("DELETE FROM explore_place_images WHERE id = ?", [imageId]);
+    await refreshPlaceMainImage(connection, image.place_id);
+
+    await connection.commit();
+
+    deleteLocalUploadFile(image.image_url);
+
     return res.json({ success: true, message: "Image deleted successfully" });
   } catch (error) {
+    await connection.rollback();
     console.error("Delete explore image error:", error);
     return res.status(500).json({ success: false, message: "Failed to delete image" });
+  } finally {
+    connection.release();
   }
 };
 
@@ -617,6 +794,7 @@ module.exports = {
   deleteAdminExploreCategory,
   adminCreateExplorePlace,
   adminUpdateExplorePlace,
+  adminUploadExploreImages,
   adminDeleteExplorePlace,
   adminDeleteExploreImage,
 };

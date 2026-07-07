@@ -11,6 +11,7 @@ const {
   deleteAdminExploreCategory,
   adminCreateExplorePlace,
   adminUpdateExplorePlace,
+  adminUploadExploreImages,
   adminDeleteExplorePlace,
   adminDeleteExploreImage,
 } = require("../controllers/explore.controller");
@@ -29,6 +30,7 @@ router.get("/places", getExplorePlaces);
 router.get("/places/:id", getExplorePlaceById);
 router.post("/places", upload.array("photos", 10), adminCreateExplorePlace);
 router.put("/places/:id", upload.array("photos", 10), adminUpdateExplorePlace);
+router.post("/places/:id/images", upload.array("photos", 10), adminUploadExploreImages);
 router.delete("/places/:id", adminDeleteExplorePlace);
 router.delete("/images/:imageId", adminDeleteExploreImage);
 
