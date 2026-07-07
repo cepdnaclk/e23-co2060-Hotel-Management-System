@@ -38,3 +38,14 @@ export const formatLkr = (amount) => {
   const value = Number(amount || 0);
   return `LKR ${value.toLocaleString()}`;
 };
+
+
+export const getTouristEvents = async (params = {}) => {
+  const res = await api.get("/tourist/events", { params });
+  return res.data.events || [];
+};
+
+export const getTouristEventsByPlace = async (placeId) => {
+  const res = await api.get(`/tourist/events/by-place/${placeId}`);
+  return res.data.events || [];
+};

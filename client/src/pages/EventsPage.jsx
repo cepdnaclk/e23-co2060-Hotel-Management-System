@@ -3,320 +3,279 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   buildEventSearchText,
   eventCategories,
-  eventDateFilters,
+  eventMonths,
   eventPriceFilters,
-  getSavedEventIds,
-  setSavedEventIds,
+  normaliseEvent,
   tourismEvents,
 } from "../data/eventData";
+import { getTouristEvents } from "../services/exploreService";
+
+const getEventImage = (event) => event.imageUrl || event.image_url || event.image;
 
 function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [events, setEvents] = useState(tourismEvents);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || searchParams.get("city") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "All");
-  const [dateFilter, setDateFilter] = useState(searchParams.get("date") || "Any time");
-  const [priceFilter, setPriceFilter] = useState(searchParams.get("price") || "Any price");
-  const [savedIds, setSavedIds] = useState(() => getSavedEventIds());
+  const [month, setMonth] = useState(searchParams.get("month") || "All Months");
+  const [price, setPrice] = useState(searchParams.get("price") || "Any Price");
 
   useEffect(() => {
-    const city = searchParams.get("city");
-    const search = searchParams.get("search");
-    const selectedCategory = searchParams.get("category");
-    const selectedDate = searchParams.get("date");
-    const selectedPrice = searchParams.get("price");
+    const loadEvents = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const rows = await getTouristEvents();
+        setEvents(rows.length ? rows.map(normaliseEvent) : tourismEvents);
+      } catch (err) {
+        console.warn("Using fallback event data:", err.message);
+        setEvents(tourismEvents);
+        setError("Showing demo event data because the event API is not reachable.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setSearchQuery(search || city || "");
-    setCategory(selectedCategory || "All");
-    setDateFilter(selectedDate || "Any time");
-    setPriceFilter(selectedPrice || "Any price");
+    loadEvents();
+  }, []);
+
+  useEffect(() => {
+    setSearch(searchParams.get("search") || searchParams.get("city") || "");
+    setCategory(searchParams.get("category") || "All");
+    setMonth(searchParams.get("month") || "All Months");
+    setPrice(searchParams.get("price") || "Any Price");
   }, [searchParams]);
 
-  const featuredEvents = useMemo(
-    () => tourismEvents.filter((event) => event.featured).slice(0, 4),
-    []
-  );
-
-  const filteredEvents = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    return tourismEvents.filter((event) => {
-      const matchesSearch = !query || buildEventSearchText(event).includes(query);
-      const matchesCategory = category === "All" || event.category === category;
-      const matchesDate = dateFilter === "Any time" || event.dateLabel === dateFilter;
-      const matchesPrice = priceFilter === "Any price" || event.priceType === priceFilter;
-
-      return matchesSearch && matchesCategory && matchesDate && matchesPrice;
-    });
-  }, [category, dateFilter, priceFilter, searchQuery]);
-
-  const popularCities = useMemo(
-    () => ["Kandy", "Colombo", "Mirissa", "Ella", "Galle", "Sigiriya", "Bentota"],
-    []
-  );
-
-  const updateUrlFilters = (nextValues = {}) => {
-    const nextSearch = nextValues.searchQuery ?? searchQuery;
-    const nextCategory = nextValues.category ?? category;
-    const nextDate = nextValues.dateFilter ?? dateFilter;
-    const nextPrice = nextValues.priceFilter ?? priceFilter;
+  const syncParams = (next = {}) => {
+    const nextSearch = next.search ?? search;
+    const nextCategory = next.category ?? category;
+    const nextMonth = next.month ?? month;
+    const nextPrice = next.price ?? price;
     const params = new URLSearchParams();
 
     if (nextSearch.trim()) params.set("search", nextSearch.trim());
     if (nextCategory !== "All") params.set("category", nextCategory);
-    if (nextDate !== "Any time") params.set("date", nextDate);
-    if (nextPrice !== "Any price") params.set("price", nextPrice);
+    if (nextMonth !== "All Months") params.set("month", nextMonth);
+    if (nextPrice !== "Any Price") params.set("price", nextPrice);
 
     setSearchParams(params);
   };
 
+  const filteredEvents = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return events
+      .map(normaliseEvent)
+      .filter((event) => {
+        const matchesSearch = !query || buildEventSearchText(event).includes(query);
+        const matchesCategory = category === "All" || event.category === category;
+        const matchesMonth = month === "All Months" || event.monthName === month;
+        const matchesPrice = price === "Any Price" || event.priceType === price;
+        return matchesSearch && matchesCategory && matchesMonth && matchesPrice;
+      });
+  }, [category, events, month, price, search]);
+
+  const featuredEvents = useMemo(
+    () => events.map(normaliseEvent).filter((event) => event.featured).slice(0, 3),
+    [events]
+  );
+
+  const resultTitle = search || category !== "All" || month !== "All Months" || price !== "Any Price"
+    ? "Search Results"
+    : "Recommended Events in Sri Lanka";
+
   const handleSubmit = (event) => {
     event.preventDefault();
-    updateUrlFilters();
+    syncParams();
   };
 
-  const handleCategoryClick = (nextCategory) => {
-    setCategory(nextCategory);
-    updateUrlFilters({ category: nextCategory });
-  };
-
-  const handleCityClick = (city) => {
-    setSearchQuery(city);
-    updateUrlFilters({ searchQuery: city });
-  };
-
-  const handleClear = () => {
-    setSearchQuery("");
+  const clearFilters = () => {
+    setSearch("");
     setCategory("All");
-    setDateFilter("Any time");
-    setPriceFilter("Any price");
+    setMonth("All Months");
+    setPrice("Any Price");
     setSearchParams({});
-  };
-
-  const toggleSaved = (eventId) => {
-    const nextIds = savedIds.includes(eventId)
-      ? savedIds.filter((id) => id !== eventId)
-      : [...savedIds, eventId];
-
-    setSavedIds(nextIds);
-    setSavedEventIds(nextIds);
   };
 
   return (
     <main className="events-page">
       <style>{eventsCss}</style>
 
-      <section className="events-hero">
-        <div className="events-hero-overlay" />
-        <div className="events-hero-content">
-          <span className="eyebrow">Events & Experiences</span>
-          <h1>Find the best things to do near your hotel or destination.</h1>
+      <section className="events-hero-block">
+        <div className="hero-copy">
+          <span className="eyebrow">TourismHub LK Experiences</span>
+          <h1>Events & Experiences</h1>
           <p>
-            Search cultural nights, food walks, beach events, nature experiences, hotel events,
-            and local festivals across Sri Lanka.
+            Discover cultural nights, food walks, coastal evenings, nature experiences, and destination
+            activities that tourists can connect with hotels and Explore places.
           </p>
-
-          <form className="event-search-card" onSubmit={handleSubmit}>
-            <label>
-              <span>Search</span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search city, hotel, or event name..."
-              />
-            </label>
-
-            <label>
-              <span>Category</span>
-              <select
-                value={category}
-                onChange={(event) => {
-                  setCategory(event.target.value);
-                  updateUrlFilters({ category: event.target.value });
-                }}
-              >
-                {eventCategories.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>Date</span>
-              <select
-                value={dateFilter}
-                onChange={(event) => {
-                  setDateFilter(event.target.value);
-                  updateUrlFilters({ dateFilter: event.target.value });
-                }}
-              >
-                {eventDateFilters.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button type="submit">Search events</button>
-          </form>
-
-          <div className="quick-city-row" aria-label="Popular city shortcuts">
-            {popularCities.map((city) => (
-              <button type="button" key={city} onClick={() => handleCityClick(city)}>
-                {city}
-              </button>
-            ))}
-          </div>
         </div>
+
+        <form className="hero-search" onSubmit={handleSubmit}>
+          <label>
+            <span>Search event, city, hotel, or place</span>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Example: Kandy, Cinnamon Grand, beach music..."
+            />
+          </label>
+          <button type="submit">Search Events</button>
+        </form>
       </section>
 
-      <section className="events-page-inner">
-        <div className="section-header split-header">
-          <div>
-            <span className="section-kicker">Featured picks</span>
-            <h2>Top experiences tourists can add to their trip</h2>
+      <section className="events-tabs" aria-label="Event page sections">
+        <button type="button" className="active">Events & Experiences</button>
+        <Link to="/explore">Explore Places</Link>
+        <Link to="/tourist-guides">Tourist Guides</Link>
+        <Link to="/hotels">Hotels Nearby</Link>
+      </section>
+
+      <section className="events-layout">
+        <aside className="filter-panel">
+          <div className="filter-card title-card">
+            <h2>Filter By</h2>
+            <p>Use tourist-friendly filters to find the right experience.</p>
           </div>
-          <Link to="/hotels" className="soft-link">
-            Find hotels first →
-          </Link>
-        </div>
 
-        <div className="featured-event-grid">
-          {featuredEvents.map((event) => (
-            <article className="featured-event-card" key={event.id}>
-              <img src={event.image} alt={event.title} />
-              <div className="featured-event-shade" />
-              <div className="featured-event-content">
-                <span>{event.category}</span>
-                <h3>{event.title}</h3>
-                <p>{event.city} · {event.dateLabel} · {event.priceLabel}</p>
-                <Link to={`/events/${event.id}`}>View experience</Link>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <section className="event-discovery-panel">
-          <div className="filter-sidebar">
-            <div className="filter-card">
-              <h3>Explore by category</h3>
-              <div className="chip-list">
-                {eventCategories.map((item) => (
-                  <button
-                    type="button"
-                    key={item}
-                    className={item === category ? "active-chip" : ""}
-                    onClick={() => handleCategoryClick(item)}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
+          <div className="filter-card">
+            <h3>Event Type</h3>
+            <div className="checkbox-stack">
+              {eventCategories.map((item) => (
+                <button
+                  type="button"
+                  key={item}
+                  className={category === item ? "filter-option selected" : "filter-option"}
+                  onClick={() => {
+                    setCategory(item);
+                    syncParams({ category: item });
+                  }}
+                >
+                  <span>{category === item ? "✓" : ""}</span>
+                  {item}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="filter-card compact-filter-card">
-              <h3>Price</h3>
+          <div className="filter-card">
+            <label className="select-label">
+              <span>Month</span>
               <select
-                value={priceFilter}
+                value={month}
                 onChange={(event) => {
-                  setPriceFilter(event.target.value);
-                  updateUrlFilters({ priceFilter: event.target.value });
+                  setMonth(event.target.value);
+                  syncParams({ month: event.target.value });
+                }}
+              >
+                {eventMonths.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="filter-card">
+            <label className="select-label">
+              <span>Budget</span>
+              <select
+                value={price}
+                onChange={(event) => {
+                  setPrice(event.target.value);
+                  syncParams({ price: event.target.value });
                 }}
               >
                 {eventPriceFilters.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
+                  <option key={item}>{item}</option>
                 ))}
               </select>
-            </div>
-
-            <div className="filter-card tip-card">
-              <span>Travel tip</span>
-              <p>
-                Search using a hotel name such as “Kandy Lake Hotel” or “Cinnamon Grand” to find
-                experiences near that stay.
-              </p>
-            </div>
+            </label>
           </div>
 
-          <div className="event-results-area">
-            <div className="results-topbar">
-              <div>
-                <span className="section-kicker">{filteredEvents.length} results found</span>
-                <h2>Available events and experiences</h2>
-              </div>
-              {(searchQuery || category !== "All" || dateFilter !== "Any time" || priceFilter !== "Any price") && (
-                <button type="button" onClick={handleClear} className="clear-button">
-                  Clear filters
-                </button>
-              )}
-            </div>
+          <button type="button" className="clear-btn" onClick={clearFilters}>Clear all filters</button>
+        </aside>
 
-            {filteredEvents.length === 0 ? (
-              <div className="empty-events-card">
-                <span>🔎</span>
-                <h3>No events matched your search</h3>
-                <p>Try another city, hotel name, category, or date filter.</p>
-                <button type="button" onClick={handleClear}>Show all events</button>
-              </div>
-            ) : (
-              <div className="event-card-grid">
-                {filteredEvents.map((event) => (
-                  <article className="event-card" key={event.id}>
-                    <div className="event-image-wrap">
-                      <img src={event.image} alt={event.title} />
-                      <span className="event-category-badge">{event.category}</span>
-                      <button
-                        type="button"
-                        className={savedIds.includes(event.id) ? "save-event saved" : "save-event"}
-                        onClick={() => toggleSaved(event.id)}
-                        aria-label={savedIds.includes(event.id) ? "Remove saved event" : "Save event"}
+        <section className="events-content">
+          <div className="section-heading-row">
+            <div>
+              <span className="eyebrow dark">Featured tourist picks</span>
+              <h2>Professional event discovery for your journey</h2>
+            </div>
+            <p>{filteredEvents.length} event result{filteredEvents.length === 1 ? "" : "s"}</p>
+          </div>
+
+          {featuredEvents.length ? (
+            <div className="featured-events-grid">
+              {featuredEvents.map((event) => (
+                <article className="feature-card" key={event.slug}>
+                  <img src={getEventImage(event)} alt={event.title} />
+                  <div className="feature-gradient" />
+                  <div className="feature-body">
+                    <span>{event.category}</span>
+                    <h3>{event.title}</h3>
+                    <p>{event.city} · {event.dateLabel} · {event.priceLabel}</p>
+                    <Link to={event.explorePlaceId ? `/explore/${event.explorePlaceId}?focusEvent=${event.slug}#things-to-do` : `/events/${event.slug}`}>
+                      View in Things to Do
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="results-heading">
+            <h2>{resultTitle}</h2>
+            {error ? <span>{error}</span> : loading ? <span>Loading events...</span> : null}
+          </div>
+
+          {filteredEvents.length ? (
+            <div className="event-results-grid">
+              {filteredEvents.map((event) => (
+                <article className="event-card" key={event.slug}>
+                  <div className="event-image-box">
+                    <img src={getEventImage(event)} alt={event.title} />
+                    <span>{event.category}</span>
+                  </div>
+
+                  <div className="event-info">
+                    <div className="event-meta-row">
+                      <span>📍 {event.city}</span>
+                      <span>🗓 {event.monthName}</span>
+                      <span>💰 {event.priceLabel}</span>
+                    </div>
+                    <h3>{event.title}</h3>
+                    <p>{event.shortDescription}</p>
+
+                    <div className="event-detail-list">
+                      <span>🏛 {event.venue}</span>
+                      <span>⏱ {event.dateLabel} · {event.timeLabel}</span>
+                      <span>🏨 Near {event.nearHotels?.slice(0, 2).join(", ")}</span>
+                    </div>
+
+                    <div className="event-actions">
+                      <Link
+                        className="primary-action"
+                        to={event.explorePlaceId ? `/explore/${event.explorePlaceId}?focusEvent=${event.slug}#things-to-do` : `/events/${event.slug}`}
                       >
-                        {savedIds.includes(event.id) ? "♥" : "♡"}
-                      </button>
+                        View Details
+                      </Link>
+                      <Link to={`/hotels?city=${encodeURIComponent(event.city)}`}>Find Hotels</Link>
+                      <a href={event.mapUrl} target="_blank" rel="noreferrer">Directions</a>
                     </div>
-
-                    <div className="event-card-body">
-                      <div className="event-meta-line">
-                        <span>{event.city}</span>
-                        <span>{event.dateLabel}</span>
-                        <span>{event.priceLabel}</span>
-                      </div>
-
-                      <h3>{event.title}</h3>
-                      <p>{event.description}</p>
-
-                      <div className="event-facts">
-                        <span>⭐ {event.rating} ({event.reviews})</span>
-                        <span>📍 {event.distanceText}</span>
-                        <span>⏱ {event.duration}</span>
-                      </div>
-
-                      <div className="near-hotels-line">
-                        Near hotels: {event.nearHotels.slice(0, 2).join(", ")}
-                      </div>
-
-                      <div className="event-actions">
-                        <Link to={`/events/${event.id}`} className="primary-event-action">
-                          View details
-                        </Link>
-                        <Link
-                          to={`/hotels?city=${encodeURIComponent(event.city)}`}
-                          className="secondary-event-action"
-                        >
-                          Find hotels
-                        </Link>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-results">
+              <span>🔎</span>
+              <h3>No events found for the selected filters.</h3>
+              <p>Try another city, hotel name, category, month, or budget level.</p>
+              <button type="button" onClick={clearFilters}>Show all events</button>
+            </div>
+          )}
         </section>
       </section>
     </main>
@@ -324,559 +283,7 @@ function EventsPage() {
 }
 
 const eventsCss = `
-  .events-page {
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at 4% 8%, rgba(20, 184, 166, 0.15), transparent 28rem),
-      radial-gradient(circle at 92% 18%, rgba(251, 191, 36, 0.16), transparent 24rem),
-      linear-gradient(135deg, #f8f4ea 0%, #ffffff 48%, #eefdf9 100%);
-    color: #10231f;
-  }
-
-  .events-hero {
-    position: relative;
-    min-height: 560px;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    background:
-      linear-gradient(90deg, rgba(4, 47, 43, 0.94), rgba(8, 117, 104, 0.68), rgba(15, 23, 42, 0.28)),
-      url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=90") center/cover;
-  }
-
-  .events-hero-overlay {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(circle at 15% 20%, rgba(251, 191, 36, 0.22), transparent 24rem),
-      linear-gradient(0deg, rgba(4, 47, 43, 0.34), rgba(4, 47, 43, 0.04));
-  }
-
-  .events-hero-content {
-    position: relative;
-    z-index: 1;
-    width: min(1180px, calc(100% - 36px));
-    margin: 0 auto;
-    padding: 82px 0;
-    color: #ffffff;
-  }
-
-  .eyebrow,
-  .section-kicker {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 8px 13px;
-    border-radius: 999px;
-    background: rgba(251, 191, 36, 0.18);
-    color: #facc15;
-    border: 1px solid rgba(251, 191, 36, 0.32);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.74rem;
-    font-weight: 950;
-  }
-
-  .section-kicker {
-    background: #ecfdf5;
-    color: #0f766e;
-    border-color: #ccfbf1;
-  }
-
-  .events-hero h1 {
-    max-width: 850px;
-    margin: 18px 0 14px;
-    font-size: clamp(2.6rem, 6vw, 5.8rem);
-    line-height: 0.94;
-    letter-spacing: -0.075em;
-  }
-
-  .events-hero p {
-    max-width: 720px;
-    margin: 0;
-    color: rgba(255, 255, 255, 0.86);
-    line-height: 1.75;
-    font-size: 1.05rem;
-    font-weight: 750;
-  }
-
-  .event-search-card {
-    margin-top: 34px;
-    display: grid;
-    grid-template-columns: 1.4fr 0.8fr 0.75fr auto;
-    gap: 12px;
-    width: min(1060px, 100%);
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 28px;
-    background: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
-    backdrop-filter: blur(16px);
-  }
-
-  .event-search-card label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 12px 14px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.96);
-    color: #0f172a;
-  }
-
-  .event-search-card label span {
-    color: #64748b;
-    font-size: 0.73rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-  }
-
-  .event-search-card input,
-  .event-search-card select,
-  .compact-filter-card select {
-    width: 100%;
-    border: 0;
-    outline: none;
-    background: transparent;
-    color: #0f172a;
-    font-size: 1rem;
-    font-weight: 850;
-    font-family: inherit;
-  }
-
-  .event-search-card button,
-  .clear-button,
-  .empty-events-card button {
-    border: 0;
-    border-radius: 20px;
-    padding: 0 22px;
-    color: #082f2b;
-    background: linear-gradient(135deg, #facc15, #f59e0b);
-    font-weight: 950;
-    cursor: pointer;
-    box-shadow: 0 16px 34px rgba(251, 191, 36, 0.28);
-  }
-
-  .quick-city-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 18px;
-  }
-
-  .quick-city-row button {
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    background: rgba(255, 255, 255, 0.13);
-    color: #ffffff;
-    padding: 10px 14px;
-    border-radius: 999px;
-    font-weight: 900;
-    cursor: pointer;
-    backdrop-filter: blur(10px);
-  }
-
-  .events-page-inner {
-    width: min(1180px, calc(100% - 36px));
-    margin: 0 auto;
-    padding: 58px 0 84px;
-  }
-
-  .section-header,
-  .results-topbar {
-    margin-bottom: 22px;
-  }
-
-  .split-header,
-  .results-topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-    gap: 18px;
-  }
-
-  .section-header h2,
-  .results-topbar h2 {
-    margin: 10px 0 0;
-    color: #083f3b;
-    font-size: clamp(1.7rem, 3vw, 2.7rem);
-    line-height: 1;
-    letter-spacing: -0.045em;
-  }
-
-  .soft-link {
-    color: #0f766e;
-    text-decoration: none;
-    font-weight: 950;
-    white-space: nowrap;
-  }
-
-  .featured-event-grid {
-    display: grid;
-    grid-template-columns: 1.1fr 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 44px;
-  }
-
-  .featured-event-card {
-    position: relative;
-    min-height: 320px;
-    overflow: hidden;
-    border-radius: 30px;
-    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.13);
-  }
-
-  .featured-event-card:first-child {
-    grid-row: span 2;
-    min-height: 656px;
-  }
-
-  .featured-event-card img,
-  .event-image-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.4s ease;
-  }
-
-  .featured-event-card:hover img,
-  .event-card:hover .event-image-wrap img {
-    transform: scale(1.05);
-  }
-
-  .featured-event-shade {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(0deg, rgba(3, 31, 28, 0.88), rgba(3, 31, 28, 0.12));
-  }
-
-  .featured-event-content {
-    position: absolute;
-    inset: auto 0 0;
-    padding: 24px;
-    color: white;
-  }
-
-  .featured-event-content span {
-    display: inline-flex;
-    padding: 7px 11px;
-    border-radius: 999px;
-    background: rgba(250, 204, 21, 0.94);
-    color: #082f2b;
-    font-size: 0.75rem;
-    font-weight: 950;
-  }
-
-  .featured-event-content h3 {
-    margin: 12px 0 8px;
-    font-size: 1.55rem;
-    line-height: 1.06;
-  }
-
-  .featured-event-content p {
-    margin: 0 0 16px;
-    color: rgba(255, 255, 255, 0.86);
-    font-weight: 800;
-  }
-
-  .featured-event-content a {
-    color: #fde68a;
-    font-weight: 950;
-    text-decoration: none;
-  }
-
-  .event-discovery-panel {
-    display: grid;
-    grid-template-columns: 290px minmax(0, 1fr);
-    gap: 24px;
-    align-items: start;
-  }
-
-  .filter-sidebar {
-    position: sticky;
-    top: 94px;
-    display: grid;
-    gap: 16px;
-  }
-
-  .filter-card {
-    padding: 20px;
-    border: 1px solid #d1fae5;
-    border-radius: 26px;
-    background: rgba(255, 255, 255, 0.88);
-    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
-  }
-
-  .filter-card h3 {
-    margin: 0 0 14px;
-    color: #083f3b;
-  }
-
-  .chip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .chip-list button {
-    border: 1px solid #ccfbf1;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #0f766e;
-    padding: 8px 11px;
-    font-weight: 900;
-    cursor: pointer;
-  }
-
-  .chip-list .active-chip {
-    background: #0f766e;
-    color: #ffffff;
-    border-color: #0f766e;
-  }
-
-  .compact-filter-card select {
-    padding: 12px 14px;
-    border: 1px solid #ccfbf1;
-    border-radius: 16px;
-    background: #ffffff;
-  }
-
-  .tip-card {
-    background: linear-gradient(135deg, #083f3b, #0f766e);
-    color: #ffffff;
-  }
-
-  .tip-card span {
-    color: #facc15;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.74rem;
-  }
-
-  .tip-card p {
-    margin: 10px 0 0;
-    color: rgba(255, 255, 255, 0.82);
-    line-height: 1.65;
-    font-weight: 750;
-  }
-
-  .clear-button {
-    padding: 12px 16px;
-    box-shadow: none;
-  }
-
-  .event-card-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-  }
-
-  .event-card {
-    overflow: hidden;
-    border: 1px solid #d1fae5;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
-  }
-
-  .event-image-wrap {
-    position: relative;
-    height: 235px;
-    overflow: hidden;
-  }
-
-  .event-category-badge,
-  .save-event {
-    position: absolute;
-    top: 14px;
-    border: 0;
-    border-radius: 999px;
-    font-weight: 950;
-  }
-
-  .event-category-badge {
-    left: 14px;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.94);
-    color: #0f766e;
-  }
-
-  .save-event {
-    right: 14px;
-    width: 42px;
-    height: 42px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.92);
-    color: #0f766e;
-    font-size: 1.3rem;
-    cursor: pointer;
-  }
-
-  .save-event.saved {
-    background: #f43f5e;
-    color: white;
-  }
-
-  .event-card-body {
-    padding: 20px;
-  }
-
-  .event-meta-line {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .event-meta-line span {
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #ecfdf5;
-    color: #0f766e;
-    font-size: 0.75rem;
-    font-weight: 950;
-  }
-
-  .event-card h3 {
-    margin: 14px 0 10px;
-    color: #083f3b;
-    font-size: 1.35rem;
-    letter-spacing: -0.02em;
-  }
-
-  .event-card p {
-    margin: 0;
-    color: #64748b;
-    line-height: 1.65;
-    font-weight: 700;
-  }
-
-  .event-facts {
-    display: grid;
-    gap: 8px;
-    margin: 16px 0;
-    color: #475569;
-    font-size: 0.9rem;
-    font-weight: 850;
-  }
-
-  .near-hotels-line {
-    padding: 12px 14px;
-    border-radius: 18px;
-    background: #fffbeb;
-    color: #92400e;
-    font-weight: 850;
-    line-height: 1.5;
-  }
-
-  .event-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 16px;
-  }
-
-  .primary-event-action,
-  .secondary-event-action {
-    min-height: 46px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 16px;
-    text-decoration: none;
-    font-weight: 950;
-  }
-
-  .primary-event-action {
-    background: #0f766e;
-    color: #ffffff;
-  }
-
-  .secondary-event-action {
-    background: #ecfdf5;
-    color: #0f766e;
-  }
-
-  .empty-events-card {
-    min-height: 360px;
-    display: grid;
-    place-items: center;
-    text-align: center;
-    padding: 42px;
-    border: 1px dashed #99f6e4;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.76);
-  }
-
-  .empty-events-card span {
-    font-size: 3rem;
-  }
-
-  .empty-events-card h3 {
-    margin: 12px 0 8px;
-    color: #083f3b;
-    font-size: 1.6rem;
-  }
-
-  .empty-events-card p {
-    margin: 0 0 20px;
-    color: #64748b;
-    font-weight: 750;
-  }
-
-  .empty-events-card button {
-    min-height: 44px;
-  }
-
-  @media (max-width: 1020px) {
-    .event-search-card,
-    .event-discovery-panel,
-    .event-card-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .filter-sidebar {
-      position: static;
-    }
-
-    .featured-event-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .featured-event-card:first-child {
-      grid-row: auto;
-      min-height: 320px;
-    }
-  }
-
-  @media (max-width: 720px) {
-    .events-hero {
-      min-height: auto;
-    }
-
-    .events-hero-content {
-      padding: 58px 0;
-    }
-
-    .event-search-card {
-      border-radius: 22px;
-    }
-
-    .featured-event-grid,
-    .split-header,
-    .results-topbar,
-    .event-actions {
-      grid-template-columns: 1fr;
-      display: grid;
-    }
-
-    .soft-link {
-      white-space: normal;
-    }
-  }
+.events-page{min-height:100vh;background:#f5f7f6;color:#101828;font-family:Inter,system-ui,Arial,sans-serif}.events-hero-block{position:relative;overflow:hidden;background:linear-gradient(135deg,#f8fafc 0%,#ffffff 48%,#e8f7f4 100%);padding:72px min(10vw,120px) 52px}.events-hero-block:after{content:"";position:absolute;right:-120px;bottom:-180px;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(5,132,152,.14),transparent 65%)}.hero-copy{position:relative;z-index:1;max-width:850px}.eyebrow{display:inline-flex;align-items:center;gap:8px;background:#007ea4;color:white;border-radius:999px;padding:9px 16px;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}.eyebrow.dark{background:#e5f6f4;color:#006777}.hero-copy h1{font-size:clamp(46px,7vw,84px);line-height:.95;margin:20px 0 18px;letter-spacing:-.055em;color:#0b1720}.hero-copy p{font-size:clamp(17px,2vw,21px);line-height:1.75;max-width:760px;color:#344054;font-weight:650}.hero-search{position:relative;z-index:2;margin-top:28px;display:grid;grid-template-columns:1fr auto;gap:14px;width:min(900px,100%);background:white;border:1px solid #d9e9ea;border-radius:26px;padding:14px;box-shadow:0 24px 70px rgba(15,23,42,.10)}.hero-search label{display:grid;gap:6px}.hero-search span,.select-label span{font-size:12px;font-weight:950;color:#667085;text-transform:uppercase;letter-spacing:.06em}.hero-search input,.select-label select{border:1px solid #d0d5dd;border-radius:16px;padding:15px 16px;font-size:16px;outline:none;background:#fff}.hero-search input:focus,.select-label select:focus{border-color:#007ea4;box-shadow:0 0 0 4px rgba(0,126,164,.11)}.hero-search button{border:none;border-radius:18px;background:#007ea4;color:white;padding:0 28px;font-weight:950;font-size:15px;cursor:pointer}.events-tabs{width:min(1220px,calc(100% - 36px));margin:34px auto 0;display:flex;gap:18px;justify-content:flex-end;flex-wrap:wrap}.events-tabs a,.events-tabs button{border:2px solid #007ea4;color:#007ea4;background:white;border-radius:999px;text-decoration:none;padding:15px 28px;font-weight:850;box-shadow:0 12px 30px rgba(15,23,42,.05)}.events-tabs .active{background:#007ea4;color:white}.events-layout{width:min(1220px,calc(100% - 36px));margin:34px auto 80px;display:grid;grid-template-columns:310px 1fr;gap:30px}.filter-panel{display:flex;flex-direction:column;gap:18px}.filter-card{background:white;border:1px solid #e3e8ef;border-radius:28px;padding:24px;box-shadow:0 22px 55px rgba(15,23,42,.08)}.title-card h2{font-size:32px;margin:0 0 8px;letter-spacing:-.04em}.title-card p{margin:0;color:#667085;line-height:1.6;font-weight:650}.filter-card h3{margin:0 0 16px;color:#111827;font-size:17px}.checkbox-stack{display:grid;gap:11px}.filter-option{border:none;background:transparent;text-align:left;display:flex;align-items:center;gap:11px;color:#2e3440;font-weight:760;cursor:pointer;padding:4px 0}.filter-option span{width:21px;height:21px;border:1.8px solid #b9c3cf;border-radius:6px;display:grid;place-items:center;color:white;font-size:13px}.filter-option.selected span{background:#007ea4;border-color:#007ea4}.filter-option.selected{color:#006777}.select-label{display:grid;gap:10px}.clear-btn{border:1px solid #e3e8ef;background:#0b1720;color:white;border-radius:18px;padding:14px;font-weight:950;cursor:pointer}.events-content{min-width:0}.section-heading-row{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:22px}.section-heading-row h2,.results-heading h2{font-size:clamp(30px,4vw,44px);letter-spacing:-.05em;margin:12px 0 0;color:#0b1720}.section-heading-row p,.results-heading span{color:#667085;font-weight:850}.featured-events-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:34px}.feature-card{position:relative;min-height:315px;border-radius:30px;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.16);background:#111827}.feature-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.feature-gradient{position:absolute;inset:0;background:linear-gradient(0deg,rgba(2,32,37,.94),rgba(2,32,37,.25),rgba(2,32,37,.08))}.feature-body{position:absolute;inset:auto 20px 20px;color:white}.feature-body span{display:inline-block;border-radius:999px;background:rgba(255,255,255,.18);padding:7px 10px;font-size:12px;font-weight:900}.feature-body h3{font-size:25px;margin:12px 0 8px;line-height:1.05}.feature-body p{color:#d7f1ee;font-weight:800}.feature-body a{display:inline-block;margin-top:8px;color:#082f34;background:#facc15;text-decoration:none;padding:10px 14px;border-radius:14px;font-weight:950}.results-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.event-results-grid{display:grid;gap:18px}.event-card{display:grid;grid-template-columns:260px 1fr;background:white;border:1px solid #e3e8ef;border-radius:28px;overflow:hidden;box-shadow:0 22px 60px rgba(15,23,42,.08)}.event-image-box{position:relative;min-height:245px}.event-image-box img{width:100%;height:100%;object-fit:cover}.event-image-box span{position:absolute;left:15px;top:15px;background:#007ea4;color:white;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:950}.event-info{padding:24px}.event-meta-row{display:flex;gap:9px;flex-wrap:wrap}.event-meta-row span{background:#f2f7f7;border:1px solid #deebeb;color:#006777;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900}.event-info h3{font-size:28px;margin:15px 0 8px;color:#101828;letter-spacing:-.035em}.event-info p{color:#596579;line-height:1.7;font-weight:650}.event-detail-list{display:grid;gap:7px;margin-top:16px;color:#425466;font-weight:780}.event-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.event-actions a{border:1px solid #d0d5dd;border-radius:14px;text-decoration:none;color:#006777;padding:11px 14px;font-weight:950}.event-actions .primary-action{background:#007ea4;color:white;border-color:#007ea4}.empty-results{background:white;border:1px solid #e3e8ef;border-radius:28px;padding:48px;text-align:center;box-shadow:0 22px 55px rgba(15,23,42,.08)}.empty-results span{font-size:46px}.empty-results h3{font-size:26px;margin:12px 0}.empty-results p{color:#667085;font-weight:700}.empty-results button{border:none;border-radius:16px;background:#007ea4;color:white;padding:13px 18px;font-weight:950;cursor:pointer}@media(max-width:1020px){.events-layout{grid-template-columns:1fr}.filter-panel{position:static}.featured-events-grid{grid-template-columns:1fr}.event-card{grid-template-columns:1fr}.event-image-box{height:260px}.section-heading-row,.results-heading{align-items:flex-start;flex-direction:column}.hero-search{grid-template-columns:1fr}.hero-search button{padding:15px}.events-tabs{justify-content:flex-start}}@media(max-width:640px){.events-hero-block{padding:54px 18px}.events-tabs,.events-layout{width:calc(100% - 24px)}.events-tabs a,.events-tabs button{width:100%;text-align:center}.filter-card,.event-info{padding:20px}.hero-copy h1{font-size:48px}}
 `;
 
 export default EventsPage;

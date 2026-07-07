@@ -26,6 +26,10 @@ import RegisterPropertyPage from "./pages/partner/RegisterPropertyPage";
 
 import PartnerBookingsPage from "./pages/partner/PartnerBookingsPage";
 import OnlinePaymentFuturePage from "./pages/OnlinePaymentFuturePage";
+import EventsPage from "./pages/EventsPage";
+import EventDetailsPage from "./pages/EventDetailsPage";
+import TouristGuidePage from "./pages/TouristGuidePage";
+import AboutUsPage from "./pages/AboutUsPage";
 
 function SimplePage({ title, message }) {
   return (
@@ -74,10 +78,10 @@ function App() {
           }
         />
 
-        <Route
-          path="/events"
-          element={<SimplePage title="Events Page" />}
-        />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/events/:id" element={<EventDetailsPage />} />
+        <Route path="/tourist-guides" element={<TouristGuidePage />} />
+        <Route path="/about" element={<AboutUsPage />} />
 
         <Route
           path="/transport"

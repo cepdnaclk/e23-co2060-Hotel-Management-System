@@ -107,6 +107,7 @@ function HomePage() {
         subtitle: "Kandy • Perahera • temple city",
         image: getPlaceImage(kandy),
         meta: "Festivals",
+        eventLink: "/events?search=Kandy&category=Cultural%20%26%20Religious",
       },
       {
         id: "coastal-events",
@@ -114,6 +115,7 @@ function HomePage() {
         subtitle: "Mirissa • music • sunsets",
         image: getPlaceImage(mirissa),
         meta: "Beach life",
+        eventLink: "/events?search=Mirissa&category=Beach%20%26%20Coastal",
       },
       {
         id: "city-food-events",
@@ -121,6 +123,7 @@ function HomePage() {
         subtitle: "Colombo • street food • local stories",
         image: getPlaceImage(colombo),
         meta: "Food events",
+        eventLink: "/events?search=Colombo&category=Food%20%26%20Culinary",
       },
     ];
   }, []);
@@ -477,7 +480,7 @@ function HomePage() {
 
         <div className="showcase-card-grid event-grid">
           {eventCards.map((event) => (
-            <Link to="/events" onClick={handleNavigateTop} className="showcase-card route-card" key={event.id}>
+            <Link to={event.eventLink || "/events"} onClick={handleNavigateTop} className="showcase-card route-card" key={event.id}>
               <img src={event.image} alt={event.title} />
               <div className="route-badge">{event.meta}</div>
               <div className="showcase-card-body">
