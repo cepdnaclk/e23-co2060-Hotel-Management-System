@@ -7,8 +7,6 @@ import { eventCategories, eventMonths } from "../../data/eventData";
 const categories = eventCategories.filter((item) => item !== "All");
 const months = eventMonths.filter((item) => item !== "All Months");
 const priceTypes = ["Free", "Budget", "Paid", "Premium"];
-const statuses = ["draft", "published", "hidden"];
-
 const emptyForm = {
   id: null,
   property_id: "",
@@ -36,7 +34,7 @@ const emptyForm = {
   highlights: "",
   guide_recommended: false,
   featured: false,
-  status: "draft",
+  status: "pending",
 };
 
 const getArrayText = (value) => {
@@ -71,9 +69,9 @@ function PartnerEventRegistrationPage() {
   const stats = useMemo(
     () => ({
       total: events.length,
-      published: events.filter((event) => event.status === "published").length,
-      draft: events.filter((event) => event.status === "draft").length,
-      hidden: events.filter((event) => event.status === "hidden").length,
+      pending: events.filter((event) => event.status === "pending").length,
+      approved: events.filter((event) => event.status === "approved" || event.status === "published").length,
+      rejected: events.filter((event) => event.status === "rejected").length,
     }),
     [events]
   );
@@ -276,10 +274,10 @@ function PartnerEventRegistrationPage() {
 
       if (isEditing) {
         await api.put(`/partner/events/${form.id}`, payload);
-        setMessage("Event updated successfully. You can check it from the partner dashboard.");
+        setMessage("Event updated successfully and sent back to admin approval. You can check the approval status from the partner dashboard.");
       } else {
         await api.post("/partner/events", payload);
-        setMessage("Event created successfully. You can check it from the partner dashboard.");
+        setMessage("Event created successfully. It is now pending admin approval.");
       }
 
       await loadData();
@@ -310,7 +308,7 @@ function PartnerEventRegistrationPage() {
           </Link>
           <h1 style={styles.title}>Event Registration</h1>
           <p style={styles.subtitle}>
-            Create a professional event listing for tourists. Use the dashboard to view and edit your registered events.
+            Create a professional event listing for tourists. After submission, admin must approve it before tourists can see it.
           </p>
         </div>
 
@@ -321,6 +319,11 @@ function PartnerEventRegistrationPage() {
 
       {message && <div style={styles.successBox}>{message}</div>}
       {error && <div style={styles.errorBox}>{error}</div>}
+      {form.status === "rejected" && form.rejection_reason && (
+        <div style={styles.rejectBox}>
+          <strong>Admin rejected this event.</strong> Reason: {form.rejection_reason}
+        </div>
+      )}
 
       <div style={styles.statsGrid}>
         <div className="partner-event-stat-card">
@@ -328,16 +331,16 @@ function PartnerEventRegistrationPage() {
           <strong>{loading ? "..." : stats.total}</strong>
         </div>
         <div className="partner-event-stat-card">
-          <span>Published</span>
-          <strong>{loading ? "..." : stats.published}</strong>
+          <span>Pending Approval</span>
+          <strong>{loading ? "..." : stats.pending}</strong>
         </div>
         <div className="partner-event-stat-card">
-          <span>Draft</span>
-          <strong>{loading ? "..." : stats.draft}</strong>
+          <span>Approved</span>
+          <strong>{loading ? "..." : stats.approved}</strong>
         </div>
         <div className="partner-event-stat-card">
-          <span>Hidden</span>
-          <strong>{loading ? "..." : stats.hidden}</strong>
+          <span>Rejected</span>
+          <strong>{loading ? "..." : stats.rejected}</strong>
         </div>
       </div>
 
@@ -347,13 +350,13 @@ function PartnerEventRegistrationPage() {
             <span style={styles.formBadge}>{isEditing ? "Edit Existing Event" : "New Event Details"}</span>
             <h2 style={styles.formTitle}>{isEditing ? "Update Event Information" : "Register a Tourism Event"}</h2>
             <p style={styles.formHint}>
-              Fill the details clearly. Published events will be visible to tourists on the Events page.
+              Fill the details clearly. The event will be submitted as Pending and will appear to tourists only after admin approval.
             </p>
           </div>
 
           <div style={styles.formStatusBox}>
-            <span>Current Mode</span>
-            <strong>{isEditing ? "Editing" : "Creating"}</strong>
+            <span>Approval Status</span>
+            <strong>{isEditing ? form.status : "pending"}</strong>
           </div>
         </div>
 
@@ -375,16 +378,11 @@ function PartnerEventRegistrationPage() {
             </select>
           </label>
 
-          <label style={styles.label}>
-            <span>Event Status</span>
-            <select name="status" value={form.status} onChange={handleChange} style={styles.input}>
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div style={styles.infoPanel}>
+            <span style={styles.infoLabel}>Admin Approval Required</span>
+            <strong style={styles.infoStrong}>Status: {isEditing ? form.status : "pending"}</strong>
+            <small style={styles.infoSmall}>When you create or update an event, it is sent to admin as pending. Approved events only are visible to tourists.</small>
+          </div>
 
           <label style={styles.label}>
             <span>Event Title *</span>
@@ -594,7 +592,7 @@ function PartnerEventRegistrationPage() {
 
         <div style={styles.actionRow}>
           <button type="submit" disabled={saving} style={styles.primaryButton}>
-            {saving ? "Saving..." : isEditing ? "Update Event" : "Create Event"}
+            {saving ? "Submitting..." : isEditing ? "Update & Submit for Approval" : "Create Event"}
           </button>
           <button type="button" onClick={resetForm} style={styles.secondaryButton}>
             Clear Form
@@ -603,6 +601,9 @@ function PartnerEventRegistrationPage() {
             View My Events in Dashboard
           </Link>
         </div>
+
+        {error && <div style={styles.formBottomError}>{error}</div>}
+        {message && <div style={styles.formBottomSuccess}>{message}</div>}
       </form>
     </div>
   );
@@ -672,6 +673,56 @@ const styles = {
     padding: "12px 16px",
     fontWeight: "900",
     textDecoration: "none",
+  },
+  formBottomError: {
+    marginTop: "18px",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    background: "#fff1f2",
+    border: "1px solid #fecdd3",
+    color: "#be123c",
+    fontWeight: "900",
+  },
+  formBottomSuccess: {
+    marginTop: "18px",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    background: "#ecfdf5",
+    border: "1px solid #bbf7d0",
+    color: "#047857",
+    fontWeight: "900",
+  },
+
+  infoPanel: {
+    border: "1px solid #fde68a",
+    borderRadius: "18px",
+    background: "#fffbeb",
+    padding: "14px",
+    display: "grid",
+    gap: "5px",
+  },
+  infoLabel: {
+    color: "#92400e",
+    fontSize: "12px",
+    fontWeight: "950",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+  },
+  infoStrong: {
+    color: "#78350f",
+    textTransform: "capitalize",
+  },
+  infoSmall: {
+    color: "#92400e",
+    lineHeight: 1.45,
+  },
+  rejectBox: {
+    background: "#fee2e2",
+    color: "#991b1b",
+    padding: "14px 18px",
+    borderRadius: "14px",
+    marginBottom: "18px",
+    fontWeight: "800",
   },
   successBox: {
     background: "#dcfce7",

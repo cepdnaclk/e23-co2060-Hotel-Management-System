@@ -11,6 +11,7 @@ import PaymentVersionsPage from "./pages/PaymentVersionsPage";
 import RevenuePage from "./pages/RevenuePage";
 import SystemVulnerabilityPage from "./pages/SystemVulnerabilityPage";
 import ExploreManagerPage from "./pages/ExploreManagerPage";
+import EventApprovalsPage from "./pages/EventApprovalsPage";
 import AdminNavbar from "./pages/AdminNavbar";
 
 function ProtectedAdminRoute({ children }) {
@@ -102,6 +103,15 @@ function App() {
         element={
           <ProtectedAdminRoute>
             <ExploreManagerPage />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      <Route
+        path="/event-approvals"
+        element={
+          <ProtectedAdminRoute>
+            <EventApprovalsPage />
           </ProtectedAdminRoute>
         }
       />

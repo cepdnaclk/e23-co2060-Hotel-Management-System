@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/api";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
@@ -6,17 +7,20 @@ function AdminDashboardPage() {
   const { admin } = useAdminAuth();
   const [stats, setStats] = useState(null);
   const [properties, setProperties] = useState([]);
+  const [eventStats, setEventStats] = useState(null);
   const [message, setMessage] = useState("");
 
   const loadDashboard = async () => {
     try {
-      const [dashboardRes, propertiesRes] = await Promise.all([
+      const [dashboardRes, propertiesRes, eventsRes] = await Promise.all([
         api.get("/admin/dashboard"),
         api.get("/admin/properties"),
+        api.get("/admin/events?status=all"),
       ]);
 
       setStats(dashboardRes.data.data);
       setProperties(propertiesRes.data.data || []);
+      setEventStats(eventsRes.data.stats || null);
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to load admin dashboard");
     }
@@ -75,6 +79,12 @@ function AdminDashboardPage() {
           <strong>{stats?.approved_properties ?? 0}</strong>
           <p>Properties approved and controlled by admin.</p>
         </div>
+
+        <Link to="/event-approvals" className="admin-card link-card">
+          <span>Pending Events</span>
+          <strong>{Number(eventStats?.pending_events || 0)}</strong>
+          <p>Partner event requests waiting for approval.</p>
+        </Link>
 
         <div className="admin-card">
           <span>Visible Properties</span>

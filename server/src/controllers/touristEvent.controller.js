@@ -15,9 +15,9 @@ const mapEvent = (row) => ({
   event_id: row.id,
   slug: row.slug,
   explore_place_id: row.explore_place_id,
-  explorePlaceId: row.explore_place_slug || row.explore_place_id,
-  explore_place_slug: row.explore_place_slug,
-  explore_place_name: row.explore_place_name,
+  explorePlaceId: row.explore_place_id,
+  explore_place_slug: null,
+  explore_place_name: null,
   title: row.title,
   category: row.category,
   city: row.city,
@@ -47,22 +47,18 @@ const mapEvent = (row) => ({
   guide_recommended: Boolean(row.guide_recommended),
   guideRecommended: Boolean(row.guide_recommended),
   featured: Boolean(row.featured),
-  status: row.status,
+  status: row.status === "published" ? "approved" : row.status,
 });
 
 const baseSelect = `
-  SELECT
-    e.*,
-    p.slug AS explore_place_slug,
-    p.name AS explore_place_name
+  SELECT e.*
   FROM tourist_events e
-  LEFT JOIN explore_places p ON p.id = e.explore_place_id
 `;
 
 const getTouristEvents = async (req, res) => {
   try {
     const { search, category, city, month, price } = req.query;
-    const conditions = ["e.status = 'published'"];
+    const conditions = ["e.status IN ('approved', 'published')"];
     const params = [];
 
     if (search && search.trim()) {
@@ -73,10 +69,9 @@ const getTouristEvents = async (req, res) => {
         LOWER(e.city) LIKE ? OR
         LOWER(e.district) LIKE ? OR
         LOWER(e.venue) LIKE ? OR
-        LOWER(JSON_EXTRACT(e.near_hotels, '$')) LIKE ? OR
-        LOWER(p.name) LIKE ?
+        LOWER(JSON_EXTRACT(e.near_hotels, '$')) LIKE ?
       )`);
-      params.push(like, like, like, like, like, like, like);
+      params.push(like, like, like, like, like, like);
     }
 
     if (city && city.trim()) {
@@ -117,7 +112,7 @@ const getTouristEventBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
     const [rows] = await pool.query(
-      `${baseSelect} WHERE e.slug = ? AND e.status = 'published' LIMIT 1`,
+      `${baseSelect} WHERE e.slug = ? AND e.status IN ('approved', 'published') LIMIT 1`,
       [slug]
     );
 
@@ -137,10 +132,10 @@ const getTouristEventsByPlace = async (req, res) => {
     const { placeId } = req.params;
     const [rows] = await pool.query(
       `${baseSelect}
-       WHERE e.status = 'published'
-       AND (e.explore_place_id = ? OR p.slug = ?)
+       WHERE e.status IN ('approved', 'published')
+       AND e.explore_place_id = ?
        ORDER BY e.featured DESC, e.month_number ASC, e.id ASC`,
-      [placeId, placeId]
+      [placeId]
     );
 
     return res.json({ success: true, count: rows.length, events: rows.map(mapEvent) });

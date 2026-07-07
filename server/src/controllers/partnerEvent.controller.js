@@ -48,6 +48,11 @@ const parseList = (value) => {
     .filter(Boolean);
 };
 
+const normalizeStatus = (status) => {
+  if (status === "published") return "approved";
+  return status || "pending";
+};
+
 const mapPartnerEvent = (row) => ({
   id: row.id,
   slug: row.slug,
@@ -80,7 +85,11 @@ const mapPartnerEvent = (row) => ({
   highlights: parseJson(row.highlights, []),
   guide_recommended: Boolean(row.guide_recommended),
   featured: Boolean(row.featured),
-  status: row.status,
+  status: normalizeStatus(row.status),
+  rejection_reason: row.rejection_reason,
+  submitted_at: row.submitted_at,
+  approved_at: row.approved_at,
+  approved_by: row.approved_by,
   created_at: row.created_at,
   updated_at: row.updated_at,
 });
@@ -130,10 +139,9 @@ const getMyPartnerEvents = async (req, res) => {
       `SELECT
         e.*,
         p.name AS property_name,
-        ep.name AS explore_place_name
+        NULL AS explore_place_name
        FROM tourist_events e
        LEFT JOIN properties p ON p.id = e.property_id
-       LEFT JOIN explore_places ep ON ep.id = e.explore_place_id
        WHERE e.partner_id = ?
        ORDER BY e.updated_at DESC, e.id DESC`,
       [req.user.id]
@@ -161,10 +169,9 @@ const getMyPartnerEventById = async (req, res) => {
       `SELECT
         e.*,
         p.name AS property_name,
-        ep.name AS explore_place_name
+        NULL AS explore_place_name
        FROM tourist_events e
        LEFT JOIN properties p ON p.id = e.property_id
-       LEFT JOIN explore_places ep ON ep.id = e.explore_place_id
        WHERE e.id = ? AND e.partner_id = ?
        LIMIT 1`,
       [id, req.user.id]
@@ -275,7 +282,6 @@ const buildEventValues = (body) => {
     highlights: JSON.stringify(highlights),
     guide_recommended: Boolean(body.guide_recommended),
     featured: Boolean(body.featured),
-    status: ["draft", "published", "hidden"].includes(body.status) ? body.status : "draft",
   };
 };
 
@@ -321,9 +327,13 @@ const createMyPartnerEvent = async (req, res) => {
         highlights,
         guide_recommended,
         featured,
-        status
+        status,
+        rejection_reason,
+        submitted_at,
+        approved_at,
+        approved_by
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NOW(), NULL, NULL)`,
       [
         slug,
         req.user.id,
@@ -353,22 +363,20 @@ const createMyPartnerEvent = async (req, res) => {
         values.highlights,
         values.guide_recommended,
         values.featured,
-        values.status,
       ]
     );
 
     const [rows] = await pool.query(
-      `SELECT e.*, p.name AS property_name, ep.name AS explore_place_name
+      `SELECT e.*, p.name AS property_name, NULL AS explore_place_name
        FROM tourist_events e
        LEFT JOIN properties p ON p.id = e.property_id
-       LEFT JOIN explore_places ep ON ep.id = e.explore_place_id
        WHERE e.id = ?`,
       [result.insertId]
     );
 
     return res.status(201).json({
       success: true,
-      message: "Event created successfully",
+      message: "Event submitted successfully. It is pending admin approval.",
       event: mapPartnerEvent(rows[0]),
     });
   } catch (error) {
@@ -435,7 +443,11 @@ const updateMyPartnerEvent = async (req, res) => {
         highlights = ?,
         guide_recommended = ?,
         featured = ?,
-        status = ?
+        status = 'pending',
+        rejection_reason = NULL,
+        submitted_at = NOW(),
+        approved_at = NULL,
+        approved_by = NULL
        WHERE id = ? AND partner_id = ?`,
       [
         slug,
@@ -465,24 +477,22 @@ const updateMyPartnerEvent = async (req, res) => {
         values.highlights,
         values.guide_recommended,
         values.featured,
-        values.status,
         id,
         req.user.id,
       ]
     );
 
     const [rows] = await pool.query(
-      `SELECT e.*, p.name AS property_name, ep.name AS explore_place_name
+      `SELECT e.*, p.name AS property_name, NULL AS explore_place_name
        FROM tourist_events e
        LEFT JOIN properties p ON p.id = e.property_id
-       LEFT JOIN explore_places ep ON ep.id = e.explore_place_id
        WHERE e.id = ?`,
       [id]
     );
 
     return res.json({
       success: true,
-      message: "Event updated successfully",
+      message: "Event updated and resubmitted for admin approval.",
       event: mapPartnerEvent(rows[0]),
     });
   } catch (error) {
@@ -499,18 +509,37 @@ const updateMyPartnerEventStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["draft", "published", "hidden"].includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid status" });
+    if (!['hidden', 'pending'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Partners can only hide an approved event or resubmit an event as pending.",
+      });
     }
 
-    const [result] = await pool.query(
-      `UPDATE tourist_events SET status = ? WHERE id = ? AND partner_id = ?`,
-      [status, id, req.user.id]
+    const [eventRows] = await pool.query(
+      `SELECT id, status FROM tourist_events WHERE id = ? AND partner_id = ? LIMIT 1`,
+      [id, req.user.id]
     );
 
-    if (result.affectedRows === 0) {
+    if (eventRows.length === 0) {
       return res.status(404).json({ success: false, message: "Event not found" });
     }
+
+    if (status === 'hidden' && normalizeStatus(eventRows[0].status) !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: "Only approved events can be hidden by partner.",
+      });
+    }
+
+    const updates = status === 'pending'
+      ? `status = 'pending', rejection_reason = NULL, submitted_at = NOW(), approved_at = NULL, approved_by = NULL`
+      : `status = 'hidden'`;
+
+    await pool.query(
+      `UPDATE tourist_events SET ${updates} WHERE id = ? AND partner_id = ?`,
+      [id, req.user.id]
+    );
 
     return res.json({ success: true, message: "Event status updated" });
   } catch (error) {

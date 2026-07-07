@@ -62,8 +62,9 @@ function PartnerDashboardPage() {
       approvedProperties: getStatusCount(properties, "approved"),
       pendingProperties: getStatusCount(properties, "pending"),
       events: events.length,
-      publishedEvents: getStatusCount(events, "published"),
-      draftEvents: getStatusCount(events, "draft"),
+      pendingEvents: getStatusCount(events, "pending"),
+      approvedEvents: events.filter((event) => event.status === "approved" || event.status === "published").length,
+      rejectedEvents: getStatusCount(events, "rejected"),
     }),
     [properties, events]
   );
@@ -138,7 +139,7 @@ function PartnerDashboardPage() {
             <p style={styles.actionLabel}>Event Registration</p>
             <h2 style={styles.actionTitle}>Register and edit events</h2>
             <p style={styles.actionText}>
-              Create hotel experiences, cultural nights, food events, wellness activities, and publish them for tourists.
+              Create hotel experiences, cultural nights, food events, and submit them for admin approval before tourists see them.
             </p>
           </div>
           <span style={styles.actionButton}>Go to Event Registration →</span>
@@ -159,12 +160,12 @@ function PartnerDashboardPage() {
         <div style={styles.statCard}>
           <span>Total Events</span>
           <strong>{stats.events}</strong>
-          <small>{stats.publishedEvents} published</small>
+          <small>{stats.approvedEvents} approved</small>
         </div>
         <div style={styles.statCard}>
-          <span>Draft Events</span>
-          <strong>{stats.draftEvents}</strong>
-          <small>Complete and publish later</small>
+          <span>Pending Events</span>
+          <strong>{stats.pendingEvents}</strong>
+          <small>{stats.rejectedEvents} rejected by admin</small>
         </div>
       </section>
 
@@ -216,7 +217,7 @@ function PartnerDashboardPage() {
           <div style={styles.panelHeader}>
             <div>
               <h2 style={styles.panelTitle}>My Events</h2>
-              <p style={styles.panelSubtitle}>Edit, publish, hide, or delete partner events.</p>
+              <p style={styles.panelSubtitle}>Edit events and track admin approval status.</p>
             </div>
             <Link to="/partner/event-registration" style={styles.smallLink}>+ Add Event</Link>
           </div>
@@ -226,7 +227,7 @@ function PartnerDashboardPage() {
           ) : events.length === 0 ? (
             <div style={styles.emptyBox}>
               <h3>No events yet</h3>
-              <p>Use the Event Registration button to publish your first event.</p>
+              <p>Use the Event Registration button to submit your first event for admin approval.</p>
             </div>
           ) : (
             <div style={styles.listStack}>
@@ -239,6 +240,9 @@ function PartnerDashboardPage() {
                   <div style={styles.rowMain}>
                     <h3 style={styles.rowTitle}>{event.title}</h3>
                     <p style={styles.rowText}>{event.city} • {event.category}</p>
+                    {event.status === "rejected" && event.rejection_reason && (
+                      <p style={styles.rejectReason}>Reason: {event.rejection_reason}</p>
+                    )}
                   </div>
                   <span style={styles.eventStatus(event.status)}>{event.status}</span>
                   <Link to={`/partner/event-registration?edit=${event.id}`} style={styles.editEventLink}>
@@ -534,17 +538,32 @@ const styles = {
     fontWeight: 900,
     whiteSpace: "nowrap",
   },
-  eventStatus: (status) => ({
-    padding: "8px 10px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: 900,
-    textTransform: "capitalize",
-    background:
-      status === "published" ? "#dcfce7" : status === "hidden" ? "#fee2e2" : "#fef3c7",
-    color:
-      status === "published" ? "#166534" : status === "hidden" ? "#991b1b" : "#92400e",
-  }),
+  rejectReason: {
+    color: "#991b1b",
+    fontWeight: 800,
+  },
+  eventStatus: (status) => {
+    const clean = status === "published" ? "approved" : status;
+    return {
+      padding: "8px 10px",
+      borderRadius: "999px",
+      fontSize: "12px",
+      fontWeight: 900,
+      textTransform: "capitalize",
+      background:
+        clean === "approved"
+          ? "#dcfce7"
+          : clean === "rejected" || clean === "hidden"
+          ? "#fee2e2"
+          : "#fef3c7",
+      color:
+        clean === "approved"
+          ? "#166534"
+          : clean === "rejected" || clean === "hidden"
+          ? "#991b1b"
+          : "#92400e",
+    };
+  },
 };
 
 export default PartnerDashboardPage;
