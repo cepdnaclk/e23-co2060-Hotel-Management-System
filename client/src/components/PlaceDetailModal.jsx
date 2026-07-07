@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatLkr } from "../data/exploreData";
 
+
 export default function PlaceDetailModal({
   place,
   isOpen,

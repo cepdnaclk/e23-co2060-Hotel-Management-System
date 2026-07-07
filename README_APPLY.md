@@ -1,31 +1,27 @@
-# TourismHub LK - Explore Advanced Phase 36
+# TourismHub LK - Landing Full Screen Hero Phase 38
 
-## Files changed
-- `client/src/pages/ExplorePage.jsx`
-- `client/src/data/exploreData.js`
+This update replaces only:
 
-## Apply steps
-1. Extract this ZIP.
-2. Copy the extracted `client` folder into your project root:
-   `e23-co2060-Hotel-Management-System/`
-3. Choose **Replace files**.
+client/src/pages/HomePage.jsx
+
+## Changes
+- Makes the landing hero video full screen / full width like the reference example.
+- Removes the centered card look, rounded border, and heavy outer spacing from the hero.
+- Keeps the current video, heading, buttons, and below sections.
+- Keeps the same TourismHub LK green/gold design identity.
+
+## Apply
+1. Extract the ZIP.
+2. Copy the extracted `client` folder into the project root.
+3. Choose Replace files.
 4. Run:
-   ```bash
-   cd client
-   npm run dev
-   ```
-5. Test:
-   - `/explore`
-   - search and filters
-   - place detail modal
-   - add to trip
-   - hotels link
-   - trip planner link
+
+cd client
+npm run dev
 
 ## Commit
-```bash
+
 git status
-git add client/src/pages/ExplorePage.jsx client/src/data/exploreData.js
-git commit -m "Improve Explore page user experience and destinations"
+git add client/src/pages/HomePage.jsx
+git commit -m "Make landing hero video full screen"
 git push origin dev
-```

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import { explorePlaces } from "../data/exploreData";
-import { homeEventCollections } from "../data/eventData";
 
 const fallbackHotels = [
   {
@@ -96,7 +95,35 @@ function HomePage() {
     };
   }, []);
 
-  const eventCards = useMemo(() => homeEventCollections, []);
+  const eventCards = useMemo(() => {
+    const kandy = explorePlaces.find((place) => place.city === "Kandy") || explorePlaces[0];
+    const mirissa = explorePlaces.find((place) => place.city === "Mirissa") || explorePlaces[0];
+    const colombo = explorePlaces.find((place) => place.city === "Colombo") || explorePlaces[0];
+
+    return [
+      {
+        id: "perahera-night",
+        title: "Cultural nights",
+        subtitle: "Kandy • Perahera • temple city",
+        image: getPlaceImage(kandy),
+        meta: "Festivals",
+      },
+      {
+        id: "coastal-events",
+        title: "Coastal evenings",
+        subtitle: "Mirissa • music • sunsets",
+        image: getPlaceImage(mirissa),
+        meta: "Beach life",
+      },
+      {
+        id: "city-food-events",
+        title: "City food walks",
+        subtitle: "Colombo • street food • local stories",
+        image: getPlaceImage(colombo),
+        meta: "Food events",
+      },
+    ];
+  }, []);
 
   const guideCards = useMemo(() => {
     const sigiriya = explorePlaces.find((place) => place.name?.toLowerCase().includes("sigiriya")) || explorePlaces[0];
@@ -450,18 +477,13 @@ function HomePage() {
 
         <div className="showcase-card-grid event-grid">
           {eventCards.map((event) => (
-            <Link
-              to={`/events?category=${encodeURIComponent(event.category)}&city=${encodeURIComponent(event.city)}`}
-              onClick={handleNavigateTop}
-              className="showcase-card route-card"
-              key={event.id}
-            >
+            <Link to="/events" onClick={handleNavigateTop} className="showcase-card route-card" key={event.id}>
               <img src={event.image} alt={event.title} />
               <div className="route-badge">{event.meta}</div>
               <div className="showcase-card-body">
                 <span>{event.subtitle}</span>
                 <h3>{event.title}</h3>
-                <p>{event.description}</p>
+                <p>Browse events and connect the experience with nearby hotels and trip days.</p>
               </div>
             </Link>
           ))}
@@ -586,19 +608,19 @@ const homeCss = `
   }
 
   .hero-cinema-section {
-    width: min(1280px, calc(100% - 36px));
-    margin: 0 auto;
-    padding: 34px 0 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   .hero-video-shell {
     position: relative;
-    min-height: clamp(500px, 76vh, 720px);
+    min-height: calc(100vh - 76px);
     overflow: hidden;
-    border-radius: 34px;
+    border-radius: 0;
     background: #062f2c;
-    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.20);
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: none;
+    border: none;
   }
 
   .hero-bg-video {
@@ -674,12 +696,12 @@ const homeCss = `
   .hero-center-copy {
     position: relative;
     z-index: 5;
-    min-height: clamp(500px, 76vh, 720px);
+    min-height: calc(100vh - 76px);
     display: grid;
     align-content: center;
     justify-items: center;
     text-align: center;
-    padding: 36px;
+    padding: 44px 22px;
     color: #ffffff;
   }
 
@@ -1794,9 +1816,9 @@ const homeCss = `
       padding: 18px 22px 24px;
     }
 
-    .hero-cinema-section { width: min(100% - 20px, 1280px); }
-    .hero-video-shell { border-radius: 24px; min-height: 500px; }
-    .hero-center-copy { min-height: 500px; padding: 24px; }
+    .hero-cinema-section { width: 100%; }
+    .hero-video-shell { border-radius: 0; min-height: calc(100vh - 72px); }
+    .hero-center-copy { min-height: calc(100vh - 72px); padding: 26px 18px; }
     .showcase-card-grid { grid-template-columns: 1fr; }
     .landing-showcase-section { padding-top: 58px; }
     .tinted-showcase { padding: 34px 18px 26px; }
