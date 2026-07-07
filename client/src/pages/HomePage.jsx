@@ -527,55 +527,83 @@ function HomePage() {
       </section>
 
       <footer className="tourismhub-footer">
-        <div className="footer-main">
-          <div className="footer-brand">
-            <Link to="/" onClick={handleNavigateTop} className="footer-logo">🌴 TourismHub LK</Link>
-            <p>One smart place to explore Sri Lanka, plan routes, find stays, and connect with local travel services.</p>
-            <div className="footer-hotlines">
-              <div>
-                <strong>Tourism hotline</strong>
-                <span>1912</span>
+        <div className="footer-inner">
+          <div className="footer-top">
+            <div className="footer-brand-panel">
+              <Link to="/" onClick={handleNavigateTop} className="footer-logo">
+                <span className="footer-logo-mark">🌴</span>
+                <span>TourismHub LK</span>
+              </Link>
+              <p>
+                Discover Sri Lanka, plan your days, find trusted stays, and connect with local travel
+                services from one clear platform.
+              </p>
+
+              <div className="footer-hotlines">
+                <div>
+                  <strong>Tourism hotline</strong>
+                  <span>1912</span>
+                </div>
+                <div>
+                  <strong>Emergency service</strong>
+                  <span>1990</span>
+                </div>
               </div>
-              <div>
-                <strong>Emergency service</strong>
-                <span>1990</span>
-              </div>
+            </div>
+
+            <div className="footer-column">
+              <h3>For travellers</h3>
+              <Link to="/explore" onClick={handleNavigateTop}>Explore Sri Lanka</Link>
+              <Link to="/trip-planner" onClick={handleNavigateTop}>Plan a trip</Link>
+              <Link to="/hotels" onClick={handleNavigateTop}>Find hotels</Link>
+              <Link to="/events" onClick={handleNavigateTop}>Events</Link>
+              <Link to="/tourist-guides" onClick={handleNavigateTop}>Tourist guides</Link>
+            </div>
+
+            <div className="footer-column">
+              <h3>Hotel partners</h3>
+              <Link to="/list-your-property" onClick={handleNavigateTop}>List your property</Link>
+              <Link to="/partner" onClick={handleNavigateTop}>Partner portal</Link>
+              <Link to="/login" onClick={handleNavigateTop}>Partner login</Link>
+              <Link to="/about" onClick={handleNavigateTop}>About the platform</Link>
+            </div>
+
+            <div className="footer-column">
+              <h3>Support</h3>
+              <Link to="/about" onClick={handleNavigateTop}>About us</Link>
+              <Link to="/my-bookings" onClick={handleNavigateTop}>My bookings</Link>
+              <Link to="/register" onClick={handleNavigateTop}>Create account</Link>
+              <Link to="/login" onClick={handleNavigateTop}>Login</Link>
+            </div>
+
+            <div className="footer-column footer-official">
+              <h3>Travel essentials</h3>
+              <a href="https://www.sltda.gov.lk/" target="_blank" rel="noreferrer">Sri Lanka Tourism Development Authority</a>
+              <a href="https://www.immigration.gov.lk/" target="_blank" rel="noreferrer">Immigration & Emigration</a>
+              <a href="https://www.airport.lk/" target="_blank" rel="noreferrer">Airport & Aviation Services</a>
+              <a href="https://www.srilankan.com/" target="_blank" rel="noreferrer">SriLankan Airlines</a>
             </div>
           </div>
 
-          <div className="footer-column">
-            <h3>For travellers</h3>
-            <Link to="/explore" onClick={handleNavigateTop}>Explore Sri Lanka</Link>
-            <Link to="/trip-planner" onClick={handleNavigateTop}>Plan a trip</Link>
-            <Link to="/hotels" onClick={handleNavigateTop}>Find hotels</Link>
-            <Link to="/events" onClick={handleNavigateTop}>Events</Link>
-            <Link to="/tourist-guides" onClick={handleNavigateTop}>Tourist guides</Link>
+          <div className="footer-middle">
+            <div>
+              <strong>Built for Sri Lankan travel.</strong>
+              <span>Hotels, journeys, events, guides, and bookings connected in one place.</span>
+            </div>
+            <div className="footer-socials" aria-label="Social links">
+              <span>f</span>
+              <span>▶</span>
+              <span>◎</span>
+              <span>in</span>
+            </div>
           </div>
 
-          <div className="footer-column">
-            <h3>Hotel partners</h3>
-            <Link to="/list-your-property" onClick={handleNavigateTop}>List your property</Link>
-            <Link to="/partner" onClick={handleNavigateTop}>Partner portal</Link>
-            <Link to="/login" onClick={handleNavigateTop}>Partner login</Link>
-            <Link to="/about" onClick={handleNavigateTop}>About TourismHub LK</Link>
-          </div>
-
-          <div className="footer-column">
-            <h3>Quick links</h3>
-            <Link to="/about" onClick={handleNavigateTop}>About us</Link>
-            <Link to="/my-bookings" onClick={handleNavigateTop}>My bookings</Link>
-            <Link to="/register" onClick={handleNavigateTop}>Create account</Link>
-            <Link to="/login" onClick={handleNavigateTop}>Login</Link>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <p>© 2026 TourismHub LK. Smart Hotel & Tourism Management System.</p>
-          <div className="footer-socials" aria-label="Social links">
-            <span>f</span>
-            <span>▶</span>
-            <span>◎</span>
-            <span>in</span>
+          <div className="footer-bottom">
+            <p>© 2026 TourismHub LK. Smart Hotel & Tourism Management System.</p>
+            <div className="footer-legal-links">
+              <Link to="/about" onClick={handleNavigateTop}>Privacy Policy</Link>
+              <Link to="/about" onClick={handleNavigateTop}>Terms & Conditions</Link>
+            </div>
           </div>
         </div>
       </footer>
@@ -604,7 +632,7 @@ const homeCss = `
       radial-gradient(circle at 90% 18%, rgba(229, 165, 20, 0.12), transparent 26rem),
       linear-gradient(135deg, #f8f4ea 0%, #ffffff 52%, #ecfdf5 100%);
     color: #172033;
-    padding-bottom: 78px;
+    padding-bottom: 0;
   }
 
   .hero-cinema-section {
@@ -696,12 +724,12 @@ const homeCss = `
   .hero-center-copy {
     position: relative;
     z-index: 5;
-    min-height: calc(100vh - 76px);
+    min-height: clamp(500px, 76vh, 720px);
     display: grid;
     align-content: center;
     justify-items: center;
     text-align: center;
-    padding: 44px 22px;
+    padding: 36px;
     color: #ffffff;
   }
 
@@ -1495,22 +1523,26 @@ const homeCss = `
   }
 
   .tourismhub-footer {
-    width: min(1180px, calc(100% - 36px));
-    margin: 78px auto 0;
-    overflow: hidden;
-    border-radius: 34px 34px 0 0;
-    background:
-      radial-gradient(circle at 18% 12%, rgba(251, 191, 36, 0.14), transparent 22rem),
-      linear-gradient(135deg, #063f3a 0%, #0f766e 52%, #087f9d 100%);
+    width: 100%;
+    margin: 96px 0 0;
+    background: #087f9d;
     color: #ffffff;
-    box-shadow: 0 28px 70px rgba(15, 118, 110, 0.22);
+    box-shadow: 0 -22px 55px rgba(8, 127, 157, 0.16);
+    border-radius: 0;
+    overflow: hidden;
   }
 
-  .footer-main {
+  .footer-inner {
+    width: min(1240px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 56px 0 28px;
+  }
+
+  .footer-top {
     display: grid;
-    grid-template-columns: 1.45fr 1fr 1fr 1fr;
-    gap: 30px;
-    padding: 48px 44px 34px;
+    grid-template-columns: 1.45fr 0.85fr 0.85fr 0.75fr 1.15fr;
+    gap: 42px;
+    align-items: start;
   }
 
   .footer-logo {
@@ -1519,30 +1551,43 @@ const homeCss = `
     gap: 10px;
     color: #ffffff;
     text-decoration: none;
-    font-size: 25px;
+    font-size: 30px;
     font-weight: 950;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
   }
 
-  .footer-brand p {
-    max-width: 420px;
-    margin: 16px 0 20px;
-    color: #ccfbf1;
-    line-height: 1.7;
-    font-weight: 700;
+  .footer-logo-mark {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.20);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
+
+  .footer-brand-panel p {
+    max-width: 440px;
+    margin: 20px 0 24px;
+    color: rgba(255, 255, 255, 0.84);
+    line-height: 1.75;
+    font-size: 15px;
+    font-weight: 650;
   }
 
   .footer-hotlines {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
+    max-width: 410px;
   }
 
   .footer-hotlines div {
-    padding: 14px;
+    padding: 18px 18px 16px;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.11);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.18);
   }
 
   .footer-hotlines strong,
@@ -1551,34 +1596,38 @@ const homeCss = `
   }
 
   .footer-hotlines strong {
-    color: #d1fae5;
-    font-size: 12px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
+    line-height: 1.35;
   }
 
   .footer-hotlines span {
-    margin-top: 4px;
+    margin-top: 7px;
     color: #fde68a;
-    font-size: 20px;
+    font-size: 26px;
     font-weight: 950;
+    letter-spacing: -0.03em;
   }
 
   .footer-column h3 {
-    margin: 4px 0 14px;
+    margin: 6px 0 18px;
     color: #fde68a;
-    font-size: 14px;
+    font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
   }
 
   .footer-column a {
     display: block;
     width: fit-content;
-    margin: 9px 0;
-    color: #e6fffb;
+    margin: 11px 0;
+    color: rgba(255, 255, 255, 0.88);
     text-decoration: none;
-    font-weight: 750;
+    font-size: 14px;
+    font-weight: 720;
+    line-height: 1.35;
     transition: color 0.16s ease, transform 0.16s ease;
   }
 
@@ -1587,36 +1636,86 @@ const homeCss = `
     transform: translateX(4px);
   }
 
+  .footer-official a {
+    color: rgba(255, 255, 255, 0.76);
+  }
+
+  .footer-middle {
+    margin-top: 44px;
+    padding: 24px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .footer-middle strong,
+  .footer-middle span {
+    display: block;
+  }
+
+  .footer-middle strong {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 950;
+  }
+
+  .footer-middle span {
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.78);
+    font-weight: 650;
+  }
+
+  .footer-socials {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .footer-socials span {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #087f9d;
+    font-size: 13px;
+    font-weight: 950;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+  }
+
   .footer-bottom {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    padding: 20px 44px 26px;
-    border-top: 1px solid rgba(255, 255, 255, 0.17);
-    color: #ccfbf1;
-    font-weight: 700;
+    padding-top: 22px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 13px;
+    font-weight: 650;
   }
 
   .footer-bottom p {
     margin: 0;
   }
 
-  .footer-socials {
+  .footer-legal-links {
     display: flex;
-    gap: 9px;
+    gap: 18px;
+    flex-wrap: wrap;
   }
 
-  .footer-socials span {
-    width: 32px;
-    height: 32px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: #ffffff;
-    color: #0f766e;
-    font-size: 12px;
-    font-weight: 950;
+  .footer-legal-links a {
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    font-weight: 780;
+  }
+
+  .footer-legal-links a:hover {
+    color: #fde68a;
   }
 
   .back-to-top {
@@ -1727,6 +1826,15 @@ const homeCss = `
   }
 
   @media (max-width: 1050px) {
+    .footer-top {
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 32px;
+    }
+
+    .footer-official {
+      grid-column: span 2;
+    }
+
     .quick-start-header,
     .quick-start-grid,
     .journey-flow-strip {
@@ -1797,28 +1905,34 @@ const homeCss = `
     }
 
     .tourismhub-footer {
-      width: min(100% - 20px, 1180px);
-      border-radius: 26px 26px 0 0;
+      width: 100%;
+      margin-top: 64px;
+      border-radius: 0;
     }
 
-    .footer-main {
+    .footer-inner {
+      width: min(100% - 28px, 1240px);
+      padding: 38px 0 22px;
+    }
+
+    .footer-top {
       grid-template-columns: 1fr;
-      padding: 34px 22px 24px;
+      gap: 30px;
     }
 
     .footer-hotlines {
       grid-template-columns: 1fr;
     }
 
+    .footer-middle,
     .footer-bottom {
       flex-direction: column;
       align-items: flex-start;
-      padding: 18px 22px 24px;
     }
 
     .hero-cinema-section { width: 100%; }
     .hero-video-shell { border-radius: 0; min-height: calc(100vh - 72px); }
-    .hero-center-copy { min-height: calc(100vh - 72px); padding: 26px 18px; }
+    .hero-center-copy { min-height: calc(100vh - 72px); padding: 24px; }
     .showcase-card-grid { grid-template-columns: 1fr; }
     .landing-showcase-section { padding-top: 58px; }
     .tinted-showcase { padding: 34px 18px 26px; }
