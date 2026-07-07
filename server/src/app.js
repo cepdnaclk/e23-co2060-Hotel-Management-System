@@ -9,6 +9,8 @@ const authRoutes = require("./routes/auth.routes");
 const propertyRoutes = require("./routes/property.routes");
 const partnerRoutes = require("./routes/partner.routes");
 const adminRoutes = require("./routes/admin.routes");
+const exploreRoutes = require("./routes/explore.routes");
+const adminExploreRoutes = require("./routes/adminExplore.routes");
 const bookingRoutes = require("./routes/booking.routes");
 
 const app = express();
@@ -66,6 +68,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/explore", adminExploreRoutes);
+app.use("/api/explore", exploreRoutes);
 app.use("/api/bookings", bookingRoutes);
 
 app.use((req, res) => {

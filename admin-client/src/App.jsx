@@ -10,6 +10,7 @@ import MonthlyFeesPage from "./pages/MonthlyFeesPage";
 import PaymentVersionsPage from "./pages/PaymentVersionsPage";
 import RevenuePage from "./pages/RevenuePage";
 import SystemVulnerabilityPage from "./pages/SystemVulnerabilityPage";
+import ExploreManagerPage from "./pages/ExploreManagerPage";
 import AdminNavbar from "./pages/AdminNavbar";
 
 function ProtectedAdminRoute({ children }) {
@@ -92,6 +93,15 @@ function App() {
         element={
           <ProtectedAdminRoute>
             <SystemVulnerabilityPage />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      <Route
+        path="/explore-manager"
+        element={
+          <ProtectedAdminRoute>
+            <ExploreManagerPage />
           </ProtectedAdminRoute>
         }
       />

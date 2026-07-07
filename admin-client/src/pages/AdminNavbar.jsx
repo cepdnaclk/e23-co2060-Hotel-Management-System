@@ -27,6 +27,7 @@ function AdminNavbar() {
           <NavLink to="/monthly-fees">Monthly Fees</NavLink>
           <NavLink to="/payment-versions">Payment Versions</NavLink>
           <NavLink to="/revenue">Revenue</NavLink>
+          <NavLink to="/explore-manager">Explore Manager</NavLink>
           <NavLink to="/system-risk">System Risk</NavLink>
         </div>
 

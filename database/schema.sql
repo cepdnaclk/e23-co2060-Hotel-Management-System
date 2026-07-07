@@ -247,6 +247,108 @@ CREATE TABLE payment_transactions (
     ON DELETE CASCADE
 );
 
+
+
+-- =========================================================
+-- EXPLORE MODULE
+-- Admin can add/edit places. Public Explore page reads from these tables.
+-- JSON fields keep the admin form simple and avoid too many small tables.
+-- =========================================================
+CREATE TABLE explore_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(80) NOT NULL UNIQUE,
+  label VARCHAR(120) NOT NULL,
+  icon VARCHAR(20),
+  color VARCHAR(30),
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE explore_settings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  setting_key VARCHAR(100) NOT NULL UNIQUE,
+  setting_value JSON NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE explore_places (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(160) NOT NULL UNIQUE,
+  name VARCHAR(180) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  district VARCHAR(100),
+  region VARCHAR(100),
+  category_id INT NULL,
+  image_url TEXT NULL,
+  short_description TEXT,
+  full_description LONGTEXT,
+  duration VARCHAR(100),
+  best_time VARCHAR(150),
+  best_months JSON,
+  budget ENUM('Low','Medium','High') NOT NULL DEFAULT 'Medium',
+  budget_score INT NOT NULL DEFAULT 2,
+  estimated_cost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  lat DECIMAL(10,6) NULL,
+  lng DECIMAL(10,6) NULL,
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  vibe VARCHAR(80),
+  tags JSON,
+  experiences JSON,
+  highlights JSON,
+  nearby_places JSON,
+  tips JSON,
+  opening_hours VARCHAR(180),
+  entry_fee VARCHAR(180),
+  facilities JSON,
+  status ENUM('draft','published') NOT NULL DEFAULT 'published',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_explore_places_category
+    FOREIGN KEY (category_id) REFERENCES explore_categories(id)
+    ON DELETE SET NULL
+);
+
+CREATE TABLE explore_place_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  place_id INT NOT NULL,
+  image_url TEXT NOT NULL,
+  alt_text VARCHAR(180),
+  is_main BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_explore_images_place
+    FOREIGN KEY (place_id) REFERENCES explore_places(id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE explore_itineraries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(180) NOT NULL,
+  days VARCHAR(80),
+  tone TEXT,
+  link_city VARCHAR(100),
+  status ENUM('draft','published') NOT NULL DEFAULT 'published',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE explore_itinerary_places (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  itinerary_id INT NOT NULL,
+  place_id INT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  CONSTRAINT fk_explore_itinerary_places_itinerary
+    FOREIGN KEY (itinerary_id) REFERENCES explore_itineraries(id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_explore_itinerary_places_place
+    FOREIGN KEY (place_id) REFERENCES explore_places(id)
+    ON DELETE CASCADE
+);
+
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_properties_partner ON properties(partner_id);
 CREATE INDEX idx_properties_plan_type ON properties(plan_type);
@@ -256,3 +358,12 @@ CREATE INDEX idx_bookings_property ON bookings(property_id);
 CREATE INDEX idx_bookings_room ON bookings(room_id);
 CREATE INDEX idx_payment_transactions_property ON payment_transactions(property_id);
 CREATE INDEX idx_payment_transactions_partner ON payment_transactions(partner_id);
+CREATE INDEX idx_explore_categories_slug ON explore_categories(slug);
+CREATE INDEX idx_explore_places_status ON explore_places(status);
+CREATE INDEX idx_explore_places_region ON explore_places(region);
+CREATE INDEX idx_explore_places_budget ON explore_places(budget);
+CREATE INDEX idx_explore_places_featured ON explore_places(featured);
+CREATE INDEX idx_explore_places_category ON explore_places(category_id);
+CREATE INDEX idx_explore_images_place ON explore_place_images(place_id);
+CREATE INDEX idx_explore_itinerary_places_itinerary ON explore_itinerary_places(itinerary_id);
+CREATE INDEX idx_explore_itinerary_places_place ON explore_itinerary_places(place_id);
