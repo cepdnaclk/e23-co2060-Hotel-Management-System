@@ -41,14 +41,6 @@ export const budgetDailyTargets = {
   High: 45000,
 };
 
-
-
-
-
-
-
-
-
 export const explorePlaces = [
   {
     id: 1,
