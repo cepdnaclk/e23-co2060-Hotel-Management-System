@@ -1,28 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
+const safeNumber = (value) => Number(value || 0);
+
 function AdminDashboardPage() {
   const { admin } = useAdminAuth();
   const [stats, setStats] = useState(null);
-  const [properties, setProperties] = useState([]);
   const [eventStats, setEventStats] = useState(null);
+  const [guideStats, setGuideStats] = useState(null);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const loadDashboard = async () => {
     try {
-      const [dashboardRes, propertiesRes, eventsRes] = await Promise.all([
+      setLoading(true);
+      setMessage("");
+
+      const [dashboardRes, eventsRes, guidesRes] = await Promise.allSettled([
         api.get("/admin/dashboard"),
-        api.get("/admin/properties"),
         api.get("/admin/events?status=all"),
+        api.get("/admin/guides?status=all"),
       ]);
 
-      setStats(dashboardRes.data.data);
-      setProperties(propertiesRes.data.data || []);
-      setEventStats(eventsRes.data.stats || null);
+      if (dashboardRes.status === "fulfilled") {
+        setStats(dashboardRes.value.data.data || null);
+      } else {
+        throw dashboardRes.reason;
+      }
+
+      if (eventsRes.status === "fulfilled") {
+        setEventStats(eventsRes.value.data.stats || null);
+      }
+
+      if (guidesRes.status === "fulfilled") {
+        setGuideStats(guidesRes.value.data.stats || null);
+      }
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to load admin dashboard");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,173 +48,176 @@ function AdminDashboardPage() {
     loadDashboard();
   }, []);
 
-  const updateStatus = async (propertyId, action) => {
-    try {
-      if (action === "approve") {
-        await api.put(`/admin/properties/${propertyId}/approve`);
-      }
+  const approvalCards = useMemo(
+    () => [
+      {
+        title: "Property Approvals",
+        count: safeNumber(stats?.pending_properties),
+        subtitle: "Review hotel and property registration requests from partners.",
+        to: "/property-approvals",
+        icon: "🏨",
+        tone: "green",
+      },
+      {
+        title: "Event Approvals",
+        count: safeNumber(eventStats?.pending_events),
+        subtitle: "Approve partner-created events before they appear to tourists.",
+        to: "/event-approvals",
+        icon: "🎉",
+        tone: "blue",
+      },
+      {
+        title: "Guide Approvals",
+        count: safeNumber(guideStats?.pending_guides),
+        subtitle: "Verify guider profiles and publish approved tourist guides.",
+        to: "/guide-approvals",
+        icon: "🧭",
+        tone: "amber",
+      },
+    ],
+    [stats, eventStats, guideStats]
+  );
 
-      if (action === "reject") {
-        const reason = window.prompt("Enter rejection reason");
-        if (!reason) return;
-
-        await api.put(`/admin/properties/${propertyId}/reject`, {
-          rejection_reason: reason,
-        });
-      }
-
-      setMessage("Property updated successfully");
-      loadDashboard();
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Action failed");
-    }
-  };
+  const managementCards = [
+    {
+      title: "Registration Fees",
+      subtitle: "Check property registration payments and fee status.",
+      to: "/registration-fees",
+      icon: "💳",
+    },
+    {
+      title: "Monthly Fees",
+      subtitle: "Track monthly partner payments and active billing cycles.",
+      to: "/monthly-fees",
+      icon: "📅",
+    },
+    {
+      title: "Payment Versions",
+      subtitle: "Manage package limits, plan fees, and partner versions.",
+      to: "/payment-versions",
+      icon: "🧾",
+    },
+    {
+      title: "Revenue",
+      subtitle: "View registration revenue, monthly income, and summaries.",
+      to: "/revenue",
+      icon: "📈",
+    },
+    {
+      title: "Explore Manager",
+      subtitle: "Manage public explore places and destination content.",
+      to: "/explore-manager",
+      icon: "🌴",
+    },
+    {
+      title: "System Risk",
+      subtitle: "Review security risks, issues, and admin monitoring notes.",
+      to: "/system-risk",
+      icon: "🛡️",
+    },
+  ];
 
   return (
-    <main className="admin-page">
-      <section className="admin-hero">
-        <div>
+    <main className="admin-page admin-dashboard-modern-page">
+      <section className="admin-dashboard-hero">
+        <div className="admin-dashboard-hero-content">
           <p className="eyebrow">TourismHub LK Admin</p>
-          <h1>Admin Control Center</h1>
+          <h1>Admin Dashboard</h1>
           <p>
-            Welcome {admin?.full_name || "Admin"}. Control property approvals,
-            payment status, revenue, and platform safety from the admin panel.
+            Welcome {admin?.full_name || "Admin"}. Use this control center to review approvals,
+            manage payments, monitor revenue, and maintain trusted tourism content.
           </p>
+          <div className="admin-hero-actions">
+            <Link to="/property-approvals">Review Properties</Link>
+            <Link to="/event-approvals" className="secondary-action">
+              Review Events
+            </Link>
+            <Link to="/guide-approvals" className="secondary-action">
+              Review Guides
+            </Link>
+          </div>
+        </div>
+
+        <div className="admin-dashboard-hero-panel">
+          <span>Today’s Priority</span>
+          <strong>
+            {safeNumber(stats?.pending_properties) +
+              safeNumber(eventStats?.pending_events) +
+              safeNumber(guideStats?.pending_guides)}
+          </strong>
+          <p>approval requests need admin attention</p>
         </div>
       </section>
 
       {message && <div className="alert-card">{message}</div>}
+      {loading && <div className="loading-card">Loading admin dashboard...</div>}
 
-      <section className="admin-grid">
-        <div className="admin-card">
+      <section className="admin-kpi-strip">
+        <div>
           <span>Pending Properties</span>
-          <strong>{stats?.pending_properties ?? 0}</strong>
-          <p>Properties waiting for admin approval.</p>
+          <strong>{safeNumber(stats?.pending_properties)}</strong>
         </div>
-
-        <div className="admin-card">
+        <div>
           <span>Approved Properties</span>
-          <strong>{stats?.approved_properties ?? 0}</strong>
-          <p>Properties approved and controlled by admin.</p>
+          <strong>{safeNumber(stats?.approved_properties)}</strong>
         </div>
-
-        <Link to="/event-approvals" className="admin-card link-card">
-          <span>Pending Events</span>
-          <strong>{Number(eventStats?.pending_events || 0)}</strong>
-          <p>Partner event requests waiting for approval.</p>
-        </Link>
-
-        <div className="admin-card">
+        <div>
           <span>Visible Properties</span>
-          <strong>{stats?.visible_properties ?? 0}</strong>
-          <p>Properties currently visible to tourists.</p>
+          <strong>{safeNumber(stats?.visible_properties)}</strong>
         </div>
-
-        <div className="admin-card">
+        <div>
+          <span>Partners</span>
+          <strong>{safeNumber(stats?.partners)}</strong>
+        </div>
+        <div>
+          <span>Tourists</span>
+          <strong>{safeNumber(stats?.tourists)}</strong>
+        </div>
+        <div>
           <span>Total Revenue</span>
-          <strong>Rs. {Number(stats?.total_revenue || 0).toLocaleString()}</strong>
-          <p>Total collected platform revenue.</p>
+          <strong>Rs. {safeNumber(stats?.total_revenue).toLocaleString()}</strong>
         </div>
       </section>
 
-      <section className="table-card">
-        <div className="table-head">
-          <h2>Property Approval Requests</h2>
-          <p>Approve or reject partner submitted properties.</p>
+      <section className="admin-section-head">
+        <div>
+          <p className="eyebrow">Main Review Area</p>
+          <h2>Approval Center</h2>
+          <p>Each approval type now has its own landing page for a cleaner admin workflow.</p>
         </div>
+      </section>
 
-        <div className="responsive-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Property</th>
-                <th>Partner</th>
-                <th>Version</th>
-                <th>Rooms</th>
-                <th>Reg. Fee</th>
-                <th>Monthly</th>
-                <th>Visible</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+      <section className="approval-card-grid">
+        {approvalCards.map((card) => (
+          <Link key={card.to} to={card.to} className={`approval-action-card ${card.tone}`}>
+            <div className="approval-card-topline">
+              <span className="approval-card-icon">{card.icon}</span>
+              <span className="approval-card-count">{card.count}</span>
+            </div>
+            <h3>{card.title}</h3>
+            <p>{card.subtitle}</p>
+            <span className="approval-card-link">Open review page →</span>
+          </Link>
+        ))}
+      </section>
 
-            <tbody>
-              {properties.map((property) => (
-                <tr key={property.id}>
-                  <td>
-                    <strong>{property.name}</strong>
-                    <br />
-                    <small>{property.city}</small>
-                  </td>
-
-                  <td>
-                    {property.partner_name}
-                    <br />
-                    <small>{property.partner_email}</small>
-                  </td>
-
-                  <td>{property.plan_type}</td>
-
-                  <td>
-                    {property.total_rooms_count}/{property.room_limit}
-                  </td>
-
-                  <td>
-                    <span
-                      className={
-                        property.registration_payment_status === "Paid"
-                          ? "status paid"
-                          : "status pending"
-                      }
-                    >
-                      {property.registration_payment_status}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span
-                      className={
-                        property.monthly_payment_status === "Paid" ||
-                        property.monthly_payment_status === "Free Trial"
-                          ? "status paid"
-                          : "status pending"
-                      }
-                    >
-                      {property.monthly_payment_status}
-                    </span>
-                  </td>
-
-                  <td>{property.public_visible ? "Yes" : "No"}</td>
-                  <td>{property.status}</td>
-
-                  <td className="action-row">
-                    {property.status !== "approved" && (
-                      <button onClick={() => updateStatus(property.id, "approve")}>
-                        Approve
-                      </button>
-                    )}
-
-                    {property.status !== "rejected" && (
-                      <button
-                        className="danger-btn small"
-                        onClick={() => updateStatus(property.id, "reject")}
-                      >
-                        Reject
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-
-              {properties.length === 0 && (
-                <tr>
-                  <td colSpan="9">No properties found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <section className="admin-section-head compact">
+        <div>
+          <p className="eyebrow">Other Admin Tools</p>
+          <h2>Management Center</h2>
         </div>
+      </section>
+
+      <section className="management-card-grid">
+        {managementCards.map((card) => (
+          <Link key={card.to} to={card.to} className="management-tool-card">
+            <span>{card.icon}</span>
+            <div>
+              <h3>{card.title}</h3>
+              <p>{card.subtitle}</p>
+            </div>
+          </Link>
+        ))}
       </section>
     </main>
   );

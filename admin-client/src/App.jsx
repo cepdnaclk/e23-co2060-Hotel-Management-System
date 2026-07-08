@@ -5,6 +5,7 @@ import AdminHomePage from "./pages/AdminHomePage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminRegisterPage from "./pages/AdminRegisterPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import PropertyApprovalsPage from "./pages/PropertyApprovalsPage";
 import RegistrationFeesPage from "./pages/RegistrationFeesPage";
 import MonthlyFeesPage from "./pages/MonthlyFeesPage";
 import PaymentVersionsPage from "./pages/PaymentVersionsPage";
@@ -50,6 +51,15 @@ function App() {
         element={
           <ProtectedAdminRoute>
             <AdminDashboardPage />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      <Route
+        path="/property-approvals"
+        element={
+          <ProtectedAdminRoute>
+            <PropertyApprovalsPage />
           </ProtectedAdminRoute>
         }
       />
