@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import AIAssistant from "./components/AIAssistant/AIAssistant";
 
 import PublicLayout from "./layouts/PublicLayout";
 
@@ -46,104 +47,122 @@ function SimplePage({ title, message }) {
 
 function App() {
   return (
-    <Routes>
-      <Route element={<PublicLayout />}>
-        {/* Tourist/Public pages */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/hotels" element={<HotelsPage />} />
-        <Route path="/hotels/:id" element={<HotelDetailsPage />} />
-        <Route path="/hotels/:id/rooms" element={<RoomAvailabilityPage />} />
+    <>
+      <Routes>
+        <Route element={<PublicLayout />}>
+          {/* Tourist/Public pages */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/hotels" element={<HotelsPage />} />
+          <Route path="/hotels/:id" element={<HotelDetailsPage />} />
+          <Route path="/hotels/:id/rooms" element={<RoomAvailabilityPage />} />
 
-        <Route path="/login" element={<TouristLoginPage />} />
-        <Route path="/register" element={<TouristRegisterPage />} />
+          <Route path="/login" element={<TouristLoginPage />} />
+          <Route path="/register" element={<TouristRegisterPage />} />
 
-        <Route path="/booking" element={<BookingPage />} />
-        <Route path="/my-bookings" element={<MyBookingsPage />} />
-        <Route
-          path="/online-payment-future"
-          element={<OnlinePaymentFuturePage />}
-        />
+          <Route path="/booking" element={<BookingPage />} />
+          <Route path="/my-bookings" element={<MyBookingsPage />} />
 
-        {/* Navbar future pages */}
-<Route path="/explore" element={<ExplorePage />} />
-        <Route path="/explore/:id" element={<PlaceDetailsPage />} />
+          <Route
+            path="/online-payment-future"
+            element={<OnlinePaymentFuturePage />}
+          />
 
-        <Route path="/trip-planner" element={<TripPlannerPage />} />
+          {/* Navbar pages */}
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/explore/:id" element={<PlaceDetailsPage />} />
 
-        <Route
-          path="/travel-essentials"
-          element={
-            <SimplePage
-              title="Travel Essentials"
-              message="This page will include travel tips, emergency contacts, transport guidance, and tourist support information."
-            />
-          }
-        />
+          <Route path="/trip-planner" element={<TripPlannerPage />} />
 
-        <Route path="/events" element={<EventsPage />} />
-        <Route path="/events/:id" element={<EventDetailsPage />} />
-        <Route path="/tourist-guides" element={<TouristGuidePage />} />
-        <Route path="/about" element={<AboutUsPage />} />
+          <Route
+            path="/travel-essentials"
+            element={
+              <SimplePage
+                title="Travel Essentials"
+                message="This page will include travel tips, emergency contacts, transport guidance, and tourist support information."
+              />
+            }
+          />
 
-        <Route
-          path="/transport"
-          element={<SimplePage title="Transport Page" />}
-        />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/events/:id" element={<EventDetailsPage />} />
+          <Route path="/tourist-guides" element={<TouristGuidePage />} />
+          <Route path="/about" element={<AboutUsPage />} />
 
-        {/* Partner pages */}
-        <Route path="/list-your-property" element={<ListYourPropertyPage />} />
-        <Route path="/partner/register" element={<PartnerRegisterPage />} />
-        <Route path="/partner/login" element={<PartnerLoginPage />} />
-        <Route path="/partner/dashboard" element={<PartnerDashboardPage />} />
-        <Route path="/partner/bookings" element={<PartnerBookingsPage />} />
-        <Route
-          path="/partner/event-registration"
-          element={<PartnerEventRegistrationPage />}
-        />
-        <Route path="/partner/events" element={<PartnerEventRegistrationPage />} />
-        <Route path="/partner/guides" element={<PartnerGuideRegistrationPage />} />
-        <Route path="/partner/guides/new" element={<PartnerGuideRegistrationPage />} />
-        <Route
-          path="/partner/events/new"
-          element={<PartnerEventRegistrationPage />}
-        />
+          <Route
+            path="/transport"
+            element={<SimplePage title="Transport Page" />}
+          />
 
-        {/* Register property routes - both links work */}
-        <Route
-          path="/partner/register-property"
-          element={<RegisterPropertyPage />}
-        />
+          {/* Partner pages */}
+          <Route path="/list-your-property" element={<ListYourPropertyPage />} />
+          <Route path="/partner/register" element={<PartnerRegisterPage />} />
+          <Route path="/partner/login" element={<PartnerLoginPage />} />
+          <Route path="/partner/dashboard" element={<PartnerDashboardPage />} />
+          <Route path="/partner/bookings" element={<PartnerBookingsPage />} />
 
-        <Route
-          path="/partner/properties/new"
-          element={<RegisterPropertyPage />}
-        />
+          <Route
+            path="/partner/event-registration"
+            element={<PartnerEventRegistrationPage />}
+          />
 
-        {/* Property password verification */}
-        <Route
-          path="/partner/property-login/:id"
-          element={<PropertyLoginPage />}
-        />
+          <Route
+            path="/partner/events"
+            element={<PartnerEventRegistrationPage />}
+          />
 
-        {/* Property management */}
-        <Route
-          path="/partner/properties/:id"
-          element={<PropertyManagementPage />}
-        />
+          <Route
+            path="/partner/events/new"
+            element={<PartnerEventRegistrationPage />}
+          />
 
-        <Route
-          path="*"
-          element={
-            <SimplePage
-              title="Page Not Found"
-              message="The page you are looking for does not exist."
-            />
-          }
-        />
-      </Route>
-    </Routes>
+          <Route
+            path="/partner/guides"
+            element={<PartnerGuideRegistrationPage />}
+          />
+
+          <Route
+            path="/partner/guides/new"
+            element={<PartnerGuideRegistrationPage />}
+          />
+
+          {/* Register property routes - both links work */}
+          <Route
+            path="/partner/register-property"
+            element={<RegisterPropertyPage />}
+          />
+
+          <Route
+            path="/partner/properties/new"
+            element={<RegisterPropertyPage />}
+          />
+
+          {/* Property password verification */}
+          <Route
+            path="/partner/property-login/:id"
+            element={<PropertyLoginPage />}
+          />
+
+          {/* Property management */}
+          <Route
+            path="/partner/properties/:id"
+            element={<PropertyManagementPage />}
+          />
+
+          <Route
+            path="*"
+            element={
+              <SimplePage
+                title="Page Not Found"
+                message="The page you are looking for does not exist."
+              />
+            }
+          />
+        </Route>
+      </Routes>
+
+      <AIAssistant />
+    </>
   );
 }
 
 export default App;
-
