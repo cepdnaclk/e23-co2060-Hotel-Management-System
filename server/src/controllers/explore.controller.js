@@ -7,6 +7,39 @@ const monthNames = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const getSriLankaMonthIndex = () => {
+  const monthNumber = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Colombo",
+      month: "numeric",
+    }).format(new Date())
+  );
+
+  return Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12
+    ? monthNumber - 1
+    : new Date().getMonth();
+};
+
+const normalizeSeasonMonth = (rawMonth) => {
+  if (rawMonth === undefined || rawMonth === null || rawMonth === "") {
+    return getSriLankaMonthIndex();
+  }
+
+  const monthNumber = Number(rawMonth);
+
+  // Public API uses normal human month numbers: 1 = January and 12 = December.
+  if (Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+    return monthNumber - 1;
+  }
+
+  // Keep 0 only as a safe old-client fallback for January.
+  if (monthNumber === 0) {
+    return 0;
+  }
+
+  return getSriLankaMonthIndex();
+};
+
 const parseJson = (value, fallback = []) => {
   if (value === null || value === undefined) return fallback;
   if (Array.isArray(value) || typeof value === "object") return value;
@@ -366,8 +399,7 @@ const getExplorePlaceById = async (req, res) => {
 const getSeasonalPlaces = async (req, res) => {
   try {
     const rawMonth = req.query.month;
-    const month = rawMonth === undefined ? new Date().getMonth() : Number(rawMonth);
-    const safeMonth = Number.isInteger(month) && month >= 0 && month <= 11 ? month : new Date().getMonth();
+    const safeMonth = normalizeSeasonMonth(rawMonth);
 
     const [allRows] = await pool.query(
       `${basePlaceSelect}
