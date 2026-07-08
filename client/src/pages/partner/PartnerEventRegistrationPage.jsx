@@ -48,6 +48,11 @@ const formatDate = (value) => {
   return String(value).slice(0, 10);
 };
 
+const buildDirectionsUrl = ({ venue, city, district }) => {
+  const query = [venue, city, district, "Sri Lanka"].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || "Sri Lanka")}`;
+};
+
 function PartnerEventRegistrationPage() {
   const { user, isLoggedIn } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -184,15 +189,22 @@ function PartnerEventRegistrationPage() {
     const propertyId = e.target.value;
     const selectedProperty = properties.find((property) => String(property.id) === String(propertyId));
 
-    setForm((prev) => ({
-      ...prev,
-      property_id: propertyId,
-      city: selectedProperty?.city || prev.city,
-      district: selectedProperty?.district || prev.district,
-      venue: selectedProperty?.name || prev.venue,
-      contact_email: user?.email || prev.contact_email,
-      contact_phone: user?.phone || prev.contact_phone,
-    }));
+    setForm((prev) => {
+      const nextVenue = selectedProperty?.name || prev.venue;
+      const nextCity = selectedProperty?.city || prev.city;
+      const nextDistrict = selectedProperty?.district || prev.district;
+
+      return {
+        ...prev,
+        property_id: propertyId,
+        city: nextCity,
+        district: nextDistrict,
+        venue: nextVenue,
+        map_url: prev.map_url || buildDirectionsUrl({ venue: nextVenue, city: nextCity, district: nextDistrict }),
+        contact_email: user?.email || prev.contact_email,
+        contact_phone: user?.phone || prev.contact_phone,
+      };
+    });
   };
 
   const validateImageFile = (file) => {
@@ -267,6 +279,7 @@ function PartnerEventRegistrationPage() {
       const payload = {
         ...form,
         image_url: imageUrl,
+        map_url: form.map_url?.trim() || buildDirectionsUrl(form),
         property_id: form.property_id || null,
         explore_place_id: form.explore_place_id || null,
         price: Number(form.price || 0),
@@ -306,9 +319,10 @@ function PartnerEventRegistrationPage() {
           <Link to="/partner/dashboard" style={styles.backLink}>
             ← Back to Partner Dashboard
           </Link>
-          <h1 style={styles.title}>Event Registration</h1>
+          <span style={styles.heroPill}>Partner Event Portal</span>
+          <h1 style={styles.title}>Create tourist events</h1>
           <p style={styles.subtitle}>
-            Create a professional event listing for tourists. After submission, admin must approve it before tourists can see it.
+            Publish hotel experiences, cultural activities, food events, and destination programs with professional details, photos, and Google Maps directions.
           </p>
         </div>
 
@@ -435,8 +449,27 @@ function PartnerEventRegistrationPage() {
           </label>
 
           <label style={styles.label}>
-            <span>Google Map URL</span>
-            <input name="map_url" value={form.map_url || ""} onChange={handleChange} style={styles.input} placeholder="Google Maps link" />
+            <span>Google Map URL / Directions</span>
+            <input
+              name="map_url"
+              value={form.map_url || ""}
+              onChange={handleChange}
+              style={styles.input}
+              placeholder="Paste Google Maps link or leave empty to auto-create directions"
+            />
+            <small style={styles.fieldHint}>
+              Empty field will automatically use venue + city.
+              {(form.map_url || form.venue || form.city) && (
+                <a
+                  href={form.map_url || buildDirectionsUrl(form)}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={styles.inlineMapLink}
+                >
+                  Test directions
+                </a>
+              )}
+            </small>
           </label>
 
           <label style={styles.label}>
@@ -611,30 +644,52 @@ function PartnerEventRegistrationPage() {
 
 const styles = {
   pageWrap: {
-    background: "linear-gradient(180deg,#f0fdf4 0%,#f8fafc 45%,#ffffff 100%)",
-    paddingBottom: "60px",
+    background:
+      "radial-gradient(circle at top left, rgba(191,219,254,0.75), transparent 34%), radial-gradient(circle at top right, rgba(187,247,208,0.78), transparent 30%), linear-gradient(135deg,#f8fafc 0%,#eef9ff 46%,#f0fdf4 100%)",
+    padding: "34px 20px 70px",
+    minHeight: "calc(100vh - 76px)",
   },
   noticeCard: {
     padding: "30px",
     textAlign: "center",
   },
   header: {
+    maxWidth: "1180px",
+    margin: "0 auto 22px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: "20px",
-    marginBottom: "22px",
+    padding: "34px",
+    borderRadius: "32px",
+    background: "linear-gradient(135deg,#ffffff 0%,#eef6ff 48%,#ecfdf5 100%)",
+    border: "1px solid rgba(148,163,184,0.22)",
+    boxShadow: "0 24px 70px rgba(15,23,42,0.10)",
   },
   backLink: {
     color: "#047857",
     fontWeight: "900",
     textDecoration: "none",
+    display: "inline-flex",
+    marginBottom: "14px",
+  },
+  heroPill: {
+    display: "inline-flex",
+    padding: "8px 12px",
+    borderRadius: "999px",
+    background: "#dff7ee",
+    color: "#047857",
+    fontSize: "12px",
+    fontWeight: "950",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
   },
   title: {
-    margin: "10px 0 8px",
-    fontSize: "42px",
-    letterSpacing: "-0.04em",
-    color: "#064e3b",
+    margin: "12px 0 8px",
+    fontSize: "clamp(36px,5vw,58px)",
+    lineHeight: 1,
+    letterSpacing: "-0.055em",
+    color: "#083344",
   },
   subtitle: {
     color: "#475569",
@@ -716,6 +771,17 @@ const styles = {
     color: "#92400e",
     lineHeight: 1.45,
   },
+  fieldHint: {
+    color: "#64748b",
+    fontWeight: "750",
+    lineHeight: 1.4,
+  },
+  inlineMapLink: {
+    marginLeft: "8px",
+    color: "#0b63ce",
+    fontWeight: "950",
+    textDecoration: "none",
+  },
   rejectBox: {
     background: "#fee2e2",
     color: "#991b1b",
@@ -741,14 +807,17 @@ const styles = {
     fontWeight: "800",
   },
   statsGrid: {
+    maxWidth: "1180px",
+    margin: "0 auto 22px",
     display: "grid",
     gridTemplateColumns: "repeat(4,1fr)",
     gap: "16px",
-    marginBottom: "22px",
   },
   formCard: {
-    background: "#ffffff",
-    border: "1px solid #bbf7d0",
+    maxWidth: "1180px",
+    margin: "0 auto",
+    background: "rgba(255,255,255,0.94)",
+    border: "1px solid #dbeafe",
     borderRadius: "30px",
     padding: "26px",
     boxShadow: "0 28px 80px rgba(15,23,42,0.10)",
@@ -897,7 +966,7 @@ const styles = {
 };
 
 const css = `
-.partner-event-stat-card{background:#fff;border:1px solid #bbf7d0;border-radius:22px;padding:20px;box-shadow:0 18px 50px rgba(5,46,28,.08)}
+.partner-event-stat-card{background:linear-gradient(135deg,#ffffff,#f0f9ff);border:1px solid #dbeafe;border-radius:22px;padding:20px;box-shadow:0 18px 50px rgba(15,23,42,.08)}
 .partner-event-stat-card span{display:block;color:#64748b;font-weight:900;margin-bottom:8px}
 .partner-event-stat-card strong{font-size:34px;color:#064e3b;letter-spacing:-.04em}
 .partner-event-section-title span{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:#ecfdf5;color:#047857;font-weight:950;border:1px solid #bbf7d0}

@@ -46,7 +46,12 @@ function PartnerDashboardPage() {
         setGuides(guidesResponse.value.data.guides || []);
       }
 
-      if (profileResponse.status === "rejected" || propertiesResponse.status === "rejected") {
+      if (
+        profileResponse.status === "rejected" ||
+        propertiesResponse.status === "rejected" ||
+        eventsResponse.status === "rejected" ||
+        guidesResponse.status === "rejected"
+      ) {
         setError("Some dashboard details could not be loaded. Please refresh again.");
       }
     } catch (err) {
@@ -78,6 +83,57 @@ function PartnerDashboardPage() {
     }),
     [properties, events, guides]
   );
+
+  const metricCards = [
+    {
+      label: "Properties",
+      value: stats.properties,
+      note: `${stats.approvedProperties} approved`,
+      icon: "🏨",
+      tint: "#ecfdf5",
+      color: "#047857",
+    },
+    {
+      label: "Property Review",
+      value: stats.pendingProperties,
+      note: "pending approval",
+      icon: "⏳",
+      tint: "#fff7ed",
+      color: "#c2410c",
+    },
+    {
+      label: "Events",
+      value: stats.events,
+      note: `${stats.approvedEvents} approved`,
+      icon: "🎉",
+      tint: "#eff6ff",
+      color: "#0b63ce",
+    },
+    {
+      label: "Event Review",
+      value: stats.pendingEvents,
+      note: `${stats.rejectedEvents} rejected`,
+      icon: "📝",
+      tint: "#fef3c7",
+      color: "#b45309",
+    },
+    {
+      label: "Guiders",
+      value: stats.guides,
+      note: `${stats.approvedGuides} approved`,
+      icon: "🧭",
+      tint: "#eef2ff",
+      color: "#4f46e5",
+    },
+    {
+      label: "Guider Review",
+      value: stats.pendingGuides,
+      note: `${stats.rejectedGuides} rejected`,
+      icon: "✅",
+      tint: "#fdf2f8",
+      color: "#be185d",
+    },
+  ];
 
   if (!isLoggedIn) {
     return <Navigate to="/partner/login" />;
@@ -118,7 +174,7 @@ function PartnerDashboardPage() {
             <span style={styles.badge}>TourismHub LK Partner Portal</span>
             <h1 style={styles.heroTitle}>Welcome back, {partnerName}</h1>
             <p style={styles.heroText}>
-              Register properties, publish tourism events, become a verified guider, and manage your tourism business presence from one dashboard.
+              Register properties, publish tourism events, become a verified guider, and manage your tourism business from one calm dashboard.
             </p>
           </div>
 
@@ -131,74 +187,54 @@ function PartnerDashboardPage() {
       {error && <div style={styles.errorBox}>{error}</div>}
 
       <section style={styles.actionGrid}>
-        <Link to="/partner/register-property" style={styles.actionCard}>
-          <div style={styles.actionIcon}>🏨</div>
+        <Link to="/partner/register-property" style={{ ...styles.actionCard, ...styles.propertyActionCard }}>
+          <div style={{ ...styles.actionIcon, background: "#dcfce7" }}>🏨</div>
           <div>
-            <p style={styles.actionLabel}>Property Registration</p>
+            <p style={{ ...styles.actionLabel, color: "#047857" }}>Property Registration</p>
             <h2 style={styles.actionTitle}>Register a hotel or property</h2>
             <p style={styles.actionText}>
-              Add hotel details, rooms, photos, pricing, policies, and submit for admin approval.
+              Add rooms, photos, pricing, policies, and submit your property for admin approval.
             </p>
           </div>
-          <span style={styles.actionButton}>Go to Property Registration →</span>
+          <span style={{ ...styles.actionButton, background: "#047857" }}>Go to Property Registration →</span>
         </Link>
 
         <Link to="/partner/event-registration" style={{ ...styles.actionCard, ...styles.eventActionCard }}>
-          <div style={styles.actionIcon}>🎉</div>
+          <div style={{ ...styles.actionIcon, background: "#dbeafe" }}>🎉</div>
           <div>
-            <p style={styles.actionLabel}>Event Registration</p>
-            <h2 style={styles.actionTitle}>Register and edit events</h2>
+            <p style={{ ...styles.actionLabel, color: "#0b63ce" }}>Event Registration</p>
+            <h2 style={styles.actionTitle}>Register tourism events</h2>
             <p style={styles.actionText}>
-              Create hotel experiences, cultural nights, food events, and submit them for admin approval before tourists see them.
+              Create cultural nights, hotel experiences, food walks, and public tourist events.
             </p>
           </div>
-          <span style={styles.actionButton}>Go to Event Registration →</span>
+          <span style={{ ...styles.actionButton, background: "#0b63ce" }}>Go to Event Registration →</span>
         </Link>
 
         <Link to="/partner/guides" style={{ ...styles.actionCard, ...styles.guideActionCard }}>
-          <div style={{ ...styles.actionIcon, ...styles.guideActionIcon }}>🧭</div>
+          <div style={{ ...styles.actionIcon, background: "#e0e7ff" }}>🧭</div>
           <div>
-            <p style={{ ...styles.actionLabel, color: "#0b63ce" }}>Guider Registration</p>
+            <p style={{ ...styles.actionLabel, color: "#4f46e5" }}>Guider Registration</p>
             <h2 style={styles.actionTitle}>Become a tourist guider</h2>
             <p style={styles.actionText}>
-              Add your guide profile, languages, experience, services, pricing, and submit it for admin approval.
+              Add your guide profile, languages, experience, services, and pricing for tourists.
             </p>
           </div>
-          <span style={styles.actionButton}>Go to Guider Registration →</span>
+          <span style={{ ...styles.actionButton, background: "#4f46e5" }}>Go to Guider Registration →</span>
         </Link>
       </section>
 
-      <section style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <span>Total Properties</span>
-          <strong>{stats.properties}</strong>
-          <small>{stats.approvedProperties} approved</small>
-        </div>
-        <div style={styles.statCard}>
-          <span>Pending Properties</span>
-          <strong>{stats.pendingProperties}</strong>
-          <small>Waiting for admin review</small>
-        </div>
-        <div style={styles.statCard}>
-          <span>Total Events</span>
-          <strong>{stats.events}</strong>
-          <small>{stats.approvedEvents} approved</small>
-        </div>
-        <div style={styles.statCard}>
-          <span>Pending Events</span>
-          <strong>{stats.pendingEvents}</strong>
-          <small>{stats.rejectedEvents} rejected by admin</small>
-        </div>
-        <div style={styles.statCard}>
-          <span>Total Guiders</span>
-          <strong>{stats.guides}</strong>
-          <small>{stats.approvedGuides} approved</small>
-        </div>
-        <div style={styles.statCard}>
-          <span>Pending Guiders</span>
-          <strong>{stats.pendingGuides}</strong>
-          <small>{stats.rejectedGuides} rejected by admin</small>
-        </div>
+      <section style={styles.metricRibbon}>
+        {metricCards.map((item) => (
+          <article key={item.label} style={{ ...styles.metricCard, background: item.tint }}>
+            <div style={{ ...styles.metricIcon, color: item.color }}>{item.icon}</div>
+            <div>
+              <span style={styles.metricLabel}>{item.label}</span>
+              <strong style={{ ...styles.metricValue, color: item.color }}>{loading ? "..." : item.value}</strong>
+              <small style={styles.metricNote}>{item.note}</small>
+            </div>
+          </article>
+        ))}
       </section>
 
       <section style={styles.contentGrid}>
@@ -276,8 +312,8 @@ function PartnerDashboardPage() {
                       <p style={styles.rejectReason}>Reason: {event.rejection_reason}</p>
                     )}
                   </div>
-                  <span style={styles.eventStatus(event.status)}>{event.status}</span>
-                  <Link to={`/partner/event-registration?edit=${event.id}`} style={styles.editEventLink}>
+                  <span style={styles.statusBadge(event.status)}>{event.status}</span>
+                  <Link to={`/partner/event-registration?edit=${event.id}`} style={styles.editLink}>
                     Edit
                   </Link>
                 </div>
@@ -320,8 +356,8 @@ function PartnerDashboardPage() {
                       <p style={styles.rejectReason}>Reason: {guide.rejection_reason}</p>
                     )}
                   </div>
-                  <span style={styles.eventStatus(guide.status)}>{guide.status}</span>
-                  <Link to={`/partner/guides?edit=${guide.id}`} style={styles.editEventLink}>
+                  <span style={styles.statusBadge(guide.status)}>{guide.status}</span>
+                  <Link to={`/partner/guides?edit=${guide.id}`} style={styles.editLink}>
                     Edit
                   </Link>
                 </div>
@@ -336,9 +372,9 @@ function PartnerDashboardPage() {
 
 const styles = {
   pageShell: {
-    padding: "34px 20px 60px",
+    padding: "34px 20px 70px",
     background:
-      "linear-gradient(135deg, rgba(240,253,244,0.95), rgba(239,246,255,0.9))",
+      "radial-gradient(circle at 8% 10%, rgba(187,247,208,0.72), transparent 30%), radial-gradient(circle at 92% 2%, rgba(191,219,254,0.76), transparent 32%), linear-gradient(135deg,#f8fafc 0%,#f0fdfa 48%,#eef6ff 100%)",
     minHeight: "calc(100vh - 76px)",
   },
   noticeCard: {
@@ -346,20 +382,20 @@ const styles = {
     textAlign: "center",
   },
   hero: {
-    maxWidth: "1180px",
+    maxWidth: "1280px",
     margin: "0 auto 22px",
     position: "relative",
     overflow: "hidden",
-    borderRadius: "30px",
+    borderRadius: "34px",
     background:
-      "linear-gradient(135deg, #064e3b 0%, #0f7a43 45%, #0b63ce 100%)",
-    boxShadow: "0 28px 70px rgba(6,78,59,0.28)",
+      "linear-gradient(135deg, #064e3b 0%, #0f7a43 44%, #0b63ce 100%)",
+    boxShadow: "0 28px 70px rgba(6,78,59,0.24)",
   },
   heroPattern: {
     position: "absolute",
     inset: 0,
     background:
-      "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.20), transparent 28%), radial-gradient(circle at 85% 10%, rgba(255,255,255,0.16), transparent 24%)",
+      "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.22), transparent 28%), radial-gradient(circle at 88% 8%, rgba(255,255,255,0.16), transparent 24%)",
   },
   heroContent: {
     position: "relative",
@@ -382,15 +418,17 @@ const styles = {
   },
   heroTitle: {
     margin: "18px 0 10px",
-    fontSize: "clamp(34px, 5vw, 54px)",
-    lineHeight: 1.02,
+    fontSize: "clamp(36px, 5vw, 58px)",
+    lineHeight: 1,
+    letterSpacing: "-0.055em",
   },
   heroText: {
-    maxWidth: "720px",
+    maxWidth: "780px",
     margin: 0,
-    color: "rgba(255,255,255,0.88)",
+    color: "rgba(255,255,255,0.9)",
     fontSize: "17px",
     lineHeight: 1.7,
+    fontWeight: 650,
   },
   logoutBtn: {
     border: "1px solid rgba(255,255,255,0.35)",
@@ -402,7 +440,7 @@ const styles = {
     cursor: "pointer",
   },
   errorBox: {
-    maxWidth: "1180px",
+    maxWidth: "1280px",
     margin: "0 auto 18px",
     background: "#fee2e2",
     color: "#991b1b",
@@ -411,34 +449,33 @@ const styles = {
     fontWeight: 800,
   },
   actionGrid: {
-    maxWidth: "1180px",
+    maxWidth: "1280px",
     margin: "0 auto 22px",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: "20px",
+    gridTemplateColumns: "repeat(3, minmax(260px, 1fr))",
+    gap: "18px",
   },
   actionCard: {
     textDecoration: "none",
     color: "#0f172a",
-    background: "#ffffff",
-    border: "1px solid #bbf7d0",
-    borderRadius: "26px",
-    padding: "26px",
-    minHeight: "250px",
+    borderRadius: "28px",
+    padding: "24px",
+    minHeight: "240px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+    boxShadow: "0 20px 55px rgba(15,23,42,0.08)",
+    border: "1px solid rgba(148,163,184,0.20)",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+  },
+  propertyActionCard: {
+    background: "linear-gradient(135deg,#ffffff 0%,#f0fdf4 100%)",
   },
   eventActionCard: {
-    border: "1px solid #bfdbfe",
-    background:
-      "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
+    background: "linear-gradient(135deg,#ffffff 0%,#eff6ff 100%)",
   },
   guideActionCard: {
-    border: "1px solid #a5b4fc",
-    background:
-      "linear-gradient(135deg, #ffffff 0%, #eef2ff 55%, #ecfdf5 100%)",
+    background: "linear-gradient(135deg,#ffffff 0%,#eef2ff 58%,#fdf2f8 100%)",
   },
   actionIcon: {
     width: "58px",
@@ -447,65 +484,92 @@ const styles = {
     display: "grid",
     placeItems: "center",
     fontSize: "30px",
-    background: "#ecfdf5",
     marginBottom: "18px",
-  },
-  guideActionIcon: {
-    background: "#dbeafe",
   },
   actionLabel: {
     margin: 0,
-    color: "#0f7a43",
-    fontWeight: 900,
-    letterSpacing: "0.03em",
+    fontWeight: 950,
+    letterSpacing: "0.06em",
     textTransform: "uppercase",
     fontSize: "12px",
   },
   actionTitle: {
     margin: "8px 0",
-    fontSize: "28px",
+    fontSize: "26px",
+    letterSpacing: "-0.04em",
   },
   actionText: {
     color: "#64748b",
     lineHeight: 1.65,
     margin: 0,
+    fontWeight: 650,
   },
   actionButton: {
     marginTop: "20px",
     display: "inline-flex",
     width: "fit-content",
-    background: "#111827",
     color: "#ffffff",
     padding: "12px 16px",
     borderRadius: "14px",
     fontWeight: 900,
   },
-  statsGrid: {
-    maxWidth: "1180px",
+  metricRibbon: {
+    maxWidth: "1280px",
     margin: "0 auto 22px",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(6, minmax(150px, 1fr))",
+    gap: "14px",
   },
-  statCard: {
-    background: "rgba(255,255,255,0.82)",
-    border: "1px solid #e2e8f0",
+  metricCard: {
+    border: "1px solid rgba(148,163,184,0.20)",
     borderRadius: "22px",
-    padding: "20px",
+    padding: "16px",
     boxShadow: "0 14px 34px rgba(15,23,42,0.06)",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    minWidth: 0,
+  },
+  metricIcon: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "16px",
     display: "grid",
-    gap: "6px",
+    placeItems: "center",
+    background: "rgba(255,255,255,0.75)",
+    fontSize: "22px",
+    flexShrink: 0,
+  },
+  metricLabel: {
+    display: "block",
+    color: "#475569",
+    fontSize: "12px",
+    fontWeight: 950,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+  },
+  metricValue: {
+    display: "block",
+    fontSize: "30px",
+    lineHeight: 1,
+    marginTop: "4px",
+  },
+  metricNote: {
+    color: "#64748b",
+    fontWeight: 800,
   },
   contentGrid: {
-    maxWidth: "1180px",
+    maxWidth: "1280px",
     margin: "0 auto",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+    gridTemplateColumns: "repeat(3, minmax(280px, 1fr))",
     gap: "20px",
   },
   panel: {
     padding: "24px",
-    borderRadius: "24px",
+    borderRadius: "26px",
+    border: "1px solid rgba(148,163,184,0.22)",
+    boxShadow: "0 20px 55px rgba(15,23,42,0.07)",
   },
   panelHeader: {
     display: "flex",
@@ -516,6 +580,7 @@ const styles = {
   },
   panelTitle: {
     margin: 0,
+    letterSpacing: "-0.035em",
   },
   panelSubtitle: {
     margin: "6px 0 0",
@@ -533,7 +598,7 @@ const styles = {
   emptyBox: {
     padding: "24px",
     borderRadius: "18px",
-    background: "#f8fafc",
+    background: "linear-gradient(135deg,#f8fafc,#f0fdfa)",
     textAlign: "center",
     color: "#64748b",
   },
@@ -595,10 +660,10 @@ const styles = {
     height: "58px",
     borderRadius: "18px",
     overflow: "hidden",
-    background: "#dbeafe",
+    background: "#e0e7ff",
     display: "grid",
     placeItems: "center",
-    color: "#0b63ce",
+    color: "#4f46e5",
     fontWeight: 900,
   },
   rowMain: {
@@ -632,8 +697,7 @@ const styles = {
     placeItems: "center",
     gap: "0",
   },
-
-  editEventLink: {
+  editLink: {
     textDecoration: "none",
     border: "none",
     background: "#0b63ce",
@@ -646,8 +710,10 @@ const styles = {
   rejectReason: {
     color: "#991b1b",
     fontWeight: 800,
+    margin: "6px 0 0",
+    fontSize: "12px",
   },
-  eventStatus: (status) => {
+  statusBadge: (status) => {
     const clean = status === "published" ? "approved" : status;
     return {
       padding: "8px 10px",

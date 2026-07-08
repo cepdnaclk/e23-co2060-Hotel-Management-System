@@ -255,13 +255,55 @@ export const tourismEvents = [
   },
 ];
 
+const parseEventList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return String(value)
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+};
+
+export const buildEventDirectionsUrl = (event = {}) => {
+  const query = [
+    event.venue,
+    event.city,
+    event.district,
+    "Sri Lanka",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || "Sri Lanka")}`;
+};
+
+export const buildEventMapEmbedUrl = (event = {}) => {
+  const query = [
+    event.venue,
+    event.city,
+    event.district,
+    "Sri Lanka",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `https://www.google.com/maps?q=${encodeURIComponent(query || "Sri Lanka")}&output=embed`;
+};
+
 export const normaliseEvent = (event) => ({
   ...event,
   id: event.slug || event.id,
   slug: event.slug || event.id,
   explorePlaceId: event.explore_place_slug || event.explorePlaceSlug || event.explorePlaceId || event.explore_place_id,
   imageUrl: event.image_url || event.imageUrl || event.image,
-  mapUrl: event.map_url || event.mapUrl,
+  mapUrl: event.map_url || event.mapUrl || buildEventDirectionsUrl(event),
+  mapEmbedUrl: event.map_embed_url || event.mapEmbedUrl || buildEventMapEmbedUrl(event),
   monthName: event.month_name || event.monthName,
   dateLabel: event.date_label || event.dateLabel,
   timeLabel: event.time_label || event.timeLabel,
@@ -271,9 +313,9 @@ export const normaliseEvent = (event) => ({
     event.priceLabel ||
     (Number(event.price || 0) === 0 ? "Free entry" : `LKR ${Number(event.price || 0).toLocaleString()}`),
   shortDescription: event.short_description || event.shortDescription || "",
-  nearHotels: Array.isArray(event.near_hotels) ? event.near_hotels : event.nearHotels || [],
+  nearHotels: parseEventList(event.near_hotels ?? event.nearHotels),
   guideRecommended: Boolean(event.guide_recommended ?? event.guideRecommended),
-  highlights: Array.isArray(event.highlights) ? event.highlights : event.highlights || [],
+  highlights: parseEventList(event.highlights),
 });
 
 export const buildEventSearchText = (event) => {
@@ -314,40 +356,4 @@ export const getFallbackEventsByPlace = (placeIdOrSlug) => {
   return tourismEvents.filter(
     (event) => String(event.explorePlaceId) === key || String(event.explorePlaceId) === alias
   );
-};
-
-export const buildEventLocationQuery = (event = {}) => {
-  const item = normaliseEvent(event);
-
-  return [item.venue, item.city, item.district, "Sri Lanka"]
-    .filter(Boolean)
-    .join(", ");
-};
-
-export const buildEventDirectionsUrl = (event = {}) => {
-  const item = normaliseEvent(event);
-
-  if (item.mapUrl && String(item.mapUrl).trim()) {
-    return String(item.mapUrl).trim();
-  }
-
-  const query = buildEventLocationQuery(item) || "Sri Lanka";
-
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    query
-  )}`;
-};
-
-export const buildEventMapEmbedUrl = (event = {}) => {
-  const item = normaliseEvent(event);
-
-  if (item.mapEmbedUrl && String(item.mapEmbedUrl).trim()) {
-    return String(item.mapEmbedUrl).trim();
-  }
-
-  const query = buildEventLocationQuery(item) || "Sri Lanka";
-
-  return `https://www.google.com/maps?q=${encodeURIComponent(
-    query
-  )}&output=embed`;
 };

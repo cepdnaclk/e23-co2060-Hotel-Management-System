@@ -38,11 +38,11 @@ const emptyRoom = {
 };
 
 const card = {
-  background: "#fff",
-  border: "1px solid #bbf7d0",
-  borderRadius: 22,
-  padding: 22,
-  boxShadow: "0 18px 50px rgba(5, 46, 28, 0.08)",
+  background: "linear-gradient(180deg,#ffffff 0%,#fbfffd 100%)",
+  border: "1px solid #d6f5e3",
+  borderRadius: 26,
+  padding: 24,
+  boxShadow: "0 20px 60px rgba(15, 23, 42, 0.08)",
 };
 
 const checkPasswordStrength = (password) => {
@@ -445,25 +445,26 @@ function RegisterPropertyPage() {
   };
 
   return (
-    <div
-      className="page"
-      style={{
-        background: "linear-gradient(180deg,#f0fdf4,#f8fafc)",
-        paddingBottom: 50,
-      }}
-    >
+    <div className="page" style={styles.pageWrap}>
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "30px 18px" }}>
         <Link to="/partner/dashboard" style={styles.backLink}>
           ← Back to dashboard
         </Link>
 
         <div style={styles.header}>
-          <p style={styles.eyebrow}>Partner Property Registration</p>
-          <h1 style={styles.title}>Register your property</h1>
-          <p style={styles.subtitle}>
-            Add property details, select an active admin-created version, upload
-            photos, and add rooms. Every photo upload box supports drag and drop.
-          </p>
+          <div>
+            <p style={styles.eyebrow}>Partner Property Portal</p>
+            <h1 style={styles.title}>Register your property</h1>
+            <p style={styles.subtitle}>
+              Add hotel details, select a package, upload high-quality photos, and create room types.
+              Your property becomes public only after admin approval.
+            </p>
+          </div>
+          <div style={styles.headerBadge}>
+            <span>🏨</span>
+            <strong>Property</strong>
+            <small>Admin approval required</small>
+          </div>
         </div>
 
         {message && <div style={styles.successBox}>{message}</div>}
@@ -936,6 +937,13 @@ function RegisterPropertyPage() {
 }
 
 const styles = {
+  pageWrap: {
+    background:
+      "radial-gradient(circle at top left, rgba(187,247,208,0.75), transparent 34%), radial-gradient(circle at top right, rgba(191,219,254,0.65), transparent 32%), linear-gradient(135deg,#f8fafc 0%,#f0fdf4 45%,#eef8ff 100%)",
+    paddingBottom: 70,
+    minHeight: "calc(100vh - 76px)",
+  },
+
   backLink: {
     color: "#0f7a43",
     fontWeight: 900,
@@ -944,27 +952,57 @@ const styles = {
 
   header: {
     marginTop: 18,
-    marginBottom: 20,
+    marginBottom: 24,
+    padding: "34px",
+    borderRadius: 32,
+    background: "linear-gradient(135deg,#ffffff 0%,#f0fdf4 52%,#eef6ff 100%)",
+    border: "1px solid rgba(148,163,184,0.20)",
+    boxShadow: "0 24px 70px rgba(15,23,42,0.10)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 22,
   },
 
   eyebrow: {
-    color: "#16a34a",
-    fontWeight: 900,
+    display: "inline-flex",
+    margin: 0,
+    padding: "8px 12px",
+    borderRadius: 999,
+    background: "#dcfce7",
+    color: "#15803d",
+    fontWeight: 950,
     letterSpacing: 1,
     textTransform: "uppercase",
+    fontSize: 12,
   },
 
   title: {
-    fontSize: 38,
-    margin: 0,
+    fontSize: "clamp(38px,5vw,58px)",
+    lineHeight: 1,
+    letterSpacing: "-0.055em",
+    margin: "14px 0 10px",
     color: "#052e1c",
   },
 
   subtitle: {
-    color: "#64748b",
-    maxWidth: 850,
-    lineHeight: 1.6,
+    color: "#475569",
+    maxWidth: 780,
+    lineHeight: 1.7,
     fontWeight: 700,
+    margin: 0,
+  },
+
+  headerBadge: {
+    minWidth: 180,
+    borderRadius: 26,
+    padding: 20,
+    background: "rgba(255,255,255,0.72)",
+    border: "1px solid #dbeafe",
+    display: "grid",
+    gap: 4,
+    textAlign: "center",
+    boxShadow: "0 14px 34px rgba(15,23,42,0.08)",
   },
 
   sectionTitle: {
@@ -975,8 +1013,8 @@ const styles = {
   successBox: {
     ...card,
     borderColor: "#86efac",
-    background: "#f0fdf4",
-    color: "#166534",
+    background: "linear-gradient(135deg,#eff6ff,#f0fdf4)",
+    color: "#0f766e",
     marginBottom: 18,
     fontWeight: 800,
   },
@@ -1001,7 +1039,7 @@ const styles = {
     width: "100%",
     padding: "13px 14px",
     borderRadius: 14,
-    border: "1px solid #bbf7d0",
+    border: "1px solid #cfeee0",
     fontSize: 15,
     outline: "none",
     background: "#ffffff",
@@ -1012,7 +1050,7 @@ const styles = {
     minHeight: 90,
     padding: 14,
     borderRadius: 14,
-    border: "1px solid #bbf7d0",
+    border: "1px solid #cfeee0",
     fontSize: 15,
     marginBottom: 14,
     outline: "none",
@@ -1064,7 +1102,7 @@ const styles = {
 
   dropBox: {
     minHeight: 180,
-    border: "2px dashed #86efac",
+    border: "2px dashed #93c5fd",
     borderRadius: 20,
     padding: 16,
     display: "grid",
@@ -1072,22 +1110,22 @@ const styles = {
     gap: 10,
     textAlign: "center",
     cursor: "pointer",
-    background: "#f0fdf4",
-    color: "#166534",
+    background: "linear-gradient(135deg,#eff6ff,#f0fdf4)",
+    color: "#0f766e",
   },
 
   roomDropBox: {
     marginTop: 12,
     minHeight: 130,
-    border: "2px dashed #86efac",
+    border: "2px dashed #93c5fd",
     borderRadius: 18,
     padding: 16,
     display: "grid",
     placeItems: "center",
     gap: 10,
     textAlign: "center",
-    background: "#f0fdf4",
-    color: "#166534",
+    background: "linear-gradient(135deg,#eff6ff,#f0fdf4)",
+    color: "#0f766e",
   },
 
   preview: {
@@ -1095,11 +1133,11 @@ const styles = {
     maxHeight: 180,
     objectFit: "cover",
     borderRadius: 16,
-    border: "1px solid #bbf7d0",
+    border: "1px solid #cfeee0",
   },
 
   roomBox: {
-    border: "1px solid #bbf7d0",
+    border: "1px solid #cfeee0",
     borderRadius: 18,
     padding: 16,
     marginBottom: 16,
@@ -1149,7 +1187,7 @@ const styles = {
     borderRadius: 18,
     border: "none",
     color: "#ffffff",
-    background: "linear-gradient(135deg,#0f7a43,#16a34a)",
+    background: "linear-gradient(135deg,#0f7a43,#0b63ce)",
     fontWeight: 1000,
     fontSize: 16,
     cursor: "pointer",
