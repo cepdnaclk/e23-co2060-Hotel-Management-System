@@ -1,5 +1,9 @@
 const pool = require("../config/db");
 
+const GUIDE_REGISTRATION_FEE = 3000;
+const GUIDE_PROMOTION_FEE = 1500;
+const GUIDE_PROMOTION_DAYS = 30;
+
 const buildUploadUrl = (req) =>
   `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
@@ -33,6 +37,12 @@ const parseList = (value) => {
     .filter(Boolean);
 };
 
+const isPromotionActive = (row) => {
+  if (!row.is_promoted || row.promotion_payment_status !== "Paid") return false;
+  if (!row.promotion_expires_at) return true;
+  return new Date(row.promotion_expires_at).getTime() >= Date.now();
+};
+
 const mapGuide = (row) => ({
   id: row.id,
   partner_id: row.partner_id,
@@ -62,6 +72,15 @@ const mapGuide = (row) => ({
   total_reviews: Number(row.total_reviews || 0),
   status: row.status || "pending",
   rejection_reason: row.rejection_reason,
+  registration_fee: Number(row.registration_fee || GUIDE_REGISTRATION_FEE),
+  registration_payment_status: row.registration_payment_status || "Unpaid",
+  registration_paid_at: row.registration_paid_at,
+  promotion_fee: Number(row.promotion_fee || GUIDE_PROMOTION_FEE),
+  promotion_payment_status: row.promotion_payment_status || "Unpaid",
+  promotion_paid_at: row.promotion_paid_at,
+  promotion_expires_at: row.promotion_expires_at,
+  is_promoted: isPromotionActive(row),
+  promotion_sort_order: Number(row.promotion_sort_order || 0),
   submitted_at: row.submitted_at,
   approved_at: row.approved_at,
   approved_by: row.approved_by,
@@ -226,9 +245,11 @@ const createMyGuide = async (req, res) => {
         partner_id, slug, full_name, display_name, guide_type, city, district, base_location,
         languages, experience_years, license_number, nic_or_passport, phone, email,
         whatsapp_number, price_per_day, price_per_hour, availability, services, specialities,
-        short_description, bio, image_url, status, rejection_reason, submitted_at, approved_at, approved_by
+        short_description, bio, image_url, registration_fee, registration_payment_status,
+        promotion_fee, promotion_payment_status, is_promoted, promotion_sort_order,
+        status, rejection_reason, submitted_at, approved_at, approved_by
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NOW(), NULL, NULL)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', ?, 'Unpaid', FALSE, 0, 'pending', NULL, NOW(), NULL, NULL)`,
       [
         req.user.id,
         slug,
@@ -253,6 +274,8 @@ const createMyGuide = async (req, res) => {
         values.short_description,
         values.bio,
         values.image_url,
+        GUIDE_REGISTRATION_FEE,
+        GUIDE_PROMOTION_FEE,
       ]
     );
 
@@ -398,6 +421,164 @@ const updateMyGuideStatus = async (req, res) => {
   }
 };
 
+const payGuideRegistrationFee = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+
+    const [guides] = await connection.query(
+      `SELECT id, partner_id, registration_fee, registration_payment_status
+       FROM partner_guides
+       WHERE id = ? AND partner_id = ?
+       LIMIT 1`,
+      [id, req.user.id]
+    );
+
+    if (!guides.length) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Guide profile not found or you do not own this guide",
+      });
+    }
+
+    const guide = guides[0];
+
+    if (guide.registration_payment_status === "Paid") {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Registration fee is already paid for this guide profile.",
+      });
+    }
+
+    await connection.query(
+      `UPDATE partner_guides
+       SET registration_payment_status = 'Paid',
+           registration_paid_at = NOW()
+       WHERE id = ? AND partner_id = ?`,
+      [id, req.user.id]
+    );
+
+    try {
+      await connection.query(
+        `INSERT INTO guide_payment_transactions
+         (guide_id, partner_id, payment_type, amount, status, paid_at, notes)
+         VALUES (?, ?, 'registration', ?, 'Paid', NOW(), ?)`,
+        [
+          id,
+          guide.partner_id,
+          Number(guide.registration_fee || GUIDE_REGISTRATION_FEE),
+          "Partner paid guide registration fee",
+        ]
+      );
+    } catch {
+      // Keeps older databases usable until the guide payment migration is applied.
+    }
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guide registration fee paid successfully.",
+      registration_payment_status: "Paid",
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Pay guide registration fee error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while paying guide registration fee",
+    });
+  } finally {
+    connection.release();
+  }
+};
+
+const payGuidePromotionFee = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+
+    const [guides] = await connection.query(
+      `SELECT id, partner_id, promotion_fee, registration_payment_status
+       FROM partner_guides
+       WHERE id = ? AND partner_id = ?
+       LIMIT 1`,
+      [id, req.user.id]
+    );
+
+    if (!guides.length) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Guide profile not found or you do not own this guide",
+      });
+    }
+
+    const guide = guides[0];
+
+    if (guide.registration_payment_status !== "Paid") {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Please pay the guide registration fee before promoting this guide.",
+      });
+    }
+
+    await connection.query(
+      `UPDATE partner_guides
+       SET promotion_payment_status = 'Paid',
+           promotion_paid_at = NOW(),
+           promotion_expires_at = DATE_ADD(NOW(), INTERVAL ? DAY),
+           is_promoted = TRUE,
+           promotion_sort_order = UNIX_TIMESTAMP()
+       WHERE id = ? AND partner_id = ?`,
+      [GUIDE_PROMOTION_DAYS, id, req.user.id]
+    );
+
+    try {
+      await connection.query(
+        `INSERT INTO guide_payment_transactions
+         (guide_id, partner_id, payment_type, amount, status, paid_at, notes)
+         VALUES (?, ?, 'promotion', ?, 'Paid', NOW(), ?)`,
+        [
+          id,
+          guide.partner_id,
+          Number(guide.promotion_fee || GUIDE_PROMOTION_FEE),
+          `Partner paid guide top-listing promotion for ${GUIDE_PROMOTION_DAYS} days`,
+        ]
+      );
+    } catch {
+      // Keeps older databases usable until the guide payment migration is applied.
+    }
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: `Guide promotion paid successfully. This guide can appear at the top for ${GUIDE_PROMOTION_DAYS} days after approval.`,
+      promotion_payment_status: "Paid",
+      is_promoted: true,
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Pay guide promotion fee error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while paying guide promotion fee",
+    });
+  } finally {
+    connection.release();
+  }
+};
+
 const deleteMyGuide = async (req, res) => {
   try {
     const { id } = req.params;
@@ -428,5 +609,7 @@ module.exports = {
   createMyGuide,
   updateMyGuide,
   updateMyGuideStatus,
+  payGuideRegistrationFee,
+  payGuidePromotionFee,
   deleteMyGuide,
 };

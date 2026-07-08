@@ -31,6 +31,7 @@ import OnlinePaymentFuturePage from "./pages/OnlinePaymentFuturePage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
+import GuideProfilePage from "./pages/GuideProfilePage";
 import AboutUsPage from "./pages/AboutUsPage";
 
 function SimplePage({ title, message }) {
@@ -83,6 +84,7 @@ function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetailsPage />} />
         <Route path="/tourist-guides" element={<TouristGuidePage />} />
+        <Route path="/tourist-guides/:slug" element={<GuideProfilePage />} />
         <Route path="/about" element={<AboutUsPage />} />
 
         <Route

@@ -6,6 +6,8 @@ const {
   createMyGuide,
   updateMyGuide,
   updateMyGuideStatus,
+  payGuideRegistrationFee,
+  payGuidePromotionFee,
   deleteMyGuide,
 } = require("../controllers/partnerGuide.controller");
 const { protect } = require("../middleware/auth.middleware");
@@ -20,6 +22,8 @@ router.use(allowRoles("partner"));
 router.get("/", getMyGuides);
 router.post("/", createMyGuide);
 router.post("/upload-image", upload.single("image"), uploadGuideImage);
+router.post("/:id/pay-registration", payGuideRegistrationFee);
+router.post("/:id/pay-promotion", payGuidePromotionFee);
 router.get("/:id", getMyGuideById);
 router.put("/:id", updateMyGuide);
 router.patch("/:id/status", updateMyGuideStatus);

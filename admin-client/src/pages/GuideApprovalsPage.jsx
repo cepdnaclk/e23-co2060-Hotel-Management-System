@@ -14,6 +14,8 @@ const formatDate = (value) => {
   return String(value).slice(0, 10);
 };
 
+const formatMoney = (amount) => `Rs. ${Number(amount || 0).toLocaleString("en-LK")}`;
+
 const statusClass = (status) => {
   if (status === "approved") return "status-badge status-approved";
   if (status === "rejected" || status === "hidden") return "status-badge status-rejected";
@@ -157,6 +159,16 @@ function GuideApprovalsPage() {
           <strong>{Number(stats?.rejected_guides || 0)}</strong>
           <p>Needs partner correction.</p>
         </div>
+        <div className="admin-card">
+          <span>Paid Registration</span>
+          <strong>{Number(stats?.paid_registration_guides || 0)}</strong>
+          <p>Eligible for admin approval.</p>
+        </div>
+        <div className="admin-card">
+          <span>Top Ads</span>
+          <strong>{Number(stats?.promoted_guides || 0)}</strong>
+          <p>Paid promoted guide placements.</p>
+        </div>
       </section>
 
       <section className="table-card event-admin-card">
@@ -205,6 +217,7 @@ function GuideApprovalsPage() {
                   <th>Location</th>
                   <th>Experience</th>
                   <th>Price</th>
+                  <th>Payments</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -243,6 +256,14 @@ function GuideApprovalsPage() {
                       <p>Hour Rs. {Number(guide.price_per_hour || 0).toLocaleString()}</p>
                     </td>
                     <td>
+                      <span className={guide.registration_payment_status === "Paid" ? "status-badge status-approved" : "status-badge status-pending"}>
+                        Reg {guide.registration_payment_status || "Unpaid"}
+                      </span>
+                      <p>
+                        {guide.is_promoted ? "Top ad paid" : `Top ad ${guide.promotion_payment_status || "Unpaid"}`}
+                      </p>
+                    </td>
+                    <td>
                       <span className={statusClass(guide.status)}>{guide.status}</span>
                     </td>
                     <td className="action-row">
@@ -253,7 +274,8 @@ function GuideApprovalsPage() {
                         <button
                           type="button"
                           className="approve-btn"
-                          disabled={actionLoading}
+                          disabled={actionLoading || guide.registration_payment_status !== "Paid"}
+                          title={guide.registration_payment_status !== "Paid" ? "Registration fee must be paid before approval" : ""}
                           onClick={() => approveGuide(guide.id)}
                         >
                           Approve
@@ -324,6 +346,9 @@ function GuideApprovalsPage() {
               <div className="review-box">
                 <h3>Approval Status</h3>
                 <p><strong>Status:</strong> <span className={statusClass(selectedGuide.status)}>{selectedGuide.status}</span></p>
+                <p><strong>Registration Fee:</strong> {formatMoney(selectedGuide.registration_fee)} - {selectedGuide.registration_payment_status || "Unpaid"}</p>
+                <p><strong>Top Ad Fee:</strong> {formatMoney(selectedGuide.promotion_fee)} - {selectedGuide.promotion_payment_status || "Unpaid"}</p>
+                <p><strong>Promoted Until:</strong> {formatDate(selectedGuide.promotion_expires_at)}</p>
                 <p><strong>Submitted:</strong> {formatDate(selectedGuide.submitted_at)}</p>
                 <p><strong>Approved:</strong> {formatDate(selectedGuide.approved_at)}</p>
                 {selectedGuide.rejection_reason && (
@@ -362,7 +387,8 @@ function GuideApprovalsPage() {
                 <button
                   type="button"
                   className="approve-btn"
-                  disabled={actionLoading}
+                  disabled={actionLoading || selectedGuide.registration_payment_status !== "Paid"}
+                  title={selectedGuide.registration_payment_status !== "Paid" ? "Registration fee must be paid before approval" : ""}
                   onClick={() => approveGuide(selectedGuide.id)}
                 >
                   Approve Guide

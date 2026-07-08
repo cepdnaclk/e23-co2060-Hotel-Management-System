@@ -233,6 +233,11 @@ function TouristGuidePage() {
     });
 
     return [...result].sort((a, b) => {
+      const promotedA = a.is_promoted ? 1 : 0;
+      const promotedB = b.is_promoted ? 1 : 0;
+
+      if (promotedA !== promotedB) return promotedB - promotedA;
+
       if (sortBy === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
       if (sortBy === "experience") return Number(b.experience_years || 0) - Number(a.experience_years || 0);
       if (sortBy === "lowDayPrice") return Number(a.price_per_day || 0) - Number(b.price_per_day || 0);
@@ -484,6 +489,7 @@ function TouristGuidePage() {
                         <div className="guide-card-placeholder">{icon}</div>
                       )}
                       <span>{icon} {guide.guide_type || "Local"}</span>
+                      {guide.is_promoted && <strong className="guide-sponsored-badge">Top ad</strong>}
                     </div>
 
                     <div className="guide-card-body">
@@ -511,11 +517,19 @@ function TouristGuidePage() {
                       </div>
 
                       <div className="guide-actions">
-                        {guide.phone && <a href={`tel:${guide.phone}`}>Call</a>}
-                        {guide.whatsapp_number && <a href={`https://wa.me/${String(guide.whatsapp_number).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a>}
-                        {guide.email && <a href={`mailto:${guide.email}`}>Email</a>}
-                        <Link to={`/hotels?city=${encodeURIComponent(guide.city || "")}`}>Hotels nearby</Link>
+                        {guide.slug && <Link to={`/tourist-guides/${guide.slug}`}>View profile</Link>}
+                        {(guide.phone || guide.whatsapp_number || guide.email) && (
+                          <details className="guide-contact-menu">
+                            <summary>Contacts</summary>
+                            <div>
+                              {guide.phone && <a href={`tel:${guide.phone}`}>Call</a>}
+                              {guide.whatsapp_number && <a href={`https://wa.me/${String(guide.whatsapp_number).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a>}
+                              {guide.email && <a href={`mailto:${guide.email}`}>Email</a>}
+                            </div>
+                          </details>
+                        )}
                         <Link to="/trip-planner">Add to trip</Link>
+                        <Link to={`/hotels?city=${encodeURIComponent(guide.city || "")}`}>Hotels nearby</Link>
                       </div>
                     </div>
                   </article>
@@ -1031,6 +1045,19 @@ const guideCss = `
   font-size:12px;
   font-weight:1000;
 }
+.guide-sponsored-badge{
+  position:absolute;
+  right:16px;
+  bottom:16px;
+  z-index:2;
+  background:#ffc527;
+  color:#063f38;
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:12px;
+  font-weight:1000;
+  box-shadow:0 12px 26px rgba(0,0,0,.22);
+}
 .guide-card-placeholder{
   height:100%;
   display:grid;
@@ -1100,8 +1127,9 @@ const guideCss = `
   flex-wrap:wrap;
   gap:8px;
   margin-top:18px;
+  align-items:flex-start;
 }
-.guide-actions a{
+.guide-actions a,.guide-contact-menu summary{
   text-decoration:none;
   border:1px solid #d5e7e2;
   color:#064e45;
@@ -1110,13 +1138,38 @@ const guideCss = `
   padding:10px 12px;
   font-size:13px;
   font-weight:1000;
+  list-style:none;
+  cursor:pointer;
 }
-.guide-actions a:first-child{
+.guide-contact-menu{position:relative;}
+.guide-contact-menu[open]{
+  flex:1 1 100%;
+  order:5;
+}
+.guide-contact-menu summary::-webkit-details-marker{display:none;}
+.guide-contact-menu div{
+  flex:1 1 100%;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  background:#f8fffc;
+  border:1px solid #d5e7e2;
+  border-radius:16px;
+  padding:9px;
+  margin-top:8px;
+}
+.guide-contact-menu div a{
+  width:100%;
+  border-radius:11px;
+  padding:9px 10px;
+  text-align:center;
+}
+.guide-actions>a:first-child{
   background:#064e45;
   color:#fff;
   border-color:#064e45;
 }
-.guide-actions a:last-child{
+.guide-actions>a:nth-last-child(2){
   background:#ffc527;
   color:#063f38;
   border-color:#ffc527;

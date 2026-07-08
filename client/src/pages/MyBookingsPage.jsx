@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
+import DemoPaymentModal from "../components/DemoPaymentModal";
 
 function MyBookingsPage() {
   const { isLoggedIn } = useAuth();
@@ -11,6 +12,7 @@ function MyBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentBooking, setPaymentBooking] = useState(null);
 
   const loadBookings = async () => {
     try {
@@ -94,19 +96,22 @@ function MyBookingsPage() {
       .toUpperCase();
   };
 
-  const handleOnlinePayment = async (booking) => {
+  const handleOnlinePayment = (booking) => {
+    setPaymentBooking(booking);
+  };
+
+  const confirmOnlinePayment = async ({ gateway, card_last4 }) => {
+    if (!paymentBooking) return;
+
     try {
-      const confirmPay = window.confirm(
-        "This is a future online payment demo. Do you want to mark this booking as Paid?"
-      );
-
-      if (!confirmPay) return;
-
-      await api.put(`/bookings/${booking.id}/pay-online`);
+      await api.put(`/bookings/${paymentBooking.id}/pay-online`, {
+        payment_gateway: gateway,
+        card_last4,
+      });
 
       setBookings((prevBookings) =>
         prevBookings.map((item) =>
-          item.id === booking.id
+          item.id === paymentBooking.id
             ? {
                 ...item,
                 payment_status: "Paid",
@@ -115,9 +120,12 @@ function MyBookingsPage() {
         )
       );
 
+      const paidBooking = paymentBooking;
+      setPaymentBooking(null);
+
       navigate(
-        `/online-payment-future?bookingId=${booking.id}&reference=${
-          booking.booking_reference || ""
+        `/online-payment-future?bookingId=${paidBooking.id}&reference=${
+          paidBooking.booking_reference || ""
         }`
       );
     } catch (error) {
@@ -127,6 +135,7 @@ function MyBookingsPage() {
         error.response?.data?.message ||
           "Server error while updating payment status."
       );
+      throw error;
     }
   };
 
@@ -468,6 +477,16 @@ function MyBookingsPage() {
 
   return (
     <main style={styles.page}>
+      <DemoPaymentModal
+        open={Boolean(paymentBooking)}
+        title="Hotel booking payment"
+        description="Select a gateway and enter card details to mark this hotel booking as paid."
+        amount={paymentBooking?.total_amount || 0}
+        reference={paymentBooking?.booking_reference || ""}
+        submitLabel="Pay hotel booking"
+        onClose={() => setPaymentBooking(null)}
+        onConfirm={confirmOnlinePayment}
+      />
       <div style={styles.container}>
         <div style={styles.header}>
           <div>

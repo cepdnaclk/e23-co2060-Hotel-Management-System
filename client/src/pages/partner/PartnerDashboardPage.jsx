@@ -1,10 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import {
+  CalendarCheck,
+  ClipboardCheck,
+  FileText,
+  Hotel,
+  Loader,
+  Map,
+  ShieldCheck,
+  UserCheck,
+} from "lucide-react";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
 
 const getStatusCount = (items, status) =>
   items.filter((item) => item.status === status).length;
+
+const dashboardIcons = {
+  hotel: Hotel,
+  pending: Loader,
+  event: CalendarCheck,
+  review: FileText,
+  guide: Map,
+  approved: ShieldCheck,
+  propertyAction: Hotel,
+  eventAction: CalendarCheck,
+  guideAction: UserCheck,
+  guideFallback: Map,
+};
+
+function DashboardIcon({ name, size = 24 }) {
+  const Icon = dashboardIcons[name] || ClipboardCheck;
+  return <Icon size={size} strokeWidth={2.3} />;
+}
 
 function PartnerDashboardPage() {
   const { user, isLoggedIn, logout } = useAuth();
@@ -89,7 +117,7 @@ function PartnerDashboardPage() {
       label: "Properties",
       value: stats.properties,
       note: `${stats.approvedProperties} approved`,
-      icon: "🏨",
+      iconName: "hotel",
       tint: "#ecfdf5",
       color: "#047857",
     },
@@ -97,7 +125,7 @@ function PartnerDashboardPage() {
       label: "Property Review",
       value: stats.pendingProperties,
       note: "pending approval",
-      icon: "⏳",
+      iconName: "pending",
       tint: "#fff7ed",
       color: "#c2410c",
     },
@@ -105,7 +133,7 @@ function PartnerDashboardPage() {
       label: "Events",
       value: stats.events,
       note: `${stats.approvedEvents} approved`,
-      icon: "🎉",
+      iconName: "event",
       tint: "#eff6ff",
       color: "#0b63ce",
     },
@@ -113,7 +141,7 @@ function PartnerDashboardPage() {
       label: "Event Review",
       value: stats.pendingEvents,
       note: `${stats.rejectedEvents} rejected`,
-      icon: "📝",
+      iconName: "review",
       tint: "#fef3c7",
       color: "#b45309",
     },
@@ -121,7 +149,7 @@ function PartnerDashboardPage() {
       label: "Guiders",
       value: stats.guides,
       note: `${stats.approvedGuides} approved`,
-      icon: "🧭",
+      iconName: "guide",
       tint: "#eef2ff",
       color: "#4f46e5",
     },
@@ -129,7 +157,7 @@ function PartnerDashboardPage() {
       label: "Guider Review",
       value: stats.pendingGuides,
       note: `${stats.rejectedGuides} rejected`,
-      icon: "✅",
+      iconName: "approved",
       tint: "#fdf2f8",
       color: "#be185d",
     },
@@ -188,7 +216,9 @@ function PartnerDashboardPage() {
 
       <section style={styles.actionGrid}>
         <Link to="/partner/register-property" style={{ ...styles.actionCard, ...styles.propertyActionCard }}>
-          <div style={{ ...styles.actionIcon, background: "#dcfce7" }}>🏨</div>
+          <div style={{ ...styles.actionIcon, background: "#dcfce7", color: "#047857" }}>
+            <DashboardIcon name="propertyAction" size={30} />
+          </div>
           <div>
             <p style={{ ...styles.actionLabel, color: "#047857" }}>Property Registration</p>
             <h2 style={styles.actionTitle}>Register a hotel or property</h2>
@@ -196,11 +226,13 @@ function PartnerDashboardPage() {
               Add rooms, photos, pricing, policies, and submit your property for admin approval.
             </p>
           </div>
-          <span style={{ ...styles.actionButton, background: "#047857" }}>Go to Property Registration →</span>
+          <span style={{ ...styles.actionButton, background: "#047857" }}>Go to Property Registration</span>
         </Link>
 
         <Link to="/partner/event-registration" style={{ ...styles.actionCard, ...styles.eventActionCard }}>
-          <div style={{ ...styles.actionIcon, background: "#dbeafe" }}>🎉</div>
+          <div style={{ ...styles.actionIcon, background: "#dbeafe", color: "#0b63ce" }}>
+            <DashboardIcon name="eventAction" size={30} />
+          </div>
           <div>
             <p style={{ ...styles.actionLabel, color: "#0b63ce" }}>Event Registration</p>
             <h2 style={styles.actionTitle}>Register tourism events</h2>
@@ -208,11 +240,13 @@ function PartnerDashboardPage() {
               Create cultural nights, hotel experiences, food walks, and public tourist events.
             </p>
           </div>
-          <span style={{ ...styles.actionButton, background: "#0b63ce" }}>Go to Event Registration →</span>
+          <span style={{ ...styles.actionButton, background: "#0b63ce" }}>Go to Event Registration</span>
         </Link>
 
         <Link to="/partner/guides" style={{ ...styles.actionCard, ...styles.guideActionCard }}>
-          <div style={{ ...styles.actionIcon, background: "#e0e7ff" }}>🧭</div>
+          <div style={{ ...styles.actionIcon, background: "#e0e7ff", color: "#4f46e5" }}>
+            <DashboardIcon name="guideAction" size={30} />
+          </div>
           <div>
             <p style={{ ...styles.actionLabel, color: "#4f46e5" }}>Guider Registration</p>
             <h2 style={styles.actionTitle}>Become a tourist guider</h2>
@@ -220,14 +254,16 @@ function PartnerDashboardPage() {
               Add your guide profile, languages, experience, services, and pricing for tourists.
             </p>
           </div>
-          <span style={{ ...styles.actionButton, background: "#4f46e5" }}>Go to Guider Registration →</span>
+          <span style={{ ...styles.actionButton, background: "#4f46e5" }}>Go to Guider Registration</span>
         </Link>
       </section>
 
       <section style={styles.metricRibbon}>
         {metricCards.map((item) => (
           <article key={item.label} style={{ ...styles.metricCard, background: item.tint }}>
-            <div style={{ ...styles.metricIcon, color: item.color }}>{item.icon}</div>
+            <div style={{ ...styles.metricIcon, color: item.color }}>
+              <DashboardIcon name={item.iconName} size={22} />
+            </div>
             <div>
               <span style={styles.metricLabel}>{item.label}</span>
               <strong style={{ ...styles.metricValue, color: item.color }}>{loading ? "..." : item.value}</strong>
@@ -307,7 +343,7 @@ function PartnerDashboardPage() {
                   </div>
                   <div style={styles.rowMain}>
                     <h3 style={styles.rowTitle}>{event.title}</h3>
-                    <p style={styles.rowText}>{event.city} • {event.category}</p>
+                    <p style={styles.rowText}>{event.city} / {event.category}</p>
                     {event.status === "rejected" && event.rejection_reason && (
                       <p style={styles.rejectReason}>Reason: {event.rejection_reason}</p>
                     )}
@@ -346,12 +382,12 @@ function PartnerDashboardPage() {
                     {guide.image_url ? (
                       <img src={guide.image_url} alt={guide.display_name} style={styles.thumbImage} />
                     ) : (
-                      <span>🧭</span>
+                      <DashboardIcon name="guideFallback" size={22} />
                     )}
                   </div>
                   <div style={styles.rowMain}>
                     <h3 style={styles.rowTitle}>{guide.display_name}</h3>
-                    <p style={styles.rowText}>{guide.city} • {guide.guide_type}</p>
+                    <p style={styles.rowText}>{guide.city} / {guide.guide_type}</p>
                     {guide.status === "rejected" && guide.rejection_reason && (
                       <p style={styles.rejectReason}>Reason: {guide.rejection_reason}</p>
                     )}

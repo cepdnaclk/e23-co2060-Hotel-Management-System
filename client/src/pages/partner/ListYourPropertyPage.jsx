@@ -1,4 +1,23 @@
 import { Link } from "react-router-dom";
+import { Building2, CheckCircle2, UserRoundPlus } from "lucide-react";
+
+const steps = [
+  {
+    icon: UserRoundPlus,
+    title: "1. Register as Partner",
+    text: "Create your partner account with your business details.",
+  },
+  {
+    icon: Building2,
+    title: "2. Register Property",
+    text: "Add your property details, rooms, photos, and policies.",
+  },
+  {
+    icon: CheckCircle2,
+    title: "3. Admin Approval",
+    text: "Your property becomes visible to tourists after admin approval.",
+  },
+];
 
 function ListYourPropertyPage() {
   return (
@@ -32,23 +51,18 @@ function ListYourPropertyPage() {
         </div>
 
         <div style={styles.grid}>
-          <div className="card" style={styles.card}>
-            <div style={styles.icon}>👤</div>
-            <h3>1. Register as Partner</h3>
-            <p>Create your partner account with your business details.</p>
-          </div>
-
-          <div className="card" style={styles.card}>
-            <div style={styles.icon}>🏨</div>
-            <h3>2. Register Property</h3>
-            <p>Add your property details, rooms, photos, and policies.</p>
-          </div>
-
-          <div className="card" style={styles.card}>
-            <div style={styles.icon}>✅</div>
-            <h3>3. Admin Approval</h3>
-            <p>Your property becomes visible to tourists after admin approval.</p>
-          </div>
+          {steps.map((step) => {
+            const Icon = step.icon;
+            return (
+              <div className="card" style={styles.card} key={step.title}>
+                <div style={styles.icon}>
+                  <Icon size={30} strokeWidth={2.3} />
+                </div>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </div>
+            );
+          })}
         </div>
 
         <div className="card" style={styles.notice}>
@@ -83,14 +97,20 @@ const styles = {
     color: "white",
   },
   title: {
-    fontSize: "54px",
+    fontSize: "clamp(38px, 5vw, 58px)",
+    lineHeight: 1.05,
     margin: "0 0 18px",
-    fontWeight: "900",
+    fontWeight: "850",
+    color: "#ffffff",
+    textShadow: "0 12px 36px rgba(0,0,0,0.48)",
   },
   subtitle: {
-    fontSize: "20px",
+    fontSize: "18px",
     lineHeight: "1.6",
     marginBottom: "28px",
+    maxWidth: "660px",
+    color: "#ffffff",
+    textShadow: "0 8px 24px rgba(0,0,0,0.42)",
   },
   actions: {
     display: "flex",
@@ -116,7 +136,7 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
     gap: "20px",
   },
   card: {
@@ -124,7 +144,14 @@ const styles = {
     textAlign: "center",
   },
   icon: {
-    fontSize: "42px",
+    width: "58px",
+    height: "58px",
+    margin: "0 auto 16px",
+    borderRadius: "18px",
+    background: "#ecfdf5",
+    color: "#047857",
+    display: "grid",
+    placeItems: "center",
   },
   notice: {
     marginTop: "28px",

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+import DemoPaymentModal from "../../components/DemoPaymentModal";
 
 const fallbackPlans = [
   {
@@ -60,6 +61,7 @@ function PropertyManagementPage() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [paymentRequest, setPaymentRequest] = useState(null);
 
   const [detailsForm, setDetailsForm] = useState({
     name: "",
@@ -343,35 +345,64 @@ function PropertyManagementPage() {
   };
 
   const payRegistration = async () => {
-    if (!window.confirm("Mark registration fee as paid?")) return;
-
-    try {
-      await api.post(`/partner/properties/${id}/pay-registration`, {
-        payment_method_id: null,
-      });
-
-      await loadEverything();
-      showResult(true, "Registration fee paid successfully.");
-    } catch (err) {
-      showResult(
-        false,
-        err.response?.data?.message || "Failed to pay registration fee"
-      );
-    }
+    setPaymentRequest({
+      type: "registration",
+      title: "Property registration fee",
+      description: "Select a payment method and complete the registration fee for this property.",
+      amount: property?.registration_fee || 0,
+      reference: property?.name || "",
+      submitLabel: "Pay registration fee",
+    });
   };
 
   const payMonthly = async () => {
-    if (!window.confirm("Pay monthly charge for this property?")) return;
+    setPaymentRequest({
+      type: "monthly",
+      title: "Monthly property charge",
+      description: "Select a payment method and pay the current monthly charge for this property.",
+      amount: property?.monthly_charge || currentPlan?.monthly_fee || 0,
+      reference: property?.name || "",
+      submitLabel: "Pay monthly charge",
+    });
+  };
+
+  const confirmPropertyPayment = async ({ gateway, card_last4, payment_method_type }) => {
+    if (!paymentRequest) return;
 
     try {
+      setMessage("");
+      setError("");
+
+      if (paymentRequest.type === "registration") {
+        await api.post(`/partner/properties/${id}/pay-registration`, {
+          payment_method_id: null,
+          payment_gateway: gateway,
+          card_last4,
+          payment_method_type,
+        });
+
+        await loadEverything();
+        setPaymentRequest(null);
+        showResult(true, "Registration fee paid successfully.");
+        return;
+      }
+
       await api.post(`/partner/properties/${id}/pay-monthly`, {
         payment_method_id: null,
+        payment_gateway: gateway,
+        card_last4,
+        payment_method_type,
       });
 
       await loadEverything();
+      setPaymentRequest(null);
       showResult(true, "Monthly payment successful. New cycle started today.");
     } catch (err) {
-      showResult(false, err.response?.data?.message || "Failed to pay monthly fee");
+      showResult(
+        false,
+        err.response?.data?.message || "Failed to complete property payment"
+      );
+      throw err;
     }
   };
 
@@ -545,6 +576,16 @@ function PropertyManagementPage() {
         paddingBottom: 50,
       }}
     >
+      <DemoPaymentModal
+        open={Boolean(paymentRequest)}
+        title={paymentRequest?.title}
+        description={paymentRequest?.description}
+        amount={paymentRequest?.amount || 0}
+        reference={paymentRequest?.reference || ""}
+        submitLabel={paymentRequest?.submitLabel || "Pay now"}
+        onClose={() => setPaymentRequest(null)}
+        onConfirm={confirmPropertyPayment}
+      />
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "30px 18px" }}>
         <Link to="/partner/dashboard" style={styles.backLink}>
           ← Back to dashboard

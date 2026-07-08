@@ -11,6 +11,12 @@ const parseJson = (value, fallback = []) => {
   }
 };
 
+const isPromotionActive = (row) => {
+  if (!row.is_promoted || row.promotion_payment_status !== "Paid") return false;
+  if (!row.promotion_expires_at) return true;
+  return new Date(row.promotion_expires_at).getTime() >= Date.now();
+};
+
 const mapGuide = (row) => ({
   id: row.id,
   partner_id: row.partner_id,
@@ -44,6 +50,15 @@ const mapGuide = (row) => ({
   total_reviews: Number(row.total_reviews || 0),
   status: row.status || "pending",
   rejection_reason: row.rejection_reason,
+  registration_fee: Number(row.registration_fee || 3000),
+  registration_payment_status: row.registration_payment_status || "Unpaid",
+  registration_paid_at: row.registration_paid_at,
+  promotion_fee: Number(row.promotion_fee || 1500),
+  promotion_payment_status: row.promotion_payment_status || "Unpaid",
+  promotion_paid_at: row.promotion_paid_at,
+  promotion_expires_at: row.promotion_expires_at,
+  is_promoted: isPromotionActive(row),
+  promotion_sort_order: Number(row.promotion_sort_order || 0),
   submitted_at: row.submitted_at,
   approved_at: row.approved_at,
   approved_by: row.approved_by,
@@ -58,6 +73,9 @@ const getGuideApprovalStats = async () => {
       SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_guides,
       SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected_guides,
       SUM(CASE WHEN status = 'hidden' THEN 1 ELSE 0 END) AS hidden_guides,
+      SUM(CASE WHEN registration_payment_status = 'Paid' THEN 1 ELSE 0 END) AS paid_registration_guides,
+      SUM(CASE WHEN registration_payment_status = 'Unpaid' THEN 1 ELSE 0 END) AS unpaid_registration_guides,
+      SUM(CASE WHEN is_promoted = TRUE AND promotion_payment_status = 'Paid' AND (promotion_expires_at IS NULL OR promotion_expires_at >= NOW()) THEN 1 ELSE 0 END) AS promoted_guides,
       COUNT(*) AS total_guides
      FROM partner_guides`
   );
@@ -67,6 +85,9 @@ const getGuideApprovalStats = async () => {
     approved_guides: 0,
     rejected_guides: 0,
     hidden_guides: 0,
+    paid_registration_guides: 0,
+    unpaid_registration_guides: 0,
+    promoted_guides: 0,
     total_guides: 0,
   };
 };
@@ -110,7 +131,10 @@ const getGuidesForAdmin = async (req, res) => {
        LEFT JOIN users a ON a.id = g.approved_by
        ${whereSql}
        ORDER BY
-        FIELD(g.status, 'pending', 'rejected', 'approved', 'hidden'),
+       FIELD(g.status, 'pending', 'rejected', 'approved', 'hidden'),
+        FIELD(g.registration_payment_status, 'Paid', 'Unpaid'),
+        CASE WHEN g.is_promoted = TRUE AND g.promotion_payment_status = 'Paid' AND (g.promotion_expires_at IS NULL OR g.promotion_expires_at >= NOW()) THEN 0 ELSE 1 END,
+        g.promotion_sort_order DESC,
         g.submitted_at DESC,
         g.updated_at DESC,
         g.id DESC`,
@@ -177,13 +201,21 @@ const approveGuide = async (req, res) => {
     const { id } = req.params;
 
     const [guides] = await connection.query(
-      `SELECT id, partner_id, display_name FROM partner_guides WHERE id = ? LIMIT 1`,
+      `SELECT id, partner_id, display_name, registration_payment_status FROM partner_guides WHERE id = ? LIMIT 1`,
       [id]
     );
 
     if (!guides.length) {
       await connection.rollback();
       return res.status(404).json({ success: false, message: "Guide profile not found" });
+    }
+
+    if (guides[0].registration_payment_status !== "Paid") {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Guide registration fee must be paid before admin approval.",
+      });
     }
 
     await connection.query(

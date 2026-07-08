@@ -1,5 +1,19 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import {
+  CalendarDays,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Hotel,
+  Lightbulb,
+  MapPin,
+  Plus,
+  Store,
+  Ticket,
+  X,
+} from "lucide-react";
 import { formatLkr } from "../data/exploreData";
 
 export default function PlaceDetailModal({
@@ -43,7 +57,7 @@ export default function PlaceDetailModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close-btn" onClick={onClose}>
-          ×
+          <X size={22} strokeWidth={2.4} />
         </button>
 
         {/* Image Gallery */}
@@ -56,10 +70,10 @@ export default function PlaceDetailModal({
           {place.images.length > 1 && (
             <>
               <button className="gallery-nav gallery-prev" onClick={prevImage}>
-                ‹
+                <ChevronLeft size={28} strokeWidth={2.4} />
               </button>
               <button className="gallery-nav gallery-next" onClick={nextImage}>
-                ›
+                <ChevronRight size={28} strokeWidth={2.4} />
               </button>
               <div className="gallery-dots">
                 {place.images.map((_, index) => (
@@ -98,7 +112,8 @@ export default function PlaceDetailModal({
             <div className="header-main">
               <h2>{place.name}</h2>
               <p className="location-text">
-                📍 {place.city}, {place.district} • {place.duration}
+                <MapPin size={16} strokeWidth={2.4} />
+                <span>{place.city}, {place.district} / {place.duration}</span>
               </p>
             </div>
             <div className="header-meta">
@@ -112,28 +127,28 @@ export default function PlaceDetailModal({
           {/* Quick Stats */}
           <div className="quick-stats">
             <div className="stat-item">
-              <span className="stat-icon">🕐</span>
+              <span className="stat-icon"><Clock size={20} /></span>
               <div>
                 <strong>Duration</strong>
                 <span>{place.duration}</span>
               </div>
             </div>
             <div className="stat-item">
-              <span className="stat-icon">📅</span>
+              <span className="stat-icon"><CalendarDays size={20} /></span>
               <div>
                 <strong>Best Time</strong>
                 <span>{place.bestTime}</span>
               </div>
             </div>
             <div className="stat-item">
-              <span className="stat-icon">🎟️</span>
+              <span className="stat-icon"><Ticket size={20} /></span>
               <div>
                 <strong>Entry Fee</strong>
                 <span>{place.entryFee}</span>
               </div>
             </div>
             <div className="stat-item">
-              <span className="stat-icon">⏰</span>
+              <span className="stat-icon"><Clock size={20} /></span>
               <div>
                 <strong>Hours</strong>
                 <span>{place.openingHours}</span>
@@ -228,7 +243,9 @@ export default function PlaceDetailModal({
                       <div className="exp-header">
                         <h4>{exp.title}</h4>
                         <div className="exp-meta">
-                          <span className="exp-duration">⏱️ {exp.duration}</span>
+                          <span className="exp-duration">
+                            <Clock size={15} /> {exp.duration}
+                          </span>
                           {exp.cost !== undefined && (
                             <span className="exp-cost">
                               {exp.cost === 0 ? "Free" : formatLkr(exp.cost)}
@@ -247,7 +264,7 @@ export default function PlaceDetailModal({
               <div className="tips-tab">
                 {/* Travel Tips */}
                 <div className="tips-section">
-                  <h3>💡 Travel Tips</h3>
+                  <h3><Lightbulb size={18} /> Travel Tips</h3>
                   <ul className="tips-list">
                     {place.tips.map((tip, index) => (
                       <li key={index}>{tip}</li>
@@ -257,7 +274,7 @@ export default function PlaceDetailModal({
 
                 {/* Facilities */}
                 <div className="facilities-section">
-                  <h3>🏪 Available Facilities</h3>
+                  <h3><Store size={18} /> Available Facilities</h3>
                   <div className="facilities-grid">
                     {place.facilities.map((facility, index) => (
                       <span key={index} className="facility-chip">
@@ -269,7 +286,7 @@ export default function PlaceDetailModal({
 
                 {/* GPS Coordinates */}
                 <div className="location-section">
-                  <h3>📍 Location Details</h3>
+                  <h3><MapPin size={18} /> Location Details</h3>
                   <div className="location-info">
                     <p>
                       <strong>City:</strong> {place.city}
@@ -290,7 +307,8 @@ export default function PlaceDetailModal({
                     rel="noopener noreferrer"
                     className="maps-link"
                   >
-                    Open in Google Maps →
+                    <MapPin size={16} />
+                    Open in Google Maps
                   </a>
                 </div>
               </div>
@@ -304,18 +322,18 @@ export default function PlaceDetailModal({
                 className="action-btn saved-btn"
                 onClick={() => onRemoveFromTrip(place.id)}
               >
-                ✓ Saved — Remove from Trip
+                <Check size={17} /> Saved - Remove from Trip
               </button>
             ) : (
               <button className="action-btn add-btn" onClick={() => onAddToTrip(place)}>
-                ➕ Add to My Trip
+                <Plus size={17} /> Add to My Trip
               </button>
             )}
             <Link
               to={`/hotels?city=${encodeURIComponent(place.city)}`}
               className="action-btn hotel-btn"
             >
-              🏨 Find Hotels in {place.city}
+              <Hotel size={17} /> Find Hotels in {place.city}
             </Link>
           </div>
         </div>
@@ -497,7 +515,6 @@ const modalStyles = `
 
   .modal-header h2 {
     margin: 0;
-    font-family: "Rozha One", serif;
     font-size: 32px;
     color: #0E3B3A;
     line-height: 1.1;
@@ -508,6 +525,9 @@ const modalStyles = `
     color: #3B6E52;
     font-weight: 700;
     font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
   }
 
   .header-meta {
@@ -530,7 +550,7 @@ const modalStyles = `
   .cost-badge {
     background: #0E3B3A;
     color: #F6F0E4;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
   }
 
   /* Quick Stats */
@@ -551,7 +571,12 @@ const modalStyles = `
   }
 
   .stat-icon {
-    font-size: 20px;
+    color: #3B6E52;
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
   }
 
   .stat-item strong {
@@ -608,10 +633,12 @@ const modalStyles = `
   }
 
   .tab-content h3 {
-    font-family: "Rozha One", serif;
     font-size: 20px;
     color: #0E3B3A;
     margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   /* Overview Tab */
@@ -700,7 +727,7 @@ const modalStyles = `
   .nearby-distance {
     color: #3B6E52;
     font-weight: 700;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
   }
 
@@ -752,6 +779,9 @@ const modalStyles = `
     padding: 4px 10px;
     background: #EFE6D3;
     color: #4B463D;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .exp-cost {
@@ -789,11 +819,15 @@ const modalStyles = `
   }
 
   .tips-list li::before {
-    content: '✓';
+    content: "";
     position: absolute;
-    left: 14px;
-    color: #3B6E52;
-    font-weight: 800;
+    left: 17px;
+    top: 16px;
+    width: 8px;
+    height: 13px;
+    border: solid #3B6E52;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
 
   .facilities-grid {
@@ -823,12 +857,14 @@ const modalStyles = `
   }
 
   .coordinates {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: var(--font-mono);
     color: #0E3B3A !important;
   }
 
   .maps-link {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     background: #0E3B3A;
     color: #F6F0E4;
     padding: 12px 20px;
