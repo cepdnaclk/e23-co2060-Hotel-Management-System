@@ -25,6 +25,96 @@ const currencies = [
   { value: "GBP", label: "GBP" },
 ];
 
+
+function SiteFooter({ onNavigateTop }) {
+  return (
+    <footer className="public-site-footer">
+      <div className="footer-glow footer-glow-left" />
+      <div className="footer-glow footer-glow-right" />
+
+      <div className="public-footer-inner">
+        <div className="public-footer-main">
+          <div className="public-footer-brand-card">
+            <Link to="/" onClick={onNavigateTop} className="public-footer-logo">
+              <span className="public-footer-logo-mark">🌴</span>
+              <span>TourismHub LK</span>
+            </Link>
+            <p>
+              A smart Sri Lankan travel platform for discovering places, booking verified stays,
+              planning journeys, finding events, and connecting with trusted travel services.
+            </p>
+
+            <div className="public-footer-trust-grid">
+              <div>
+                <span>Tourism hotline</span>
+                <strong>1912</strong>
+              </div>
+              <div>
+                <span>Emergency service</span>
+                <strong>1990</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="public-footer-column">
+            <h3>Explore</h3>
+            <Link to="/explore" onClick={onNavigateTop}>Explore Sri Lanka</Link>
+            <Link to="/hotels" onClick={onNavigateTop}>Verified hotels</Link>
+            <Link to="/trip-planner" onClick={onNavigateTop}>Plan a trip</Link>
+            <Link to="/events" onClick={onNavigateTop}>Events</Link>
+            <Link to="/tourist-guides" onClick={onNavigateTop}>Tourist guides</Link>
+          </div>
+
+          <div className="public-footer-column">
+            <h3>Partners</h3>
+            <Link to="/list-your-property" onClick={onNavigateTop}>List your property</Link>
+            <Link to="/partner/login" onClick={onNavigateTop}>Partner login</Link>
+            <Link to="/partner/register" onClick={onNavigateTop}>Partner register</Link>
+            <Link to="/about" onClick={onNavigateTop}>About the platform</Link>
+          </div>
+
+          <div className="public-footer-column">
+            <h3>Support</h3>
+            <Link to="/about" onClick={onNavigateTop}>About us</Link>
+            <Link to="/my-bookings" onClick={onNavigateTop}>My bookings</Link>
+            <Link to="/login" onClick={onNavigateTop}>Login</Link>
+            <Link to="/register" onClick={onNavigateTop}>Create account</Link>
+          </div>
+
+          <div className="public-footer-column official-links">
+            <h3>Travel essentials</h3>
+            <a href="https://www.sltda.gov.lk/" target="_blank" rel="noreferrer">Sri Lanka Tourism Development Authority</a>
+            <a href="https://www.immigration.gov.lk/" target="_blank" rel="noreferrer">Immigration & Emigration</a>
+            <a href="https://www.airport.lk/" target="_blank" rel="noreferrer">Airport & Aviation Services</a>
+            <a href="https://www.srilankan.com/" target="_blank" rel="noreferrer">SriLankan Airlines</a>
+          </div>
+        </div>
+
+        <div className="public-footer-strip">
+          <div>
+            <strong>Built for Sri Lankan travel.</strong>
+            <span>Hotels, places, trips, events, guides, and bookings connected in one trusted system.</span>
+          </div>
+          <div className="public-footer-socials" aria-label="Social links">
+            <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
+            <a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="YouTube">▶</a>
+            <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram">◎</a>
+            <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer" aria-label="LinkedIn">in</a>
+          </div>
+        </div>
+
+        <div className="public-footer-bottom">
+          <p>© 2026 TourismHub LK. Smart Hotel & Tourism Management System.</p>
+          <div>
+            <Link to="/about" onClick={onNavigateTop}>Privacy Policy</Link>
+            <Link to="/about" onClick={onNavigateTop}>Terms & Conditions</Link>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 function PublicLayout() {
   const { user, isLoggedIn, logout } = useAuth();
   const location = useLocation();
@@ -35,6 +125,7 @@ function PublicLayout() {
   const [currency, setCurrency] = useState(
     () => localStorage.getItem("tourismhub_currency") || "LKR"
   );
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const username =
     user?.full_name ||
@@ -45,6 +136,7 @@ function PublicLayout() {
 
   useEffect(() => {
     setMenuOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location.pathname]);
 
   useEffect(() => {
@@ -55,10 +147,28 @@ function PublicLayout() {
     localStorage.setItem("tourismhub_currency", currency);
   }, [currency]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 420);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
       logout();
     }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  };
+
+  const handleNavigateTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   };
 
   return (
@@ -170,6 +280,19 @@ function PublicLayout() {
       <main className="page-body">
         <Outlet />
       </main>
+
+      <SiteFooter onNavigateTop={handleNavigateTop} />
+
+      <button
+        type="button"
+        className={`floating-scroll-top ${showScrollTop ? "is-visible" : ""}`}
+        aria-label="Back to top"
+        title="Back to top"
+        onClick={scrollToTop}
+      >
+        <span className="floating-scroll-icon">↑</span>
+        <span className="floating-scroll-text">Back to top</span>
+      </button>
     </div>
   );
 }
@@ -408,6 +531,304 @@ const layoutCss = `
     min-height: calc(100vh - 69px);
   }
 
+
+
+  .public-site-footer {
+    position: relative;
+    isolation: isolate;
+    margin-top: 90px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 14% 12%, rgba(251, 191, 36, 0.20), transparent 24rem),
+      radial-gradient(circle at 86% 10%, rgba(20, 184, 166, 0.22), transparent 25rem),
+      linear-gradient(135deg, #042f2e 0%, #075e55 48%, #0b8796 100%);
+    color: #ffffff;
+    box-shadow: 0 -26px 70px rgba(6, 78, 69, 0.18);
+  }
+
+  .footer-glow {
+    position: absolute;
+    z-index: -1;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    filter: blur(10px);
+    opacity: 0.28;
+    pointer-events: none;
+  }
+
+  .footer-glow-left {
+    left: -130px;
+    bottom: -170px;
+    background: #fbbf24;
+  }
+
+  .footer-glow-right {
+    right: -140px;
+    top: -160px;
+    background: #2dd4bf;
+  }
+
+  .public-footer-inner {
+    width: min(1280px, calc(100% - 52px));
+    margin: 0 auto;
+    padding: 60px 0 28px;
+  }
+
+  .public-footer-main {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.35fr) repeat(3, minmax(140px, 0.72fr)) minmax(190px, 0.95fr);
+    gap: 36px;
+    align-items: start;
+  }
+
+  .public-footer-brand-card {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+  }
+
+  .public-footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 29px;
+    font-weight: 950;
+    letter-spacing: -0.045em;
+  }
+
+  .public-footer-logo-mark {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08));
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+  }
+
+  .public-footer-brand-card p {
+    margin: 20px 0 22px;
+    color: rgba(255, 255, 255, 0.80);
+    line-height: 1.75;
+    font-size: 14.5px;
+    font-weight: 650;
+  }
+
+  .public-footer-trust-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .public-footer-trust-grid div {
+    padding: 15px 15px 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.11);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .public-footer-trust-grid span,
+  .public-footer-trust-grid strong {
+    display: block;
+  }
+
+  .public-footer-trust-grid span {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    line-height: 1.35;
+  }
+
+  .public-footer-trust-grid strong {
+    margin-top: 8px;
+    color: #fde68a;
+    font-size: 27px;
+    font-weight: 950;
+    letter-spacing: -0.04em;
+  }
+
+  .public-footer-column h3 {
+    margin: 8px 0 18px;
+    color: #fde68a;
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  .public-footer-column a {
+    display: block;
+    width: fit-content;
+    margin: 12px 0;
+    color: rgba(255, 255, 255, 0.84);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 760;
+    line-height: 1.35;
+    transition: color 0.18s ease, transform 0.18s ease;
+  }
+
+  .public-footer-column a:hover {
+    color: #fde68a;
+    transform: translateX(5px);
+  }
+
+  .official-links a {
+    color: rgba(255, 255, 255, 0.74);
+  }
+
+  .public-footer-strip {
+    margin-top: 42px;
+    padding: 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .public-footer-strip strong,
+  .public-footer-strip span {
+    display: block;
+  }
+
+  .public-footer-strip strong {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 950;
+  }
+
+  .public-footer-strip span {
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.74);
+    font-weight: 650;
+  }
+
+  .public-footer-socials {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .public-footer-socials a {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--hub-green);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 950;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+
+  .public-footer-socials a:hover {
+    transform: translateY(-3px);
+    background: #fde68a;
+  }
+
+  .public-footer-bottom {
+    padding-top: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .public-footer-bottom p {
+    margin: 0;
+  }
+
+  .public-footer-bottom div {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .public-footer-bottom a {
+    color: rgba(255, 255, 255, 0.84);
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .public-footer-bottom a:hover {
+    color: #fde68a;
+  }
+
+  .floating-scroll-top {
+    position: fixed;
+    left: 24px;
+    bottom: 24px;
+    z-index: 1200;
+    min-width: 154px;
+    height: 58px;
+    padding: 8px 18px 8px 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 191, 36, 0.72);
+    background: linear-gradient(135deg, #043f3a 0%, #087568 56%, #c89116 100%);
+    color: #ffffff;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    pointer-events: none;
+    box-shadow: 0 20px 46px rgba(6, 78, 69, 0.30), 0 0 0 8px rgba(251, 191, 36, 0.10);
+    transition: opacity 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  .floating-scroll-top.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .floating-scroll-icon {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #fbbf24;
+    color: #043f3a;
+    font-size: 26px;
+    font-weight: 950;
+    line-height: 1;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.62);
+  }
+
+  .floating-scroll-text {
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .floating-scroll-top:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 25px 56px rgba(6, 78, 69, 0.40), 0 0 0 12px rgba(251, 191, 36, 0.15);
+  }
+
   @media (max-width: 1180px) {
     .site-header-inner {
       min-height: auto;
@@ -624,6 +1045,71 @@ const layoutCss = `
       min-width: 104px;
     }
   }
+
+  @media (max-width: 1120px) {
+    .public-footer-main {
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 30px;
+    }
+
+    .official-links {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .public-site-footer {
+      margin-top: 64px;
+    }
+
+    .public-footer-inner {
+      width: min(100% - 28px, 1280px);
+      padding: 42px 0 24px;
+    }
+
+    .public-footer-main {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+
+    .official-links {
+      grid-column: auto;
+    }
+
+    .public-footer-brand-card {
+      padding: 20px;
+      border-radius: 24px;
+    }
+
+    .public-footer-logo {
+      font-size: 25px;
+    }
+
+    .public-footer-trust-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .public-footer-strip,
+    .public-footer-bottom {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .floating-scroll-top {
+      left: 15px;
+      bottom: 18px;
+      min-width: 58px;
+      width: 58px;
+      height: 58px;
+      padding: 8px;
+      border-radius: 50%;
+    }
+
+    .floating-scroll-text {
+      display: none;
+    }
+  }
+
 `;
 
 export default PublicLayout;

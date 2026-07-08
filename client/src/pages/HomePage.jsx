@@ -51,7 +51,6 @@ const getHotelImage = (hotel) =>
 function HomePage() {
   const [hotels, setHotels] = useState([]);
   const [loadingHotels, setLoadingHotels] = useState(true);
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const heroSlides = useMemo(() => {
     const featured = explorePlaces.filter((place) => place.featured).slice(0, 4);
@@ -228,19 +227,6 @@ function HomePage() {
     loadHotels();
   }, []);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 520);
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   const handleNavigateTop = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -529,100 +515,6 @@ function HomePage() {
         <Link to="/list-your-property" onClick={handleNavigateTop}>List your property</Link>
       </section>
 
-      <footer className="tourismhub-footer">
-        <div className="footer-inner">
-          <div className="footer-top">
-            <div className="footer-brand-panel">
-              <Link to="/" onClick={handleNavigateTop} className="footer-logo">
-                <span className="footer-logo-mark">🌴</span>
-                <span>TourismHub LK</span>
-              </Link>
-              <p>
-                Discover Sri Lanka, plan your days, find trusted stays, and connect with local travel
-                services from one clear platform.
-              </p>
-
-              <div className="footer-hotlines">
-                <div>
-                  <strong>Tourism hotline</strong>
-                  <span>1912</span>
-                </div>
-                <div>
-                  <strong>Emergency service</strong>
-                  <span>1990</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="footer-column">
-              <h3>For travellers</h3>
-              <Link to="/explore" onClick={handleNavigateTop}>Explore Sri Lanka</Link>
-              <Link to="/trip-planner" onClick={handleNavigateTop}>Plan a trip</Link>
-              <Link to="/hotels" onClick={handleNavigateTop}>Find hotels</Link>
-              <Link to="/events" onClick={handleNavigateTop}>Events</Link>
-              <Link to="/tourist-guides" onClick={handleNavigateTop}>Tourist guides</Link>
-            </div>
-
-            <div className="footer-column">
-              <h3>Hotel partners</h3>
-              <Link to="/list-your-property" onClick={handleNavigateTop}>List your property</Link>
-              <Link to="/partner" onClick={handleNavigateTop}>Partner portal</Link>
-              <Link to="/login" onClick={handleNavigateTop}>Partner login</Link>
-              <Link to="/about" onClick={handleNavigateTop}>About the platform</Link>
-            </div>
-
-            <div className="footer-column">
-              <h3>Support</h3>
-              <Link to="/about" onClick={handleNavigateTop}>About us</Link>
-              <Link to="/my-bookings" onClick={handleNavigateTop}>My bookings</Link>
-              <Link to="/register" onClick={handleNavigateTop}>Create account</Link>
-              <Link to="/login" onClick={handleNavigateTop}>Login</Link>
-            </div>
-
-            <div className="footer-column footer-official">
-              <h3>Travel essentials</h3>
-              <a href="https://www.sltda.gov.lk/" target="_blank" rel="noreferrer">Sri Lanka Tourism Development Authority</a>
-              <a href="https://www.immigration.gov.lk/" target="_blank" rel="noreferrer">Immigration & Emigration</a>
-              <a href="https://www.airport.lk/" target="_blank" rel="noreferrer">Airport & Aviation Services</a>
-              <a href="https://www.srilankan.com/" target="_blank" rel="noreferrer">SriLankan Airlines</a>
-            </div>
-          </div>
-
-          <div className="footer-middle">
-            <div>
-              <strong>Built for Sri Lankan travel.</strong>
-              <span>Hotels, journeys, events, guides, and bookings connected in one place.</span>
-            </div>
-            <div className="footer-socials" aria-label="Social links">
-              <span>f</span>
-              <span>▶</span>
-              <span>◎</span>
-              <span>in</span>
-            </div>
-          </div>
-
-          <div className="footer-bottom">
-            <p>© 2026 TourismHub LK. Smart Hotel & Tourism Management System.</p>
-            <div className="footer-legal-links">
-              <Link to="/about" onClick={handleNavigateTop}>Privacy Policy</Link>
-              <Link to="/about" onClick={handleNavigateTop}>Terms & Conditions</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <button
-        type="button"
-        className={`back-to-top ${showBackToTop ? "visible" : ""}`}
-        aria-label="Back to top"
-        title="Back to top"
-        onClick={scrollToTop}
-      >
-        <span className="back-icon-wrap">
-          <span className="back-arrow">↑</span>
-        </span>
-        <span className="back-label">Back to top</span>
-      </button>
     </main>
   );
 }
