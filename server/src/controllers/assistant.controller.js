@@ -2,9 +2,115 @@ const { GoogleGenAI } = require("@google/genai");
 const siteMap = require("../data/siteMap");
 const sriLankaKnowledge = require("../data/sriLankaKnowledge");
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+const defaultQuickQuestions = [
+  "How can I book a hotel?",
+  "Tell me about Sri Lankan culture",
+  "What are famous heritage sites?",
+  "How can I plan a trip?",
+];
+
+const createAiClient = () => {
+  if (!process.env.GEMINI_API_KEY) {
+    return null;
+  }
+
+  return new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+};
+
+const formatKnowledgeReply = (entry) => {
+  const details = entry.examples || entry.tips || entry.etiquette || [];
+  const detailText = details.length > 0 ? ` Examples: ${details.slice(0, 5).join(", ")}.` : "";
+
+  return `${entry.content}${detailText}`;
+};
+
+const createLocalAssistantResponse = (message) => {
+  const lowerMessage = message.toLowerCase();
+  const matchedPages = siteMap.filter((page) => {
+    const nameMatches = lowerMessage.includes(page.name.toLowerCase());
+    const keywordMatches = page.keywords.some((keyword) =>
+      lowerMessage.includes(keyword.toLowerCase())
+    );
+
+    return nameMatches || keywordMatches;
+  });
+
+  let reply =
+    "I can help you use TourismHub LK. You can search hotels, explore destinations, plan trips, find events, check transport, view tourist guides, and manage bookings.";
+  let externalLinks = [];
+
+  if (lowerMessage.includes("book") || lowerMessage.includes("hotel")) {
+    reply =
+      "To book a hotel, open the Hotels page, choose a hotel and room, check availability, then complete the booking details. After booking, you can manage it from My Bookings.";
+  } else if (lowerMessage.includes("plan") || lowerMessage.includes("trip")) {
+    reply =
+      "Use the Plan Trip page to build a day-by-day itinerary. You can combine destinations, hotels, transport, events, and tourist guides for your Sri Lanka journey.";
+  } else if (lowerMessage.includes("culture")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.culture);
+    externalLinks = sriLankaKnowledge.culture.links || [];
+  } else if (lowerMessage.includes("heritage") || lowerMessage.includes("famous site")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.heritageSites);
+    externalLinks = sriLankaKnowledge.heritageSites.links || [];
+  } else if (lowerMessage.includes("history")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.history);
+    externalLinks = sriLankaKnowledge.history.links || [];
+  } else if (lowerMessage.includes("religion") || lowerMessage.includes("temple")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.religions);
+  } else if (lowerMessage.includes("food")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.food);
+  } else if (lowerMessage.includes("festival") || lowerMessage.includes("event")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.festivals);
+  } else if (
+    lowerMessage.includes("wildlife") ||
+    lowerMessage.includes("nature") ||
+    lowerMessage.includes("beach")
+  ) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.natureAndWildlife);
+    externalLinks = sriLankaKnowledge.natureAndWildlife.links || [];
+  } else if (lowerMessage.includes("safety") || lowerMessage.includes("emergency")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.emergencyAndSafety);
+  } else if (lowerMessage.includes("etiquette") || lowerMessage.includes("respect")) {
+    reply = formatKnowledgeReply(sriLankaKnowledge.travelEtiquette);
+  } else if (
+    lowerMessage.includes("sri lanka") ||
+    lowerMessage.includes("tourism") ||
+    lowerMessage.includes("travel")
+  ) {
+    reply = sriLankaKnowledge.overview.content;
+    externalLinks = sriLankaKnowledge.overview.links || [];
+  }
+
+  const suggestedActions =
+    matchedPages.length > 0
+      ? matchedPages.slice(0, 3).map((page) => ({
+          label: `Go to ${page.name}`,
+          path: page.path,
+        }))
+      : [
+          {
+            label: "Go to Hotels",
+            path: "/hotels",
+          },
+          {
+            label: "Plan a Trip",
+            path: "/trip-planner",
+          },
+          {
+            label: "Explore Sri Lanka",
+            path: "/explore",
+          },
+        ];
+
+  return {
+    success: true,
+    reply,
+    suggestedActions,
+    quickQuestions: defaultQuickQuestions,
+    externalLinks,
+  };
+};
 
 const askAssistant = async (req, res) => {
   try {
@@ -15,9 +121,16 @@ const askAssistant = async (req, res) => {
         success: false,
         reply: "Please enter a message.",
         suggestedActions: [],
-        quickQuestions: [],
+        quickQuestions: defaultQuickQuestions,
         externalLinks: [],
       });
+    }
+
+    const localResponse = createLocalAssistantResponse(message);
+    const ai = createAiClient();
+
+    if (!ai) {
+      return res.json(localResponse);
     }
 
     const prompt = `
@@ -93,12 +206,7 @@ Return only this JSON format:
           outputText ||
           "I can help you find hotels, events, destinations, transport, guides, trip planning options, and Sri Lanka tourism information.",
         suggestedActions: [],
-        quickQuestions: [
-          "How can I book a hotel?",
-          "Tell me about Sri Lankan culture",
-          "What are famous heritage sites?",
-          "How can I plan a trip?",
-        ],
+        quickQuestions: defaultQuickQuestions,
         externalLinks: [],
       };
     }
@@ -115,13 +223,9 @@ Return only this JSON format:
   } catch (error) {
     console.error("Gemini Assistant Error:", error);
 
-    return res.status(500).json({
-      success: false,
-      reply: "Sorry, the AI assistant is not available right now.",
-      suggestedActions: [],
-      quickQuestions: [],
-      externalLinks: [],
-    });
+    const message = req.body?.message || "";
+
+    return res.json(createLocalAssistantResponse(message));
   }
 };
 

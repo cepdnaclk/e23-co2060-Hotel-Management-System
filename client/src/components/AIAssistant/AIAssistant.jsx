@@ -81,11 +81,17 @@ function AIAssistant() {
         setQuickQuestions(data.quickQuestions);
       }
     } catch (error) {
+      const assistantError =
+        error.message === "Failed to fetch"
+          ? "I cannot reach the backend server yet. Please start the server on port 5000, then try again."
+          : error.message ||
+            "Sorry, I could not connect to the AI assistant. Please check whether the backend server is running.";
+
       setMessages((prev) => [
         ...prev,
         {
           sender: "assistant",
-          text: "Sorry, I could not connect to the AI assistant. Please check whether the backend server is running.",
+          text: assistantError,
         },
       ]);
     } finally {
