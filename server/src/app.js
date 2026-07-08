@@ -18,6 +18,7 @@ const adminEventRoutes = require("./routes/adminEvent.routes");
 const adminGuideRoutes = require("./routes/adminGuide.routes");
 const partnerGuideRoutes = require("./routes/partnerGuide.routes");
 const publicGuideRoutes = require("./routes/publicGuide.routes");
+const assistantRoutes = require("./routes/assistant.routes");
 
 const app = express();
 
@@ -91,6 +92,7 @@ app.use("/api/explore", exploreRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/tourist", touristEventRoutes);
 app.use("/api/guides", publicGuideRoutes);
+app.use("/api/assistant", assistantRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -124,3 +126,4 @@ app.listen(PORT, () => {
   console.log("Allowed CORS origins:", allowedOrigins);
   console.log("Local Vite development origins are allowed on any port.");
 });
+
