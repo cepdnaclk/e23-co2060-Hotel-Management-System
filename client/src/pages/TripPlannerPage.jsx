@@ -269,6 +269,7 @@ function TripPlannerPage() {
     (savedPlace) => !days.some((day) => day.places.some((place) => place.id === savedPlace.id))
   );
   const popularPlaces = explorePlaces.slice(0, 6);
+  const savedSectionPlaces = savedPlaces.length ? savedPlaces.slice(0, 6) : popularPlaces;
 
   const routeCities = days
     .flatMap((day) => day.places.map((place) => place.city))
@@ -763,6 +764,43 @@ function TripPlannerPage() {
         <strong>Plan Your Trip</strong>
       </nav>
 
+      <section className="trip-saved-showcase" id="saved-destinations" aria-label="Saved places from Explore">
+        <div className="saved-showcase-head">
+          <div>
+            <span className="planner-eyebrow light">Explore places</span>
+            <h2>Start with places you want to visit</h2>
+            <p>
+              Save destinations from Explore, then add them into travel days. This keeps the trip
+              plan natural before selecting hotels.
+            </p>
+          </div>
+          <Link to="/explore" className="saved-showcase-more">Explore more</Link>
+        </div>
+
+        <div className="saved-showcase-grid">
+          {savedSectionPlaces.map((place) => (
+            <article className="saved-showcase-card" key={place.id}>
+              <img src={place.image} alt={place.name} />
+              <div className="saved-showcase-overlay">
+                <span>{place.region || place.category}</span>
+                <h3>{place.name}</h3>
+                <p>{place.city} • {place.duration || "Half day"}</p>
+                <div className="saved-showcase-actions">
+                  <button onClick={() => addPlaceToDay(place, 0)}>Add to Day 1</button>
+                  <Link to="/explore">View details</Link>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {!savedPlaces.length && (
+          <div className="saved-empty-note">
+            These are suggested places to start. Open Explore to save your own destinations.
+          </div>
+        )}
+      </section>
+
       <section className="trip-planner-intro" aria-label="Trip planning introduction">
         <article className="intro-main-card">
           <span className="planner-eyebrow light">Book your trip</span>
@@ -906,7 +944,7 @@ function TripPlannerPage() {
         ))}
       </section>
 
-      <section className="planner-dashboard-grid" id="saved-destinations">
+      <section className="planner-dashboard-grid" id="planner-workspace">
         <aside className="saved-destinations-panel">
           <div className="panel-title-row">
             <div>
@@ -1198,6 +1236,160 @@ const plannerCss = `
   }
 
   .trip-breadcrumb strong { color: #0f172a; }
+
+  .trip-saved-showcase {
+    max-width: 1180px;
+    margin: 42px auto 32px;
+    padding: 0 18px;
+  }
+
+  .saved-showcase-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .saved-showcase-head h2 {
+    margin: 12px 0 10px;
+    color: #063d38;
+    font-size: clamp(34px, 5vw, 58px);
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+
+  .saved-showcase-head p {
+    max-width: 760px;
+    margin: 0;
+    color: #50615d;
+    font-size: 17px;
+    line-height: 1.7;
+    font-weight: 760;
+  }
+
+  .saved-showcase-more {
+    flex: 0 0 auto;
+    border: 1.5px solid #0f9b8e;
+    border-radius: 999px;
+    color: #087568;
+    background: #ffffff;
+    text-decoration: none;
+    padding: 15px 34px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    box-shadow: 0 14px 34px rgba(15, 118, 110, 0.08);
+  }
+
+  .saved-showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+  }
+
+  .saved-showcase-card {
+    position: relative;
+    min-height: 420px;
+    border: 0;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #083c38;
+    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.16);
+    transform: translateY(0);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  .saved-showcase-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 32px 70px rgba(15, 23, 42, 0.22);
+  }
+
+  .saved-showcase-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.02);
+    filter: saturate(0.98);
+  }
+
+  .saved-showcase-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(2, 35, 32, 0.84));
+  }
+
+  .saved-showcase-overlay {
+    position: absolute;
+    z-index: 2;
+    inset: auto 0 0;
+    padding: 28px;
+    color: #ffffff;
+  }
+
+  .saved-showcase-overlay span {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: #ffe66b;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+
+  .saved-showcase-overlay h3 {
+    margin: 0 0 10px;
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+  }
+
+  .saved-showcase-overlay p {
+    margin: 0 0 18px;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 800;
+  }
+
+  .saved-showcase-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .saved-showcase-actions button,
+  .saved-showcase-actions a {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 950;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .saved-showcase-actions button {
+    background: #ffc21a;
+    color: #092d2a;
+  }
+
+  .saved-showcase-actions a {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  .saved-empty-note {
+    margin-top: 16px;
+    border-radius: 18px;
+    background: #ecfdf5;
+    border: 1px solid #b8efe2;
+    padding: 14px 18px;
+    color: #0f766e;
+    font-weight: 900;
+  }
 
   .trip-planner-intro {
     max-width: 1180px;
@@ -1853,6 +2045,160 @@ const plannerCss = `
   }
 
   .trip-breadcrumb strong { color: #0f172a; }
+
+  .trip-saved-showcase {
+    max-width: 1180px;
+    margin: 42px auto 32px;
+    padding: 0 18px;
+  }
+
+  .saved-showcase-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .saved-showcase-head h2 {
+    margin: 12px 0 10px;
+    color: #063d38;
+    font-size: clamp(34px, 5vw, 58px);
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+
+  .saved-showcase-head p {
+    max-width: 760px;
+    margin: 0;
+    color: #50615d;
+    font-size: 17px;
+    line-height: 1.7;
+    font-weight: 760;
+  }
+
+  .saved-showcase-more {
+    flex: 0 0 auto;
+    border: 1.5px solid #0f9b8e;
+    border-radius: 999px;
+    color: #087568;
+    background: #ffffff;
+    text-decoration: none;
+    padding: 15px 34px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    box-shadow: 0 14px 34px rgba(15, 118, 110, 0.08);
+  }
+
+  .saved-showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+  }
+
+  .saved-showcase-card {
+    position: relative;
+    min-height: 420px;
+    border: 0;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #083c38;
+    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.16);
+    transform: translateY(0);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  .saved-showcase-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 32px 70px rgba(15, 23, 42, 0.22);
+  }
+
+  .saved-showcase-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.02);
+    filter: saturate(0.98);
+  }
+
+  .saved-showcase-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(2, 35, 32, 0.84));
+  }
+
+  .saved-showcase-overlay {
+    position: absolute;
+    z-index: 2;
+    inset: auto 0 0;
+    padding: 28px;
+    color: #ffffff;
+  }
+
+  .saved-showcase-overlay span {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: #ffe66b;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+
+  .saved-showcase-overlay h3 {
+    margin: 0 0 10px;
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+  }
+
+  .saved-showcase-overlay p {
+    margin: 0 0 18px;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 800;
+  }
+
+  .saved-showcase-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .saved-showcase-actions button,
+  .saved-showcase-actions a {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 950;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .saved-showcase-actions button {
+    background: #ffc21a;
+    color: #092d2a;
+  }
+
+  .saved-showcase-actions a {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  .saved-empty-note {
+    margin-top: 16px;
+    border-radius: 18px;
+    background: #ecfdf5;
+    border: 1px solid #b8efe2;
+    padding: 14px 18px;
+    color: #0f766e;
+    font-weight: 900;
+  }
 
   .trip-planner-intro {
     max-width: 1180px;
