@@ -298,3 +298,35 @@
   border-radius: 50%;
   animation: aiSparkle 1.8s ease-in-out infinite;
 }
+.ai-external-links {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 12px;
+  margin: 10px 0 14px;
+  box-shadow: 0 8px 18px rgba(11, 116, 255, 0.08);
+}
+
+.ai-external-links p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.ai-external-links a {
+  display: block;
+  text-decoration: none;
+  color: #0b74ff;
+  background: #eff6ff;
+  border-radius: 10px;
+  padding: 9px 10px;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ai-external-links a:hover {
+  background: #dbeafe;
+  color: #0047ab;
+}

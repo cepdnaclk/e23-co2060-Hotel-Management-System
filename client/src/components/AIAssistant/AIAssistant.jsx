@@ -7,17 +7,19 @@ function AIAssistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [actions, setActions] = useState([]);
+  const [externalLinks, setExternalLinks] = useState([]);
+
   const [quickQuestions, setQuickQuestions] = useState([
     "How can I book a hotel?",
+    "Tell me about Sri Lankan culture",
+    "What are famous heritage sites?",
     "How can I plan a trip?",
-    "How can I find events?",
-    "How can I register my property?",
   ]);
 
   const [messages, setMessages] = useState([
     {
       sender: "assistant",
-      text: "Hi! I am your TourismHub AI assistant. Ask me where to go or what to do.",
+      text: "Hi! I am your TourismHub LK AI Assistant. Ask me about hotels, events, trip planning, or Sri Lankan tourism.",
     },
   ]);
 
@@ -31,6 +33,7 @@ function AIAssistant() {
 
     setInput("");
     setActions([]);
+    setExternalLinks([]);
 
     setMessages((prev) => [
       ...prev,
@@ -65,11 +68,14 @@ function AIAssistant() {
         ...prev,
         {
           sender: "assistant",
-          text: data.reply || "I can help you use TourismHub LK.",
+          text:
+            data.reply ||
+            "I can help you use TourismHub LK and learn about Sri Lanka.",
         },
       ]);
 
       setActions(data.suggestedActions || []);
+      setExternalLinks(data.externalLinks || []);
 
       if (data.quickQuestions && data.quickQuestions.length > 0) {
         setQuickQuestions(data.quickQuestions);
@@ -99,7 +105,7 @@ function AIAssistant() {
           <div className="ai-chat-header">
             <div>
               <h3>TourismHub LK AI Assistant</h3>
-              <p>Website guide and travel helper</p>
+              <p>Website guide and Sri Lanka travel helper</p>
             </div>
 
             <button
@@ -108,7 +114,7 @@ function AIAssistant() {
               onClick={() => setIsOpen(false)}
               aria-label="Close TourismHub AI Assistant"
             >
-              Ã—
+              ×
             </button>
           </div>
 
@@ -136,6 +142,23 @@ function AIAssistant() {
                   >
                     {action.label}
                   </button>
+                ))}
+              </div>
+            )}
+
+            {externalLinks.length > 0 && (
+              <div className="ai-external-links">
+                <p>Useful links:</p>
+
+                {externalLinks.map((link, index) => (
+                  <a
+                    key={index}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {link.label}
+                  </a>
                 ))}
               </div>
             )}
