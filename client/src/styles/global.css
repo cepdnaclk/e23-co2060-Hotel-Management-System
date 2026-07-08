@@ -12,17 +12,21 @@
   --border: #e5e7eb;
   --shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
   --radius: 18px;
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-display: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-sans: Inter, Aptos, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: Inter, Aptos, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: clamp(1.35rem, 2vw, 1.75rem);
-  --text-3xl: clamp(1.75rem, 3vw, 2.4rem);
-  --text-4xl: clamp(2.2rem, 4.5vw, 3.6rem);
+  --text-base: 0.96rem;
+  --text-lg: 1.08rem;
+  --text-xl: 1.22rem;
+  --text-2xl: clamp(1.35rem, 1.8vw, 1.7rem);
+  --text-3xl: clamp(1.75rem, 2.6vw, 2.35rem);
+  --text-4xl: clamp(2.4rem, 5vw, 4.4rem);
+  --type-hero: clamp(2.75rem, 5.6vw, 4.75rem);
+  --type-section: clamp(2rem, 3.6vw, 3.25rem);
+  --type-card-title: clamp(1.35rem, 2.2vw, 2rem);
+  --content-wide: min(1180px, calc(100% - 40px));
 }
 
 * {
@@ -39,11 +43,16 @@ html {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: var(--bg);
+  background: #ffffff;
   color: var(--dark);
-  line-height: 1.55;
+  line-height: 1.62;
   letter-spacing: 0;
   text-rendering: optimizeLegibility;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 a {
@@ -68,24 +77,24 @@ h5,
 h6 {
   font-family: var(--font-display);
   color: #0f172a;
-  line-height: 1.12;
-  letter-spacing: 0;
+  line-height: 1.08;
+  letter-spacing: 0 !important;
   overflow-wrap: anywhere;
 }
 
 h1 {
   font-size: var(--text-4xl);
-  font-weight: 850;
+  font-weight: 800;
 }
 
 h2 {
   font-size: var(--text-3xl);
-  font-weight: 800;
+  font-weight: 780;
 }
 
 h3 {
   font-size: var(--text-xl);
-  font-weight: 800;
+  font-weight: 760;
 }
 
 p,
@@ -96,6 +105,133 @@ select,
 textarea,
 button {
   font-size: var(--text-base);
+}
+
+body,
+input,
+select,
+textarea,
+button,
+a,
+p,
+li,
+label,
+small,
+span,
+strong,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: 0 !important;
+}
+
+p,
+li {
+  color: #475569;
+  font-weight: 500;
+}
+
+button,
+a,
+select,
+input,
+textarea {
+  line-height: 1.35;
+}
+
+.site-header,
+.public-site-footer,
+.cinematic-home-page,
+.explore-page,
+.place-detail-page,
+.hotels-page,
+.trip-planner-page,
+.about-page,
+.guide-page,
+.guide-profile-page,
+.partner-guide-page {
+  font-family: var(--font-sans) !important;
+}
+
+.hero-center-copy h1,
+.explore-hero-copy h1,
+.trip-hero-content h1,
+.planner-hero-copy h1,
+.detail-hero-content h1,
+.event-hero-copy h1,
+.guide-hero-copy h1,
+.profile-hero-copy h1,
+.about-hero-content h1,
+.hero-copy h1,
+.guide-form-hero h1 {
+  font-size: var(--type-hero) !important;
+  line-height: 1.04 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+.showcase-heading h2,
+.quick-start-header h2,
+.section-heading-line h2,
+.settings-header h2,
+.panel-title-row h2,
+.partner-strip-section h2,
+.events-page-intro h2,
+.section-heading-row h2,
+.results-heading h2,
+.white-card h2,
+.profile-section h2,
+.about-section h2 {
+  font-size: var(--type-section) !important;
+  line-height: 1.12 !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+}
+
+.showcase-card-body h3,
+.quick-card-content h3,
+.planner-feature-card h3,
+.planner-image-overlay h3,
+.explore-hero-card h2,
+.clear-preview-content h2,
+.itinerary-card h3 {
+  font-size: var(--type-card-title) !important;
+  line-height: 1.18 !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+}
+
+.section-kicker,
+.hero-kicker,
+.profile-kicker,
+.guide-pill,
+.mini-label,
+.planner-image-overlay span,
+.showcase-card-body span,
+.route-badge,
+.hero-photo-note {
+  font-size: 0.76rem !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+}
+
+.hero-center-copy p,
+.explore-hero-copy > span,
+.trip-hero-content > p,
+.planner-hero-copy p,
+.detail-hero-content p,
+.guide-hero-copy p,
+.about-hero-content p,
+.showcase-heading p,
+.quick-start-header p,
+.planner-feature-card > p,
+.white-card p {
+  font-size: clamp(1rem, 1.35vw, 1.24rem) !important;
+  line-height: 1.72 !important;
+  font-weight: 560 !important;
 }
 
 .page {

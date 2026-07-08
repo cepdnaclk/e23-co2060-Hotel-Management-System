@@ -2246,9 +2246,9 @@ const plannerCss = `
   /* professional full-width trip planner top */
   .trip-planner-banner.trip-planner-showcase-hero {
     position: relative;
-    min-height: 650px;
+    min-height: clamp(520px, 68vh, 680px);
     width: 100%;
-    padding: 70px max(18px, 6vw) 58px;
+    padding: 52px max(18px, 5vw) 38px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -2281,49 +2281,49 @@ const plannerCss = `
   .trip-showcase-inner {
     position: relative;
     z-index: 2;
-    width: min(1480px, 100%);
+    width: min(1240px, 100%);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1.22fr) minmax(330px, .58fr);
+    grid-template-columns: minmax(0, 1.05fr) minmax(300px, .46fr);
     align-items: center;
-    gap: 44px;
+    gap: 34px;
   }
 
   .trip-showcase-copy p {
     display: inline-flex;
-    margin: 0 0 22px;
-    padding: 11px 18px;
+    margin: 0 0 18px;
+    padding: 9px 17px;
     border-radius: 999px;
     background: rgba(255, 238, 159, .94);
     color: #04483f;
     letter-spacing: .26em;
     font-size: 12px;
-    font-weight: 1000;
+    font-weight: 760;
   }
 
   .trip-showcase-copy h1 {
-    margin: 0 0 22px;
-    max-width: 920px;
-    font-size: clamp(58px, 7.7vw, 108px);
-    line-height: .92;
-    letter-spacing: -.055em;
-    font-weight: 1000;
+    margin: 0 0 18px;
+    max-width: 760px;
+    font-size: clamp(44px, 5.4vw, 76px);
+    line-height: 1.04;
+    letter-spacing: 0;
+    font-weight: 800;
     color: #ffffff;
     text-shadow: 0 18px 50px rgba(0,0,0,.28);
   }
 
   .trip-showcase-copy > span {
     display: block;
-    max-width: 820px;
+    max-width: 700px;
     color: #f5fffc;
-    font-size: clamp(17px, 1.25vw, 22px);
-    font-weight: 750;
-    line-height: 1.75;
+    font-size: clamp(16px, 1.25vw, 20px);
+    font-weight: 620;
+    line-height: 1.65;
     text-shadow: 0 8px 24px rgba(0,0,0,.22);
   }
 
   .trip-showcase-actions {
-    margin-top: 30px;
+    margin-top: 26px;
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
@@ -2331,11 +2331,12 @@ const plannerCss = `
 
   .trip-showcase-actions a {
     border-radius: 999px;
-    padding: 15px 26px;
+    padding: 13px 22px;
     background: #ffffff;
     color: #064e45;
     text-decoration: none;
-    font-weight: 1000;
+    font-size: 15px;
+    font-weight: 760;
     box-shadow: 0 14px 35px rgba(0,0,0,.14);
   }
 
@@ -2345,8 +2346,8 @@ const plannerCss = `
   }
 
   .trip-showcase-card {
-    min-height: 430px;
-    border-radius: 34px;
+    min-height: 340px;
+    border-radius: 28px;
     padding: 26px;
     color: #ffffff;
     background: linear-gradient(145deg, rgba(255,255,255,.25), rgba(255,255,255,.1));
@@ -2411,7 +2412,7 @@ const plannerCss = `
   /* clear photo preview card effect */
   .trip-showcase-card.clear-preview-card {
     position:relative;
-    min-height:430px;
+    min-height:340px;
     padding:0;
     color:#ffffff;
     background:#063f39;
@@ -2449,9 +2450,9 @@ const plannerCss = `
 
   .trip-showcase-card-content.clear-preview-content {
     position:absolute;
-    left:30px;
-    right:30px;
-    bottom:30px;
+    left:24px;
+    right:24px;
+    bottom:24px;
     z-index:2;
     display:flex;
     flex-direction:column;
@@ -2467,22 +2468,22 @@ const plannerCss = `
     background:rgba(5,85,75,.80);
     color:#fff3a7;
     font-size:12px;
-    font-weight:950;
+    font-weight:760;
     border:1px solid rgba(255,255,255,.24);
     box-shadow:0 10px 24px rgba(0,0,0,.16);
   }
 
   .trip-showcase-card-content.clear-preview-content h2 {
-    margin:24px 0 10px;
-    font-size:clamp(28px,2.8vw,44px);
-    line-height:1.03;
+    margin:18px 0 8px;
+    font-size:clamp(24px,2.2vw,34px);
+    line-height:1.12;
     letter-spacing:-.045em;
     text-shadow:0 4px 18px rgba(0,0,0,.36);
   }
 
   .trip-showcase-card-content.clear-preview-content p {
     margin:0;
-    font-weight:850;
+    font-weight:650;
     color:#eafffb;
     text-shadow:0 2px 12px rgba(0,0,0,.32);
   }
@@ -2507,17 +2508,17 @@ const plannerCss = `
   .trip-showcase-stats {
     position: relative;
     z-index: 2;
-    width: min(1480px, 100%);
-    margin: 34px auto 0;
+    width: min(1240px, 100%);
+    margin: 24px auto 0;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
   }
 
   .trip-showcase-stats article {
-    min-height: 96px;
-    border-radius: 24px;
-    padding: 20px 22px;
+    min-height: 78px;
+    border-radius: 18px;
+    padding: 16px 18px;
     background: rgba(255,255,255,.16);
     border: 1px solid rgba(255,255,255,.28);
     color: #fff;
@@ -2527,7 +2528,7 @@ const plannerCss = `
   .trip-showcase-stats strong {
     display:block;
     color:#ffe176;
-    font-size: clamp(28px, 3vw, 44px);
+    font-size: clamp(24px, 2.5vw, 34px);
     line-height: 1;
   }
 
@@ -2537,7 +2538,7 @@ const plannerCss = `
     letter-spacing:.12em;
     text-transform:uppercase;
     font-size:12px;
-    font-weight:950;
+    font-weight:760;
   }
 
   @keyframes tripHeroFadeZoom {
@@ -2554,9 +2555,9 @@ const plannerCss = `
   @media (max-width: 680px) {
     .trip-planner-banner.trip-planner-showcase-hero {
       min-height: auto;
-      padding: 44px 16px 54px;
+      padding: 38px 16px 42px;
     }
-    .trip-showcase-copy h1 { font-size: clamp(42px, 15vw, 64px); }
+    .trip-showcase-copy h1 { font-size: clamp(38px, 12vw, 54px); }
     .trip-showcase-actions a { width: 100%; text-align: center; }
     .trip-showcase-stats { grid-template-columns: 1fr; }
   }

@@ -180,8 +180,14 @@ function PublicLayout() {
 
         <div className="site-header-inner">
           <Link to="/" className="brand-link" aria-label="TourismHub LK home">
-            <span className="brand-icon">🌴</span>
-            <span className="brand-name">TourismHub LK</span>
+            <span className="brand-mark" aria-hidden="true">
+              <span className="brand-mark-sun" />
+              <span className="brand-mark-wave" />
+              <strong>TH</strong>
+            </span>
+            <span className="brand-name">
+              TourismHub <span>LK</span>
+            </span>
           </Link>
 
           <button
@@ -312,27 +318,25 @@ const layoutCss = `
 
   body {
     margin: 0;
-    background: var(--hub-paper);
+    background: #ffffff;
     color: var(--hub-ink);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-sans, Inter, Aptos, "Segoe UI", Roboto, Arial, sans-serif);
   }
 
   a { color: inherit; }
 
   .tourismhub-shell {
     min-height: 100vh;
-    background:
-      radial-gradient(circle at top left, rgba(20, 184, 166, 0.09), transparent 34rem),
-      linear-gradient(135deg, #f8f4ea 0%, #ffffff 52%, #f0fdfa 100%);
+    background: #ffffff;
   }
 
   .site-header {
     position: sticky;
     top: 0;
     z-index: 1000;
-    background: rgba(255, 255, 255, 0.97);
+    background: rgba(255, 255, 255, 0.98);
     border-bottom: 1px solid var(--hub-line);
-    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.045);
+    box-shadow: 0 8px 26px rgba(15, 23, 42, 0.035);
     backdrop-filter: blur(14px);
   }
 
@@ -342,50 +346,123 @@ const layoutCss = `
   }
 
   .site-header-inner {
-    width: min(1440px, 100%);
-    min-height: 66px;
+    width: 100%;
+    min-height: 76px;
     margin: 0 auto;
-    padding: 0 30px;
-    display: flex;
+    padding: 0 clamp(22px, 3vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(228px, max-content) minmax(0, 1fr) max-content;
     align-items: center;
-    gap: 26px;
+    column-gap: clamp(18px, 2vw, 34px);
   }
 
   .brand-link {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: max-content;
     text-decoration: none;
+    flex: 0 0 auto;
   }
 
-  .brand-icon {
-    font-size: 24px;
+  .brand-mark {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    color: #ffffff;
+    background:
+      radial-gradient(circle at 70% 25%, #facc15 0 16%, transparent 17%),
+      linear-gradient(135deg, #047857 0%, #079b8f 55%, #0ea5e9 100%);
+    box-shadow: 0 14px 28px rgba(8, 117, 104, 0.22);
+  }
+
+  .brand-mark::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    bottom: 10px;
+    width: 28px;
+    height: 11px;
+    border-radius: 999px 999px 0 0;
+    background: rgba(255, 255, 255, 0.30);
+    transform: rotate(-8deg);
+  }
+
+  .brand-mark-sun,
+  .brand-mark-wave {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .brand-mark-sun {
+    right: 9px;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fde68a;
+    box-shadow: 0 0 0 4px rgba(253, 230, 138, 0.22);
+  }
+
+  .brand-mark-wave {
+    left: 8px;
+    right: 7px;
+    bottom: 9px;
+    height: 7px;
+    border-radius: 999px;
+    border-top: 2px solid rgba(255, 255, 255, 0.78);
+  }
+
+  .brand-mark strong {
+    position: relative;
+    z-index: 1;
+    transform: translateY(-1px);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 850;
     line-height: 1;
   }
 
   .brand-name {
     color: var(--hub-green);
-    font-size: 24px;
-    font-weight: 900;
-    letter-spacing: -0.03em;
+    font-size: clamp(22px, 1.7vw, 27px);
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .brand-name span {
+    color: #0f9f8f;
   }
 
   .main-navigation {
-    flex: 1;
+    justify-self: center;
+    width: 100%;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: clamp(14px, 1.45vw, 25px);
+    overflow: visible;
+    scrollbar-width: none;
+  }
+
+  .main-navigation::-webkit-scrollbar {
+    display: none;
   }
 
   .nav-item {
     position: relative;
     color: #111827;
     text-decoration: none;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 730;
     line-height: 1;
+    padding: 30px 0 29px;
     white-space: nowrap;
     transition: color 0.18s ease;
   }
@@ -400,17 +477,20 @@ const layoutCss = `
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -11px;
+    bottom: 17px;
     height: 2px;
     background: var(--hub-green);
     border-radius: 999px;
   }
 
   .header-actions {
+    justify-self: end;
+    max-width: 100%;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 8px;
     white-space: nowrap;
   }
 
@@ -419,18 +499,19 @@ const layoutCss = `
   .register-link,
   .logout-button,
   .booking-link {
-    min-height: 34px;
+    min-height: 38px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
     border-radius: 999px;
     padding: 0 14px;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 760;
     border: 1px solid transparent;
     cursor: pointer;
     white-space: nowrap;
+    flex: 0 0 auto;
     transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
   }
 
@@ -482,17 +563,17 @@ const layoutCss = `
   }
 
   .clean-select {
-    height: 34px;
+    height: 38px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
     border: 1px solid rgba(8, 117, 104, 0.18);
     background: #ffffff;
     border-radius: 999px;
-    padding: 0 8px;
+    padding: 0 9px;
     color: var(--hub-green);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 760;
   }
 
   .clean-select select {
@@ -500,19 +581,21 @@ const layoutCss = `
     outline: 0;
     background: transparent;
     color: #111827;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 720;
     cursor: pointer;
-    max-width: 78px;
+    max-width: 76px;
   }
 
   .user-greeting {
     color: #1f2937;
-    font-size: 12px;
-    font-weight: 800;
-    max-width: 150px;
+    font-size: 13px;
+    font-weight: 720;
+    max-width: 126px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mobile-menu-button {
@@ -829,25 +912,85 @@ const layoutCss = `
     box-shadow: 0 25px 56px rgba(6, 78, 69, 0.40), 0 0 0 12px rgba(251, 191, 36, 0.15);
   }
 
-  @media (max-width: 1180px) {
+  @media (max-width: 1500px) {
     .site-header-inner {
-      min-height: auto;
-      padding: 12px 20px;
-      flex-wrap: wrap;
-      gap: 14px;
+      grid-template-columns: minmax(215px, max-content) minmax(0, 1fr) max-content;
+      min-height: 70px;
+      padding-left: 18px;
+      padding-right: 18px;
+      column-gap: 16px;
+    }
+
+    .brand-name {
+      font-size: 22px;
     }
 
     .main-navigation {
-      order: 3;
-      width: 100%;
-      justify-content: flex-start;
-      gap: 18px;
-      overflow-x: auto;
-      padding: 8px 0 3px;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .nav-item {
+      font-size: 12.5px;
+    }
+
+    .property-link,
+    .login-link,
+    .register-link,
+    .logout-button,
+    .booking-link {
+      padding-left: 11px;
+      padding-right: 11px;
+      font-size: 12.5px;
+    }
+
+    .clean-select {
+      padding-left: 7px;
+      padding-right: 7px;
+    }
+
+    .user-greeting {
+      max-width: 96px;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    .site-header-inner {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      padding: 12px 18px 10px;
+      row-gap: 10px;
+    }
+
+    .brand-link {
+      justify-self: center;
     }
 
     .header-actions {
-      margin-left: auto;
+      grid-column: 1;
+      grid-row: 2;
+      justify-self: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .main-navigation {
+      grid-column: 1;
+      grid-row: 3;
+      width: 100%;
+      justify-content: center;
+      gap: 20px;
+      padding: 2px 0 0;
+    }
+
+    .nav-item {
+      padding-top: 12px;
+      padding-bottom: 13px;
+    }
+
+    .nav-item-active::after {
+      bottom: 4px;
     }
   }
 
@@ -863,16 +1006,19 @@ const layoutCss = `
     .brand-link {
       min-width: 0;
       overflow: hidden;
+      justify-self: start;
     }
 
     .brand-name {
       font-size: 22px;
-      letter-spacing: -0.04em;
+      letter-spacing: 0;
       white-space: nowrap;
     }
 
-    .brand-icon {
-      font-size: 22px;
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
     }
 
     .mobile-menu-button {
