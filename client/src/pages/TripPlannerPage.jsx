@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { jsPDF } from "jspdf";
+import api from "../api/api";
 import {
   budgetDailyTargets,
   explorePlaces,
@@ -12,6 +13,25 @@ import {
 
 const SAVED_PLACES_KEY = "tourismhub_trip_places";
 const TRIP_PLAN_KEY = "tourismhub_trip_plan";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const ASSET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
+
+const toDbImageUrl = (imageUrl) => {
+  const value = String(imageUrl || "").trim();
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${ASSET_BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
+};
+
+const firstDbImage = (...candidates) => {
+  for (const candidate of candidates.flat()) {
+    const image = toDbImageUrl(candidate?.image_url || candidate?.url || candidate?.image || candidate);
+    if (image) return image;
+  }
+  return "";
+};
+
 
 const todayInputValue = () => {
   const date = new Date();
@@ -238,11 +258,8 @@ function TripPlannerPage() {
   const [showGuide, setShowGuide] = useState(!savedPlan);
   const [draggedPlace, setDraggedPlace] = useState(null);
   const [notice, setNotice] = useState("");
-  const [plannerSearch, setPlannerSearch] = useState("");
-  const [plannerSearchStyle, setPlannerSearchStyle] = useState("All");
-  const [plannerRegionFilter, setPlannerRegionFilter] = useState("All regions");
-  const [plannerBudgetFilter, setPlannerBudgetFilter] = useState("Any budget");
-  const [plannerDurationFilter, setPlannerDurationFilter] = useState("Any duration");
+  const [heroSlides, setHeroSlides] = useState([]);
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
   useEffect(() => {
     const refreshSavedPlaces = () => {
@@ -253,6 +270,92 @@ function TripPlannerPage() {
     window.addEventListener("storage", refreshSavedPlaces);
     return () => window.removeEventListener("storage", refreshSavedPlaces);
   }, []);
+
+  useEffect(() => {
+    let stillMounted = true;
+
+    const loadHeroSlides = async () => {
+      try {
+        const [placesResult, hotelsResult] = await Promise.allSettled([
+          api.get("/explore/places"),
+          api.get("/properties"),
+        ]);
+
+        const dbPlaces = placesResult.status === "fulfilled"
+          ? placesResult.value.data.places || []
+          : [];
+
+        const approvedHotels = hotelsResult.status === "fulfilled"
+          ? (hotelsResult.value.data.data || []).filter(
+              (property) => !property.status || String(property.status).toLowerCase() === "approved"
+            )
+          : [];
+
+        const destinationSlides = dbPlaces
+          .map((place) => ({
+            id: `place-${place.id}`,
+            type: "Destination",
+            title: place.name,
+            subtitle: [place.city, place.region].filter(Boolean).join(" • ") || "Explore Sri Lanka",
+            image: firstDbImage(
+              place.image,
+              place.image_url,
+              place.images,
+              Array.isArray(place.photos) ? place.photos : []
+            ),
+          }))
+          .filter((slide) => slide.image)
+          .slice(0, 4);
+
+        const hotelSlides = approvedHotels
+          .map((hotel) => ({
+            id: `hotel-${hotel.id}`,
+            type: "Hotel",
+            title: hotel.name,
+            subtitle: [hotel.city, hotel.district].filter(Boolean).join(" • ") || "Approved stay",
+            image: firstDbImage(
+              hotel.main_image,
+              hotel.hero_image,
+              hotel.logo_url,
+              hotel.image_url,
+              Array.isArray(hotel.images) ? hotel.images : []
+            ),
+          }))
+          .filter((slide) => slide.image)
+          .slice(0, 4);
+
+        const mixedSlides = [];
+        const maxLength = Math.max(destinationSlides.length, hotelSlides.length);
+
+        for (let index = 0; index < maxLength; index += 1) {
+          if (destinationSlides[index]) mixedSlides.push(destinationSlides[index]);
+          if (hotelSlides[index]) mixedSlides.push(hotelSlides[index]);
+        }
+
+        if (stillMounted) {
+          setHeroSlides(mixedSlides);
+          setHeroSlideIndex(0);
+        }
+      } catch (error) {
+        console.error("Failed to load trip planner hero slideshow", error);
+      }
+    };
+
+    loadHeroSlides();
+    return () => {
+      stillMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) return undefined;
+
+    const timer = window.setInterval(() => {
+      setHeroSlideIndex((currentIndex) => (currentIndex + 1) % heroSlides.length);
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [heroSlides.length]);
 
   const totalPlaces = days.reduce((total, day) => total + day.places.length, 0);
   const totalCost = days.reduce((total, day) => total + calculateDayCost(day), 0);
@@ -274,104 +377,18 @@ function TripPlannerPage() {
     (savedPlace) => !days.some((day) => day.places.some((place) => place.id === savedPlace.id))
   );
   const popularPlaces = explorePlaces.slice(0, 6);
-  const savedSectionPlaces = savedPlaces.length ? savedPlaces.slice(0, 6) : popularPlaces;
-  const safeDaysCount = Math.min(Math.max(Number(daysCount) || 1, 1), 14);
-  const plannerSearchFilters = ["All", ...travelStyles, "Beach", "Heritage", "Wildlife", "Hill Country", "South Coast"];
-  const plannerRegionFilters = useMemo(() => {
-    const regions = explorePlaces
-      .map((place) => place.region)
-      .filter((region, index, array) => region && array.indexOf(region) === index);
-    return ["All regions", ...regions];
-  }, []);
-  const plannerBudgetFilters = ["Any budget", ...Object.keys(budgetDailyTargets)];
-  const plannerDurationFilters = ["Any duration", "Short stops", "Half day", "Full day", "Multi-day"];
-
-  const matchesDurationFilter = (place) => {
-    if (plannerDurationFilter === "Any duration") return true;
-    const duration = String(place.duration || "").toLowerCase();
-    if (plannerDurationFilter === "Short stops") {
-      return duration.includes("hour") || duration.includes("2-3") || duration.includes("3-4");
-    }
-    if (plannerDurationFilter === "Half day") return duration.includes("half");
-    if (plannerDurationFilter === "Full day") return duration.includes("full");
-    if (plannerDurationFilter === "Multi-day") return duration.includes("day") && !duration.includes("half");
-    return true;
-  };
-
-  const plannerSearchResults = useMemo(() => {
-    const query = plannerSearch.trim().toLowerCase();
-    const selectedStyle = plannerSearchStyle.toLowerCase();
-    const selectedRegion = plannerRegionFilter.toLowerCase();
-    const selectedBudget = plannerBudgetFilter.toLowerCase();
-
-    return explorePlaces
-      .filter((place) => {
-        const searchableText = [
-          place.name,
-          place.city,
-          place.district,
-          place.region,
-          place.category,
-          place.vibe,
-          place.budget,
-          place.duration,
-          ...(place.tags || []),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        const matchesQuery = !query || searchableText.includes(query);
-        const matchesStyle =
-          plannerSearchStyle === "All" ||
-          String(place.vibe || "").toLowerCase() === selectedStyle ||
-          String(place.category || "").toLowerCase().includes(selectedStyle) ||
-          String(place.region || "").toLowerCase().includes(selectedStyle) ||
-          (place.tags || []).some((tag) => String(tag).toLowerCase().includes(selectedStyle));
-        const matchesRegion =
-          plannerRegionFilter === "All regions" || String(place.region || "").toLowerCase() === selectedRegion;
-        const matchesBudget =
-          plannerBudgetFilter === "Any budget" || String(place.budget || "").toLowerCase() === selectedBudget;
-
-        return matchesQuery && matchesStyle && matchesRegion && matchesBudget && matchesDurationFilter(place);
-      })
-      .sort((a, b) => {
-        const compactTrip = safeDaysCount <= 3;
-        const aShort = String(a.duration || "").toLowerCase().includes("hour") || String(a.duration || "").toLowerCase().includes("half");
-        const bShort = String(b.duration || "").toLowerCase().includes("hour") || String(b.duration || "").toLowerCase().includes("half");
-        if (compactTrip && aShort !== bShort) return aShort ? -1 : 1;
-        return Number(a.estimatedCost || 0) - Number(b.estimatedCost || 0);
-      })
-      .slice(0, safeDaysCount <= 3 ? 4 : safeDaysCount <= 5 ? 6 : 8);
-  }, [plannerSearch, plannerSearchStyle, plannerRegionFilter, plannerBudgetFilter, plannerDurationFilter, safeDaysCount]);
-
-  const recommendedPlans = useMemo(() => {
-    const icons = ["🧭", "🏛️", "🚆", "🌊"];
-    return starterRoutes
-      .map((route, index) => {
-        const routePlaces = route.placeIds.map(getPlaceById).filter(Boolean);
-        const routeCost = routePlaces.reduce((sum, place) => sum + Number(place.estimatedCost || 0), 0);
-        const routeDays = Math.max(route.placeIds.length, 3);
-        const styleMatch = route.title.toLowerCase().includes(String(travelStyle).toLowerCase()) ||
-          route.description.toLowerCase().includes(String(travelStyle).toLowerCase());
-        const dayMatch = Math.abs(routeDays - safeDaysCount);
-        const score = Math.max(55, 100 - dayMatch * 12 + (styleMatch ? 12 : 0));
-
-        return {
-          ...route,
-          icon: icons[index] || "🗺️",
-          routePlaces,
-          routeCost,
-          routeDays,
-          score: Math.min(score, 99),
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-  }, [safeDaysCount, travelStyle]);
 
   const routeCities = days
     .flatMap((day) => day.places.map((place) => place.city))
     .filter((city, index, array) => city && array.indexOf(city) === index);
+
+  const currentHeroSlide = heroSlides[heroSlideIndex % Math.max(heroSlides.length, 1)] || null;
+  const tripHeroStats = [
+    { value: days.length, label: "travel days" },
+    { value: savedPlaces.length, label: "saved places" },
+    { value: totalPlaces, label: "planned stops" },
+    { value: heroSlides.length || "DB", label: "live photos" },
+  ];
 
   const applyTripSettings = () => {
     const safeDaysCount = Math.min(Math.max(Number(daysCount) || 1, 1), 14);
@@ -489,14 +506,6 @@ function TripPlannerPage() {
 
     setDays(nextDays);
     setNotice("Starter route created. You can edit every day.");
-  };
-
-  const customizeStarterPlan = (route) => {
-    buildStarterPlan(route.placeIds);
-    setNotice(`${route.title} added. Adjust days, hotels, budget, and notes below.`);
-    setTimeout(() => {
-      document.getElementById("custom-plan")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
   };
 
   const addPopularToSaved = (place) => {
@@ -848,19 +857,59 @@ function TripPlannerPage() {
         </div>
       )}
 
-      <section className="trip-planner-banner trip-planner-hero-match" aria-label="Plan your trip hero">
-        <div className="trip-hero-overlay" aria-hidden="true" />
-        <div className="trip-hero-content">
-          <p>PLAN YOUR TRIP</p>
-          <h1>Design your Sri Lanka route</h1>
-          <span>Start with an island route, add places from Explore, check stays for each city, and carry a clear day-by-day plan.</span>
+      <section
+        className="trip-planner-banner trip-planner-showcase-hero"
+        aria-label="Plan your trip hero"
+      >
+        {currentHeroSlide?.image ? (
+          <img
+            key={`${currentHeroSlide.id}-${heroSlideIndex}`}
+            className="trip-hero-bg-image"
+            src={currentHeroSlide.image}
+            alt=""
+            aria-hidden="true"
+          />
+        ) : null}
+        <div className="trip-showcase-overlay" aria-hidden="true" />
+        <div className="trip-showcase-inner">
+          <div className="trip-showcase-copy">
+            <p>PLAN YOUR TRIP</p>
+            <h1>Design your Sri Lanka route</h1>
+            <span>Start with saved destinations, mix nearby hotels, organise each day, and turn your ideas into a clean traveller-ready plan.</span>
 
-          <div className="trip-hero-categories trip-hero-four-actions" aria-label="Trip planning actions">
-            <Link to="/explore">Explore Places</Link>
-            <a href="#saved-destinations">Saved Places</a>
-            <a href="#suggested-itineraries">Suggested Plans</a>
-            <a href="#custom-plan">Custom Plan</a>
+            <div className="trip-showcase-actions" aria-label="Trip planning actions">
+              <Link to="/explore">Explore Places</Link>
+              <a href="#saved-destinations">Saved Places</a>
+              <a href="#suggested-itineraries">Suggested Plans</a>
+              <a href="#custom-plan">Custom Plan</a>
+            </div>
           </div>
+
+          <aside className="trip-showcase-card clear-preview-card" aria-label="Trip slideshow preview">
+            <div
+              className="trip-showcase-photo clear-preview-photo"
+              style={{ backgroundImage: currentHeroSlide?.image ? `url(${currentHeroSlide.image})` : undefined }}
+            />
+            <div className="clear-preview-shade" aria-hidden="true" />
+            <div className="trip-showcase-card-content clear-preview-content">
+              <span>Changing every 4 seconds</span>
+              <h2>{currentHeroSlide?.title || "Sri Lanka Trip Planner"}</h2>
+              <p>{currentHeroSlide?.subtitle || "Database photos from destinations and approved hotels"}</p>
+              <div className="trip-showcase-card-tags clear-preview-tags">
+                <b>{currentHeroSlide?.type || "Database"}</b>
+                <b>{heroSlides.length ? `${heroSlideIndex + 1}/${heroSlides.length}` : "Live"}</b>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div className="trip-showcase-stats" aria-label="Trip planner summary">
+          {tripHeroStats.map((item) => (
+            <article key={item.label}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -869,160 +918,6 @@ function TripPlannerPage() {
         <span>›</span>
         <strong>Plan Your Trip</strong>
       </nav>
-
-      <section className="trip-smart-search" aria-label="Trip planner quick search">
-        <div className="trip-smart-search-copy">
-          <span className="planner-eyebrow light">Plan faster</span>
-          <h2>Search places before shaping your route</h2>
-          <p>Find beaches, heritage cities, wildlife parks, food stops, or hill country towns and add them straight into your holiday plan.</p>
-        </div>
-
-        <div className="trip-search-panel advanced-trip-search-panel">
-          <div className="trip-search-input-wrap trip-search-main-input">
-            <span aria-hidden="true">⌕</span>
-            <input
-              value={plannerSearch}
-              onChange={(event) => setPlannerSearch(event.target.value)}
-              placeholder="Search Sigiriya, Ella, beach, wildlife, food..."
-            />
-          </div>
-          <select value={plannerSearchStyle} onChange={(event) => setPlannerSearchStyle(event.target.value)} aria-label="Travel style filter">
-            {plannerSearchFilters.map((filter) => (
-              <option key={filter}>{filter}</option>
-            ))}
-          </select>
-          <select value={plannerRegionFilter} onChange={(event) => setPlannerRegionFilter(event.target.value)} aria-label="Region filter">
-            {plannerRegionFilters.map((filter) => (
-              <option key={filter}>{filter}</option>
-            ))}
-          </select>
-          <select value={plannerBudgetFilter} onChange={(event) => setPlannerBudgetFilter(event.target.value)} aria-label="Budget filter">
-            {plannerBudgetFilters.map((filter) => (
-              <option key={filter}>{filter}</option>
-            ))}
-          </select>
-          <select value={plannerDurationFilter} onChange={(event) => setPlannerDurationFilter(event.target.value)} aria-label="Duration filter">
-            {plannerDurationFilters.map((filter) => (
-              <option key={filter}>{filter}</option>
-            ))}
-          </select>
-          <a href="#suggested-itineraries" className="trip-search-template-link">Suggested plans</a>
-        </div>
-
-        <div className="trip-filter-summary-row" aria-label="Current trip filters">
-          <span>🗓️ {safeDaysCount} days</span>
-          <span>🎒 {travelStyle}</span>
-          <span>💰 {budgetLevel}</span>
-          <span>🚦 {travelPace}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setPlannerSearch("");
-              setPlannerSearchStyle("All");
-              setPlannerRegionFilter("All regions");
-              setPlannerBudgetFilter("Any budget");
-              setPlannerDurationFilter("Any duration");
-            }}
-          >
-            Reset filters
-          </button>
-        </div>
-
-        <div className="trip-search-section-head">
-          <div>
-            <span className="planner-eyebrow light">Matching places</span>
-            <h3>{plannerSearchResults.length} places fit this trip shape</h3>
-          </div>
-          <p>Results change with your days, style, budget, region, and duration filters.</p>
-        </div>
-
-        <div className="trip-search-result-grid dynamic-result-grid">
-          {plannerSearchResults.map((place) => (
-            <article className="trip-search-result-card" key={place.id}>
-              <img src={place.image} alt={place.name} />
-              <div>
-                <span>{place.region || place.category}</span>
-                <h3>{place.name}</h3>
-                <p>{place.city} • {place.duration || "Half day"} • {formatLkr(place.estimatedCost || 0)}</p>
-                <div className="trip-search-actions">
-                  <button type="button" onClick={() => addPlaceToDay(place, 0)}>Add to Day 1</button>
-                  <button type="button" onClick={() => addPopularToSaved(place)}>Save place</button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <div className="trip-search-section-head plan-match-heading">
-          <div>
-            <span className="planner-eyebrow light">Suggested plans</span>
-            <h3>Popular routes you can customize</h3>
-          </div>
-          <p>Choose a plan, then adjust places, day order, hotel checks, and notes.</p>
-        </div>
-
-        <div className="trip-suggested-plan-grid">
-          {recommendedPlans.slice(0, 3).map((route) => (
-            <article className="trip-suggested-plan-card" key={route.id}>
-              <div className="suggested-plan-icon" aria-hidden="true">{route.icon}</div>
-              <div className="suggested-plan-body">
-                <div className="suggested-plan-topline">
-                  <span>{route.label}</span>
-                  <b>{route.score}% match</b>
-                </div>
-                <h3>{route.title}</h3>
-                <p>{route.description}</p>
-                <small>{route.routePlaces.map((place) => place.city).filter(Boolean).join(" → ")}</small>
-                <div className="suggested-plan-meta">
-                  <span>🗓️ {route.routeDays} days</span>
-                  <span>💰 {formatLkr(route.routeCost)}</span>
-                </div>
-                <div className="suggested-plan-actions">
-                  <button type="button" onClick={() => buildStarterPlan(route.placeIds)}>Use plan</button>
-                  <button type="button" className="customize-plan-btn" onClick={() => customizeStarterPlan(route)}>🛠️ Customize</button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="trip-saved-showcase" id="saved-destinations" aria-label="Saved places from Explore">
-        <div className="saved-showcase-head">
-          <div>
-            <span className="planner-eyebrow light">Explore places</span>
-            <h2>Start with places you want to visit</h2>
-            <p>
-              Save destinations from Explore, then add them into travel days. This keeps the trip
-              plan natural before selecting hotels.
-            </p>
-          </div>
-          <Link to="/explore" className="saved-showcase-more">Explore more</Link>
-        </div>
-
-        <div className="saved-showcase-grid">
-          {savedSectionPlaces.map((place) => (
-            <article className="saved-showcase-card" key={place.id}>
-              <img src={place.image} alt={place.name} />
-              <div className="saved-showcase-overlay">
-                <span>{place.region || place.category}</span>
-                <h3>{place.name}</h3>
-                <p>{place.city} • {place.duration || "Half day"}</p>
-                <div className="saved-showcase-actions">
-                  <button onClick={() => addPlaceToDay(place, 0)}>Add to Day 1</button>
-                  <Link to="/explore">View details</Link>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {!savedPlaces.length && (
-          <div className="saved-empty-note">
-            These are suggested places to start. Open Explore to save your own destinations.
-          </div>
-        )}
-      </section>
 
       <section className="trip-planner-intro" aria-label="Trip planning introduction">
         <article className="intro-main-card">
@@ -1167,7 +1062,7 @@ function TripPlannerPage() {
         ))}
       </section>
 
-      <section className="planner-dashboard-grid" id="planner-workspace">
+      <section className="planner-dashboard-grid" id="saved-destinations">
         <aside className="saved-destinations-panel">
           <div className="panel-title-row">
             <div>
@@ -1459,536 +1354,6 @@ const plannerCss = `
   }
 
   .trip-breadcrumb strong { color: #0f172a; }
-
-  .trip-smart-search {
-    width: min(1280px, calc(100% - 56px));
-    margin: 34px auto 28px;
-    padding: 34px;
-    border: 1px solid rgba(20, 184, 166, 0.28);
-    border-radius: 32px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(236, 253, 245, 0.88));
-    box-shadow: 0 26px 70px rgba(15, 118, 110, 0.12);
-  }
-
-  .trip-smart-search-copy {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 22px;
-  }
-
-  .trip-smart-search-copy h2 {
-    margin: 12px 0 0;
-    color: #06413d;
-    font-size: clamp(32px, 4vw, 56px);
-    line-height: 0.98;
-    letter-spacing: -0.05em;
-  }
-
-  .trip-smart-search-copy p {
-    max-width: 470px;
-    margin: 0;
-    color: #475569;
-    font-size: 16px;
-    line-height: 1.75;
-    font-weight: 750;
-  }
-
-  .trip-search-panel {
-    display: grid;
-    grid-template-columns: 1fr 220px auto;
-    gap: 14px;
-    padding: 12px;
-    border-radius: 24px;
-    background: #ffffff;
-    border: 1px solid rgba(20, 184, 166, 0.22);
-    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
-  }
-
-  .trip-search-input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 58px;
-    padding: 0 18px;
-    border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-  }
-
-  .trip-search-input-wrap span {
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    border-radius: 999px;
-    color: #06413d;
-    background: #d1fae5;
-    font-weight: 950;
-  }
-
-  .trip-search-input-wrap input,
-  .trip-search-panel select {
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: #102a2a;
-    font-weight: 850;
-    font-size: 15px;
-  }
-
-  .trip-search-panel select {
-    min-height: 58px;
-    padding: 0 18px;
-    border-radius: 18px;
-    background: #f8fafc;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-  }
-
-  .trip-search-template-link {
-    min-height: 58px;
-    padding: 0 24px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 18px;
-    background: #06413d;
-    color: #ffffff;
-    text-decoration: none;
-    font-weight: 900;
-    white-space: nowrap;
-  }
-
-  .advanced-trip-search-panel {
-    grid-template-columns: minmax(260px, 1.5fr) repeat(4, minmax(150px, 0.75fr)) auto;
-    align-items: center;
-  }
-
-  .trip-search-main-input {
-    min-width: 260px;
-  }
-
-  .trip-filter-summary-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    margin-top: 14px;
-  }
-
-  .trip-filter-summary-row span,
-  .trip-filter-summary-row button {
-    border: 1px solid rgba(20, 184, 166, 0.24);
-    border-radius: 999px;
-    padding: 10px 14px;
-    background: #ffffff;
-    color: #06413d;
-    font-weight: 900;
-    font-size: 12px;
-  }
-
-  .trip-filter-summary-row button {
-    cursor: pointer;
-    background: #fff7ed;
-    color: #b45309;
-  }
-
-  .trip-search-section-head {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 22px;
-    margin: 26px 0 14px;
-  }
-
-  .trip-search-section-head h3 {
-    margin: 10px 0 0;
-    color: #063f3a;
-    font-size: clamp(24px, 3vw, 36px);
-    line-height: 1.05;
-    letter-spacing: -0.04em;
-  }
-
-  .trip-search-section-head p {
-    max-width: 390px;
-    margin: 0;
-    color: #64748b;
-    font-weight: 780;
-    line-height: 1.55;
-  }
-
-  .trip-search-result-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 18px;
-  }
-
-  .trip-search-result-card {
-    overflow: hidden;
-    border-radius: 22px;
-    background: #ffffff;
-    border: 1px solid rgba(20, 184, 166, 0.18);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
-  }
-
-  .trip-search-result-card img {
-    width: 100%;
-    height: 145px;
-    object-fit: cover;
-    display: block;
-  }
-
-  .trip-search-result-card > div {
-    padding: 16px;
-  }
-
-  .trip-search-result-card span {
-    color: #b45309;
-    text-transform: uppercase;
-    letter-spacing: 0.13em;
-    font-size: 11px;
-    font-weight: 950;
-  }
-
-  .trip-search-result-card h3 {
-    margin: 7px 0 5px;
-    color: #063f3a;
-    font-size: 18px;
-    line-height: 1.12;
-  }
-
-  .trip-search-result-card p {
-    min-height: 40px;
-    margin: 0 0 12px;
-    color: #64748b;
-    font-weight: 750;
-    font-size: 12px;
-    line-height: 1.45;
-  }
-
-  .trip-search-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .trip-search-actions button {
-    border: 0;
-    border-radius: 999px;
-    padding: 10px 11px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 900;
-  }
-
-  .trip-search-actions button:first-child {
-    background: #ffc107;
-    color: #0f172a;
-  }
-
-  .trip-search-actions button:last-child {
-    background: #e6fffa;
-    color: #04776d;
-  }
-
-  .plan-match-heading {
-    padding-top: 6px;
-  }
-
-  .trip-suggested-plan-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-    margin-top: 14px;
-  }
-
-  .trip-suggested-plan-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 26px;
-    background: linear-gradient(135deg, #ffffff, #f0fdfa);
-    border: 1px solid rgba(20, 184, 166, 0.26);
-    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
-    display: grid;
-    grid-template-columns: 74px 1fr;
-    gap: 14px;
-    padding: 18px;
-  }
-
-  .trip-suggested-plan-card::after {
-    content: "";
-    position: absolute;
-    right: -42px;
-    top: -46px;
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    background: rgba(255, 199, 44, 0.16);
-  }
-
-  .suggested-plan-icon {
-    position: relative;
-    z-index: 1;
-    width: 62px;
-    height: 62px;
-    border-radius: 22px;
-    display: grid;
-    place-items: center;
-    background: #06413d;
-    color: #ffffff;
-    font-size: 30px;
-    box-shadow: 0 14px 28px rgba(6, 65, 61, 0.18);
-  }
-
-  .suggested-plan-body {
-    position: relative;
-    z-index: 1;
-  }
-
-  .suggested-plan-topline,
-  .suggested-plan-meta,
-  .suggested-plan-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .suggested-plan-topline {
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-
-  .suggested-plan-topline span,
-  .suggested-plan-topline b {
-    border-radius: 999px;
-    padding: 6px 9px;
-    font-size: 11px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .suggested-plan-topline span {
-    background: #d7fff4;
-    color: #087568;
-  }
-
-  .suggested-plan-topline b {
-    background: #fff7ed;
-    color: #b45309;
-  }
-
-  .suggested-plan-body h3 {
-    margin: 0 0 8px;
-    color: #063f3a;
-    font-size: 22px;
-    line-height: 1.1;
-  }
-
-  .suggested-plan-body p {
-    margin: 0 0 10px;
-    color: #52625e;
-    font-weight: 760;
-    line-height: 1.5;
-  }
-
-  .suggested-plan-body small {
-    display: block;
-    color: #0f766e;
-    font-weight: 900;
-    line-height: 1.45;
-    min-height: 34px;
-  }
-
-  .suggested-plan-meta {
-    margin: 12px 0;
-  }
-
-  .suggested-plan-meta span {
-    border-radius: 999px;
-    background: #ffffff;
-    border: 1px solid rgba(20, 184, 166, 0.22);
-    color: #334155;
-    font-size: 12px;
-    font-weight: 900;
-    padding: 7px 10px;
-  }
-
-  .suggested-plan-actions button {
-    border: 0;
-    border-radius: 999px;
-    padding: 11px 14px;
-    cursor: pointer;
-    font-weight: 950;
-  }
-
-  .suggested-plan-actions button:first-child {
-    background: #ffc72c;
-    color: #10201e;
-  }
-
-  .suggested-plan-actions .customize-plan-btn {
-    background: #06413d;
-    color: #ffffff;
-  }
-
-  .trip-saved-showcase {
-    max-width: 1180px;
-    margin: 42px auto 32px;
-    padding: 0 18px;
-  }
-
-  .saved-showcase-head {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 24px;
-  }
-
-  .saved-showcase-head h2 {
-    margin: 12px 0 10px;
-    color: #063d38;
-    font-size: clamp(34px, 5vw, 58px);
-    line-height: 1;
-    letter-spacing: -0.06em;
-  }
-
-  .saved-showcase-head p {
-    max-width: 760px;
-    margin: 0;
-    color: #50615d;
-    font-size: 17px;
-    line-height: 1.7;
-    font-weight: 760;
-  }
-
-  .saved-showcase-more {
-    flex: 0 0 auto;
-    border: 1.5px solid #0f9b8e;
-    border-radius: 999px;
-    color: #087568;
-    background: #ffffff;
-    text-decoration: none;
-    padding: 15px 34px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    box-shadow: 0 14px 34px rgba(15, 118, 110, 0.08);
-  }
-
-  .saved-showcase-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 22px;
-  }
-
-  .saved-showcase-card {
-    position: relative;
-    min-height: 420px;
-    border: 0;
-    border-radius: 28px;
-    overflow: hidden;
-    background: #083c38;
-    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.16);
-    transform: translateY(0);
-    transition: transform 0.22s ease, box-shadow 0.22s ease;
-  }
-
-  .saved-showcase-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 32px 70px rgba(15, 23, 42, 0.22);
-  }
-
-  .saved-showcase-card img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.02);
-    filter: saturate(0.98);
-  }
-
-  .saved-showcase-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(2, 35, 32, 0.84));
-  }
-
-  .saved-showcase-overlay {
-    position: absolute;
-    z-index: 2;
-    inset: auto 0 0;
-    padding: 28px;
-    color: #ffffff;
-  }
-
-  .saved-showcase-overlay span {
-    display: inline-block;
-    margin-bottom: 10px;
-    color: #ffe66b;
-    font-weight: 950;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    font-size: 12px;
-  }
-
-  .saved-showcase-overlay h3 {
-    margin: 0 0 10px;
-    font-size: clamp(26px, 3vw, 38px);
-    line-height: 1.06;
-    letter-spacing: -0.04em;
-    color: #ffffff;
-  }
-
-  .saved-showcase-overlay p {
-    margin: 0 0 18px;
-    color: rgba(255, 255, 255, 0.88);
-    font-weight: 800;
-  }
-
-  .saved-showcase-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .saved-showcase-actions button,
-  .saved-showcase-actions a {
-    border: 0;
-    border-radius: 999px;
-    padding: 10px 16px;
-    font-weight: 950;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .saved-showcase-actions button {
-    background: #ffc21a;
-    color: #092d2a;
-  }
-
-  .saved-showcase-actions a {
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-  }
-
-  .saved-empty-note {
-    margin-top: 16px;
-    border-radius: 18px;
-    background: #ecfdf5;
-    border: 1px solid #b8efe2;
-    padding: 14px 18px;
-    color: #0f766e;
-    font-weight: 900;
-  }
 
   .trip-planner-intro {
     max-width: 1180px;
@@ -2541,17 +1906,7 @@ const plannerCss = `
   .planner-guide-dots button.active { background: #0f766e; color: white; }
   .planner-guide-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  @media (max-width: 1280px) {
-    .advanced-trip-search-panel { grid-template-columns: 1fr 1fr 1fr; }
-    .trip-search-main-input,
-    .trip-search-template-link { grid-column: span 3; }
-  }
-
   @media (max-width: 1180px) {
-    .trip-smart-search-copy { align-items: flex-start; flex-direction: column; }
-    .trip-search-result-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .trip-suggested-plan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
     .planner-dashboard-grid { grid-template-columns: 1fr; }
     .saved-destinations-panel,
     .plan-assistant-panel { position: static; }
@@ -2562,17 +1917,6 @@ const plannerCss = `
     .planner-services-strip { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 760px) {
-    .trip-smart-search { width: calc(100% - 28px); padding: 22px; border-radius: 24px; }
-    .trip-search-panel { grid-template-columns: 1fr; }
-    .advanced-trip-search-panel { grid-template-columns: 1fr; }
-    .trip-search-main-input,
-    .trip-search-template-link { grid-column: auto; }
-    .trip-search-section-head { align-items: flex-start; flex-direction: column; }
-    .trip-search-result-grid,
-    .trip-suggested-plan-grid { grid-template-columns: 1fr; }
-    .trip-search-result-card { display: grid; grid-template-columns: 116px 1fr; }
-    .trip-search-result-card img { height: 100%; min-height: 150px; }
-
     .planner-hero-copy { border-radius: 0; margin-left: -22px; margin-right: -22px; padding: 34px 22px; }
     .settings-header,
     .section-heading-line,
@@ -2589,20 +1933,196 @@ const plannerCss = `
   }
   @media (max-width: 560px) {
     .template-grid,
-    .planner-services-strip,
-    .trip-suggested-plan-grid { grid-template-columns: 1fr; }
+    .planner-services-strip { grid-template-columns: 1fr; }
     .planner-hero-actions a,
     .planner-hero-actions button,
     .route-actions button { width: 100%; text-align: center; }
     .planner-dashboard-grid,
+  
+  .trip-planner-banner {
+    min-height: 300px;
+    background:
+      linear-gradient(90deg, rgba(5, 24, 39, 0.72), rgba(5, 124, 111, 0.35)),
+      url("https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1800&q=85") center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    padding: 54px max(18px, 8vw);
+    border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+  }
+
+  .trip-banner-card {
+    width: min(420px, 92vw);
+    border-radius: 18px;
+    padding: 28px 30px;
+    background: rgba(12, 24, 34, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 24px 65px rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+  }
+
+  .trip-banner-card .planner-eyebrow {
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    padding: 0;
+  }
+
+  .trip-banner-card h1 {
+    margin: 14px 0 8px;
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 0.98;
+    letter-spacing: -1px;
+  }
+
+  .trip-banner-card i {
+    display: block;
+    width: 54px;
+    height: 4px;
+    border-radius: 999px;
+    background: #18d0bf;
+    margin: 14px 0 18px;
+  }
+
+  .trip-banner-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 700;
+    line-height: 1.7;
+  }
+
+  .trip-breadcrumb {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 18px 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .trip-breadcrumb a {
+    color: #0f766e;
+    text-decoration: none;
+  }
+
+  .trip-breadcrumb strong { color: #0f172a; }
+
+  .trip-planner-intro {
+    max-width: 1180px;
+    margin: 46px auto 26px;
+    padding: 0 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .intro-main-card,
+  .plan-visit-menu {
+    background: #ffffff;
+    border: 1px solid #d8eee8;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+  }
+
+  .intro-main-card {
+    border-radius: 28px;
+    padding: 34px;
+    border-left: 6px solid #0f766e;
+  }
+
+  .intro-main-card h2 {
+    margin: 12px 0 12px;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.02;
+    letter-spacing: -1.4px;
+    color: #063d38;
+  }
+
+  .intro-main-card > p {
+    margin: 0;
+    max-width: 760px;
+    color: #52625e;
+    font-weight: 750;
+    line-height: 1.8;
+  }
+
+  .intro-step-row {
+    margin: 26px 0 4px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .intro-step {
+    border-radius: 18px;
+    background: #f7fffc;
+    border: 1px solid #ccfbf1;
+    padding: 14px;
+  }
+
+  .intro-step span {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0f766e;
+    color: #ffffff;
+    font-weight: 950;
+    margin-bottom: 10px;
+  }
+
+  .intro-step b,
+  .intro-step small { display: block; }
+
+  .intro-step b { color: #0f172a; font-weight: 950; }
+  .intro-step small { color: #64748b; font-weight: 800; margin-top: 3px; }
+
+  .plan-visit-menu {
+    border-radius: 22px;
+    overflow: hidden;
+    position: sticky;
+    top: 104px;
+  }
+
+  .plan-visit-menu h3 {
+    margin: 0;
+    padding: 20px 22px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #0f172a, #0f766e);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .plan-visit-menu a,
+  .plan-visit-menu button {
+    display: block;
+    width: 100%;
+    padding: 15px 22px;
+    border: 0;
+    border-bottom: 1px solid #edf3f1;
+    background: #ffffff;
+    color: #334155;
+    text-align: left;
+    text-decoration: none;
+    font-weight: 850;
+    cursor: pointer;
+  }
+
+  .plan-visit-menu a:hover,
+  .plan-visit-menu button:hover {
+    background: #ecfdf5;
+    color: #0f766e;
+  }
+
+  .planner-hero-pro,
     .planner-settings-band,
     .route-template-section,
     .planner-services-strip,
     .planner-notice { padding-left: 14px; padding-right: 14px; }
-    .trip-suggested-plan-card { grid-template-columns: 1fr; }
-    .suggested-plan-icon { width: 54px; height: 54px; font-size: 26px; }
-    .trip-filter-summary-row span,
-    .trip-filter-summary-row button { width: 100%; justify-content: center; text-align: center; }
   }
 
   /* Explore-style Trip Planner landing hero */
@@ -2720,6 +2240,325 @@ const plannerCss = `
     .trip-breadcrumb {
       margin-top: 28px;
     }
+  }
+
+
+  /* professional full-width trip planner top */
+  .trip-planner-banner.trip-planner-showcase-hero {
+    position: relative;
+    min-height: 650px;
+    width: 100%;
+    padding: 70px max(18px, 6vw) 58px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    color: #ffffff;
+    background: linear-gradient(135deg, #064e45, #0b6f61);
+    border-bottom: 1px solid rgba(15, 118, 110, 0.14);
+  }
+
+  .trip-hero-bg-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    filter: saturate(1.08) contrast(1.02) brightness(1.08);
+    animation: tripHeroFadeZoom 4.2s ease-in-out both;
+  }
+
+  .trip-showcase-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      linear-gradient(90deg, rgba(3, 47, 43, .68) 0%, rgba(5, 106, 92, .42) 52%, rgba(2, 35, 39, .56) 100%),
+      radial-gradient(circle at 70% 15%, rgba(255, 205, 62, .18), transparent 36%);
+  }
+
+  .trip-showcase-inner {
+    position: relative;
+    z-index: 2;
+    width: min(1480px, 100%);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.22fr) minmax(330px, .58fr);
+    align-items: center;
+    gap: 44px;
+  }
+
+  .trip-showcase-copy p {
+    display: inline-flex;
+    margin: 0 0 22px;
+    padding: 11px 18px;
+    border-radius: 999px;
+    background: rgba(255, 238, 159, .94);
+    color: #04483f;
+    letter-spacing: .26em;
+    font-size: 12px;
+    font-weight: 1000;
+  }
+
+  .trip-showcase-copy h1 {
+    margin: 0 0 22px;
+    max-width: 920px;
+    font-size: clamp(58px, 7.7vw, 108px);
+    line-height: .92;
+    letter-spacing: -.055em;
+    font-weight: 1000;
+    color: #ffffff;
+    text-shadow: 0 18px 50px rgba(0,0,0,.28);
+  }
+
+  .trip-showcase-copy > span {
+    display: block;
+    max-width: 820px;
+    color: #f5fffc;
+    font-size: clamp(17px, 1.25vw, 22px);
+    font-weight: 750;
+    line-height: 1.75;
+    text-shadow: 0 8px 24px rgba(0,0,0,.22);
+  }
+
+  .trip-showcase-actions {
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .trip-showcase-actions a {
+    border-radius: 999px;
+    padding: 15px 26px;
+    background: #ffffff;
+    color: #064e45;
+    text-decoration: none;
+    font-weight: 1000;
+    box-shadow: 0 14px 35px rgba(0,0,0,.14);
+  }
+
+  .trip-showcase-actions a:first-child {
+    background: #ffc22b;
+    color: #083c38;
+  }
+
+  .trip-showcase-card {
+    min-height: 430px;
+    border-radius: 34px;
+    padding: 26px;
+    color: #ffffff;
+    background: linear-gradient(145deg, rgba(255,255,255,.25), rgba(255,255,255,.1));
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: 0 32px 80px rgba(0,0,0,.22);
+    backdrop-filter: blur(13px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+
+  .trip-showcase-photo {
+    height: 180px;
+    border-radius: 26px;
+    background: rgba(255,255,255,.18) center/cover no-repeat;
+    margin-bottom: auto;
+    box-shadow: inset 0 -60px 90px rgba(0,0,0,.18);
+  }
+
+  .trip-showcase-card > span {
+    width: max-content;
+    margin-top: 20px;
+    padding: 9px 13px;
+    border-radius: 999px;
+    background: rgba(7, 102, 88, .82);
+    color: #fff3a7;
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .trip-showcase-card h2 {
+    margin: 22px 0 8px;
+    font-size: clamp(28px, 2.8vw, 44px);
+    line-height: 1.05;
+    letter-spacing: -.04em;
+  }
+
+  .trip-showcase-card p {
+    margin: 0;
+    font-weight: 850;
+    color: #effffb;
+  }
+
+  .trip-showcase-card div {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:18px;
+  }
+
+  .trip-showcase-card b {
+    border-radius:999px;
+    padding:9px 13px;
+    background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.25);
+    color:#fff8cc;
+    font-size:12px;
+  }
+
+
+  /* clear photo preview card effect */
+  .trip-showcase-card.clear-preview-card {
+    position:relative;
+    min-height:430px;
+    padding:0;
+    color:#ffffff;
+    background:#063f39;
+    border:1px solid rgba(255,255,255,.34);
+    box-shadow:0 32px 80px rgba(0,0,0,.24);
+    backdrop-filter:none;
+    display:block;
+    overflow:hidden;
+    isolation:isolate;
+  }
+
+  .trip-showcase-photo.clear-preview-photo {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    margin:0;
+    border-radius:0;
+    background:rgba(255,255,255,.12) center/cover no-repeat;
+    filter:saturate(1.08) contrast(1.02) brightness(1.08);
+    box-shadow:none;
+    transform:scale(1.01);
+    transition:transform 4s ease, opacity .45s ease;
+    z-index:0;
+  }
+
+  .trip-showcase-card.clear-preview-card:hover .clear-preview-photo { transform:scale(1.055); }
+
+  .trip-showcase-card .clear-preview-shade {
+    position:absolute;
+    inset:0;
+    z-index:1;
+    background:linear-gradient(0deg,rgba(3,39,35,.84) 0%,rgba(4,65,58,.48) 46%,rgba(255,196,37,.07) 100%);
+  }
+
+  .trip-showcase-card-content.clear-preview-content {
+    position:absolute;
+    left:30px;
+    right:30px;
+    bottom:30px;
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:flex-end;
+  }
+
+  .trip-showcase-card-content.clear-preview-content > span {
+    width:max-content;
+    margin:0;
+    padding:9px 13px;
+    border-radius:999px;
+    background:rgba(5,85,75,.80);
+    color:#fff3a7;
+    font-size:12px;
+    font-weight:950;
+    border:1px solid rgba(255,255,255,.24);
+    box-shadow:0 10px 24px rgba(0,0,0,.16);
+  }
+
+  .trip-showcase-card-content.clear-preview-content h2 {
+    margin:24px 0 10px;
+    font-size:clamp(28px,2.8vw,44px);
+    line-height:1.03;
+    letter-spacing:-.045em;
+    text-shadow:0 4px 18px rgba(0,0,0,.36);
+  }
+
+  .trip-showcase-card-content.clear-preview-content p {
+    margin:0;
+    font-weight:850;
+    color:#eafffb;
+    text-shadow:0 2px 12px rgba(0,0,0,.32);
+  }
+
+  .trip-showcase-card-tags.clear-preview-tags {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:16px;
+  }
+
+  .trip-showcase-card-tags.clear-preview-tags b {
+    border-radius:999px;
+    padding:9px 13px;
+    background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.28);
+    color:#fff8cc;
+    font-size:12px;
+    backdrop-filter:blur(4px);
+  }
+
+  .trip-showcase-stats {
+    position: relative;
+    z-index: 2;
+    width: min(1480px, 100%);
+    margin: 34px auto 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .trip-showcase-stats article {
+    min-height: 96px;
+    border-radius: 24px;
+    padding: 20px 22px;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.28);
+    color: #fff;
+    backdrop-filter: blur(10px);
+  }
+
+  .trip-showcase-stats strong {
+    display:block;
+    color:#ffe176;
+    font-size: clamp(28px, 3vw, 44px);
+    line-height: 1;
+  }
+
+  .trip-showcase-stats span {
+    display:block;
+    margin-top:8px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    font-size:12px;
+    font-weight:950;
+  }
+
+  @keyframes tripHeroFadeZoom {
+    0% { opacity: .12; transform: scale(1.02); }
+    12% { opacity: 1; }
+    100% { opacity: 1; transform: scale(1.075); }
+  }
+
+  @media (max-width: 1050px) {
+    .trip-showcase-inner { grid-template-columns: 1fr; }
+    .trip-showcase-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 680px) {
+    .trip-planner-banner.trip-planner-showcase-hero {
+      min-height: auto;
+      padding: 44px 16px 54px;
+    }
+    .trip-showcase-copy h1 { font-size: clamp(42px, 15vw, 64px); }
+    .trip-showcase-actions a { width: 100%; text-align: center; }
+    .trip-showcase-stats { grid-template-columns: 1fr; }
   }
 
 `;

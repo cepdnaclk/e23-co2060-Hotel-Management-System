@@ -1,20 +1,16 @@
-TourismHub LK - Professional Hotels Page Fix
+Explore and Trip Planner hero top showcase fix
 
-Replace this file:
-client/src/pages/HotelsPage.jsx
+Replace these files:
+client/src/pages/ExplorePage.jsx
+client/src/pages/TripPlannerPage.jsx
 
-After replacing run:
-cd client
-npm install
-npm run dev
-
-Commit command:
-git add client/src/pages/HotelsPage.jsx
-git commit -m "improve hotels page UI and advanced filters"
-git push origin dev
-
-Notes:
-- No database changes needed.
-- No backend route changes needed.
-- The page still uses GET /api/properties.
-- This update improves UI, theme matching, search, city/district/type filters, price range, quick filters, sorting and list/grid view.
+Main changes:
+- Explore top hero redesigned like a professional showcase section.
+- Explore top hero still uses category-based Explore place photos and changes every 4 seconds.
+- Explore hero includes search, category buttons, right-side preview card and stats.
+- Trip Planner top hero redesigned in the same professional style.
+- Trip Planner top hero loads slideshow photos from database only:
+  - /api/explore/places for destinations
+  - /api/properties for approved hotels
+- Trip Planner slideshow changes every 4 seconds.
+- No database reset needed.

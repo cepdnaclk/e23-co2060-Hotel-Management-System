@@ -652,16 +652,19 @@ function HotelCard({ property, toImageUrl }) {
 
 const pageStyles = `
   .hotels-page-shell{
-    width:min(1480px, calc(100% - 36px));
-    margin:0 auto;
-    padding:30px 0 60px;
+    width:100%;
+    margin:0;
+    padding:0 0 60px;
     color:#102033;
   }
 
   .hotels-hero{
-    min-height:420px;
-    border-radius:34px;
-    padding:46px;
+    width:100%;
+    max-width:none;
+    margin:0;
+    min-height:500px;
+    border-radius:0;
+    padding:58px clamp(32px, 4vw, 78px);
     display:grid;
     grid-template-columns:1.15fr .85fr;
     gap:34px;
@@ -797,10 +800,11 @@ const pageStyles = `
   }
 
   .hotel-content-grid{
+    width:min(1560px, calc(100% - 36px));
+    margin:28px auto 0;
     display:grid;
     grid-template-columns:340px 1fr;
     gap:26px;
-    margin-top:28px;
     align-items:start;
   }
 
@@ -1272,8 +1276,8 @@ const pageStyles = `
   }
 
   @media (max-width: 760px){
-    .hotels-page-shell{width:min(100% - 22px, 1480px);padding-top:16px;}
-    .hotels-hero{border-radius:24px;padding:24px;}
+    .hotels-page-shell{width:100%;padding-top:0;}
+    .hotels-hero{border-radius:0;padding:28px 18px;min-height:560px;}
     .hero-copy h1{font-size:44px;}
     .hero-stats-grid{grid-template-columns:1fr;}
     .hotel-list-view .hotel-result-card{grid-template-columns:1fr;}
