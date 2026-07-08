@@ -1137,3 +1137,10 @@ small {
     min-width: 220px;
   }
 }
+
+
+.guide-admin-hero {
+  background:
+    linear-gradient(135deg, rgba(8,51,68,0.96), rgba(11,99,206,0.86)),
+    url("https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?auto=format&fit=crop&w=1400&q=80") center/cover no-repeat;
+}

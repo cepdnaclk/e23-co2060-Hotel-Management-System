@@ -12,6 +12,7 @@ import RevenuePage from "./pages/RevenuePage";
 import SystemVulnerabilityPage from "./pages/SystemVulnerabilityPage";
 import ExploreManagerPage from "./pages/ExploreManagerPage";
 import EventApprovalsPage from "./pages/EventApprovalsPage";
+import GuideApprovalsPage from "./pages/GuideApprovalsPage";
 import AdminNavbar from "./pages/AdminNavbar";
 
 function ProtectedAdminRoute({ children }) {
@@ -112,6 +113,15 @@ function App() {
         element={
           <ProtectedAdminRoute>
             <EventApprovalsPage />
+          </ProtectedAdminRoute>
+        }
+      />
+
+      <Route
+        path="/guide-approvals"
+        element={
+          <ProtectedAdminRoute>
+            <GuideApprovalsPage />
           </ProtectedAdminRoute>
         }
       />

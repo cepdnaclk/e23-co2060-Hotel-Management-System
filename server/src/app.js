@@ -15,6 +15,9 @@ const bookingRoutes = require("./routes/booking.routes");
 const touristEventRoutes = require("./routes/touristEvent.routes");
 const partnerEventRoutes = require("./routes/partnerEvent.routes");
 const adminEventRoutes = require("./routes/adminEvent.routes");
+const adminGuideRoutes = require("./routes/adminGuide.routes");
+const partnerGuideRoutes = require("./routes/partnerGuide.routes");
+const publicGuideRoutes = require("./routes/publicGuide.routes");
 
 const app = express();
 
@@ -78,13 +81,16 @@ app.use("/api", dbTestRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/partner/events", partnerEventRoutes);
+app.use("/api/partner/guides", partnerGuideRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/admin/events", adminEventRoutes);
+app.use("/api/admin/guides", adminGuideRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/explore", adminExploreRoutes);
 app.use("/api/explore", exploreRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/tourist", touristEventRoutes);
+app.use("/api/guides", publicGuideRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

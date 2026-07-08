@@ -13,6 +13,7 @@ function PartnerDashboardPage() {
   const [profile, setProfile] = useState(null);
   const [properties, setProperties] = useState([]);
   const [events, setEvents] = useState([]);
+  const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,11 +22,12 @@ function PartnerDashboardPage() {
       setLoading(true);
       setError("");
 
-      const [profileResponse, propertiesResponse, eventsResponse] =
+      const [profileResponse, propertiesResponse, eventsResponse, guidesResponse] =
         await Promise.allSettled([
           api.get("/partner/profile"),
           api.get("/partner/properties"),
           api.get("/partner/events"),
+          api.get("/partner/guides"),
         ]);
 
       if (profileResponse.status === "fulfilled") {
@@ -38,6 +40,10 @@ function PartnerDashboardPage() {
 
       if (eventsResponse.status === "fulfilled") {
         setEvents(eventsResponse.value.data.events || []);
+      }
+
+      if (guidesResponse.status === "fulfilled") {
+        setGuides(guidesResponse.value.data.guides || []);
       }
 
       if (profileResponse.status === "rejected" || propertiesResponse.status === "rejected") {
@@ -65,8 +71,12 @@ function PartnerDashboardPage() {
       pendingEvents: getStatusCount(events, "pending"),
       approvedEvents: events.filter((event) => event.status === "approved" || event.status === "published").length,
       rejectedEvents: getStatusCount(events, "rejected"),
+      guides: guides.length,
+      pendingGuides: getStatusCount(guides, "pending"),
+      approvedGuides: getStatusCount(guides, "approved"),
+      rejectedGuides: getStatusCount(guides, "rejected"),
     }),
-    [properties, events]
+    [properties, events, guides]
   );
 
   if (!isLoggedIn) {
@@ -108,7 +118,7 @@ function PartnerDashboardPage() {
             <span style={styles.badge}>TourismHub LK Partner Portal</span>
             <h1 style={styles.heroTitle}>Welcome back, {partnerName}</h1>
             <p style={styles.heroText}>
-              Register properties, publish tourism events, and manage your business presence from one dashboard.
+              Register properties, publish tourism events, become a verified guider, and manage your tourism business presence from one dashboard.
             </p>
           </div>
 
@@ -144,6 +154,18 @@ function PartnerDashboardPage() {
           </div>
           <span style={styles.actionButton}>Go to Event Registration →</span>
         </Link>
+
+        <Link to="/partner/guides" style={{ ...styles.actionCard, ...styles.guideActionCard }}>
+          <div style={{ ...styles.actionIcon, ...styles.guideActionIcon }}>🧭</div>
+          <div>
+            <p style={{ ...styles.actionLabel, color: "#0b63ce" }}>Guider Registration</p>
+            <h2 style={styles.actionTitle}>Become a tourist guider</h2>
+            <p style={styles.actionText}>
+              Add your guide profile, languages, experience, services, pricing, and submit it for admin approval.
+            </p>
+          </div>
+          <span style={styles.actionButton}>Go to Guider Registration →</span>
+        </Link>
       </section>
 
       <section style={styles.statsGrid}>
@@ -166,6 +188,16 @@ function PartnerDashboardPage() {
           <span>Pending Events</span>
           <strong>{stats.pendingEvents}</strong>
           <small>{stats.rejectedEvents} rejected by admin</small>
+        </div>
+        <div style={styles.statCard}>
+          <span>Total Guiders</span>
+          <strong>{stats.guides}</strong>
+          <small>{stats.approvedGuides} approved</small>
+        </div>
+        <div style={styles.statCard}>
+          <span>Pending Guiders</span>
+          <strong>{stats.pendingGuides}</strong>
+          <small>{stats.rejectedGuides} rejected by admin</small>
         </div>
       </section>
 
@@ -246,6 +278,50 @@ function PartnerDashboardPage() {
                   </div>
                   <span style={styles.eventStatus(event.status)}>{event.status}</span>
                   <Link to={`/partner/event-registration?edit=${event.id}`} style={styles.editEventLink}>
+                    Edit
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={styles.panel}>
+          <div style={styles.panelHeader}>
+            <div>
+              <h2 style={styles.panelTitle}>My Guiders</h2>
+              <p style={styles.panelSubtitle}>Track guide profile approval and edit details.</p>
+            </div>
+            <Link to="/partner/guides" style={styles.smallLink}>+ Add Guider</Link>
+          </div>
+
+          {loading ? (
+            <p style={styles.mutedText}>Loading guider profiles...</p>
+          ) : guides.length === 0 ? (
+            <div style={styles.emptyBox}>
+              <h3>No guide profiles yet</h3>
+              <p>Use the Guider Registration button to submit your first guide profile.</p>
+            </div>
+          ) : (
+            <div style={styles.listStack}>
+              {guides.slice(0, 4).map((guide) => (
+                <div key={guide.id} style={styles.guideRow}>
+                  <div style={styles.guideAvatar}>
+                    {guide.image_url ? (
+                      <img src={guide.image_url} alt={guide.display_name} style={styles.thumbImage} />
+                    ) : (
+                      <span>🧭</span>
+                    )}
+                  </div>
+                  <div style={styles.rowMain}>
+                    <h3 style={styles.rowTitle}>{guide.display_name}</h3>
+                    <p style={styles.rowText}>{guide.city} • {guide.guide_type}</p>
+                    {guide.status === "rejected" && guide.rejection_reason && (
+                      <p style={styles.rejectReason}>Reason: {guide.rejection_reason}</p>
+                    )}
+                  </div>
+                  <span style={styles.eventStatus(guide.status)}>{guide.status}</span>
+                  <Link to={`/partner/guides?edit=${guide.id}`} style={styles.editEventLink}>
                     Edit
                   </Link>
                 </div>
@@ -359,6 +435,11 @@ const styles = {
     background:
       "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
   },
+  guideActionCard: {
+    border: "1px solid #a5b4fc",
+    background:
+      "linear-gradient(135deg, #ffffff 0%, #eef2ff 55%, #ecfdf5 100%)",
+  },
   actionIcon: {
     width: "58px",
     height: "58px",
@@ -368,6 +449,9 @@ const styles = {
     fontSize: "30px",
     background: "#ecfdf5",
     marginBottom: "18px",
+  },
+  guideActionIcon: {
+    background: "#dbeafe",
   },
   actionLabel: {
     margin: 0,
@@ -416,7 +500,7 @@ const styles = {
     maxWidth: "1180px",
     margin: "0 auto",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
     gap: "20px",
   },
   panel: {
@@ -477,6 +561,16 @@ const styles = {
     borderRadius: "18px",
     background: "#ffffff",
   },
+  guideRow: {
+    display: "grid",
+    gridTemplateColumns: "58px 1fr auto auto",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "18px",
+    background: "#ffffff",
+  },
   thumbWrap: {
     width: "60px",
     height: "60px",
@@ -495,6 +589,17 @@ const styles = {
   },
   thumbFallback: {
     fontSize: "12px",
+  },
+  guideAvatar: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "18px",
+    overflow: "hidden",
+    background: "#dbeafe",
+    display: "grid",
+    placeItems: "center",
+    color: "#0b63ce",
+    fontWeight: 900,
   },
   rowMain: {
     minWidth: 0,

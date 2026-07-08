@@ -29,6 +29,7 @@ function AdminNavbar() {
           <NavLink to="/revenue">Revenue</NavLink>
           <NavLink to="/explore-manager">Explore Manager</NavLink>
           <NavLink to="/event-approvals">Event Approvals</NavLink>
+          <NavLink to="/guide-approvals">Guide Approvals</NavLink>
           <NavLink to="/system-risk">System Risk</NavLink>
         </div>
 
