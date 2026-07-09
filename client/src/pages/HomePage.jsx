@@ -538,7 +538,7 @@ const homeCss = `
 
   .hero-video-shell {
     position: relative;
-    min-height: calc(100vh - 79px);
+    min-height: calc(100vh - 79px) !important;
     overflow: hidden;
     border-radius: 0;
     background: #062f2c;
@@ -619,12 +619,12 @@ const homeCss = `
   .hero-center-copy {
     position: relative;
     z-index: 5;
-    min-height: calc(100vh - 79px);
+    min-height: calc(100vh - 79px) !important;
     display: grid;
     align-content: center;
     justify-items: center;
     text-align: center;
-    padding: clamp(40px, 6vw, 72px) 24px;
+    padding: clamp(40px, 6vw, 72px) 24px !important;
     color: #ffffff;
   }
 

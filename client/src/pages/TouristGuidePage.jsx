@@ -73,19 +73,8 @@ const getGuideLocation = (guide) => {
   return [guide.city, guide.district].filter(Boolean).join(", ") || guide.base_location || "Sri Lanka";
 };
 
-const buildHeroSlides = (guides, places) => {
-  const guideSlides = guides
-    .filter((guide) => guide.image_url)
-    .map((guide) => ({
-      type: "Guide",
-      title: guide.display_name,
-      subtitle: `${guide.guide_type || "Local"} guide • ${getGuideLocation(guide)}`,
-      image: assetUrl(guide.image_url),
-      badge: guide.guide_type || "Tourist Guide",
-      rating: Number(guide.rating || 4.8).toFixed(1),
-    }));
-
-  const placeSlides = places
+const buildHeroSlides = (places) => {
+  const destinationSlides = places
     .flatMap((place) => {
       const images = cleanArray(place.images).length
         ? cleanArray(place.images)
@@ -96,13 +85,13 @@ const buildHeroSlides = (guides, places) => {
         title: place.name,
         subtitle: [place.city, place.region].filter(Boolean).join(" • ") || "Sri Lanka",
         image: assetUrl(image),
-        badge: place.categoryLabel || "Explore Place",
+        badge: place.categoryLabel || place.category || "Explore Place",
         rating: "4.8",
       }));
     })
     .filter((slide) => slide.image);
 
-  return [...guideSlides, ...placeSlides].filter((slide) => slide.image).slice(0, 12);
+  return destinationSlides.slice(0, 12);
 };
 
 function TouristGuidePage() {
@@ -184,7 +173,7 @@ function TouristGuidePage() {
     return [...new Set(values)].sort();
   }, [guides]);
 
-  const heroSlides = useMemo(() => buildHeroSlides(guides, places), [guides, places]);
+  const heroSlides = useMemo(() => buildHeroSlides(places), [places]);
   const activeHero = heroSlides[heroIndex % Math.max(heroSlides.length, 1)] || null;
 
   useEffect(() => {
@@ -332,9 +321,9 @@ function TouristGuidePage() {
             <div className="spotlight-content">
               <span className="spotlight-badge">Changing every 4 seconds</span>
               <h2>{activeHero?.title || "Approved guide profiles"}</h2>
-              <p>{activeHero?.subtitle || "Guide photos and destination photos appear here from the database."}</p>
+              <p>{activeHero?.subtitle || "Destination photos appear here from the Explore page slideshow."}</p>
               <div className="spotlight-tags">
-                <span>{activeHero?.type || "Guides"}</span>
+                <span>{activeHero?.badge || activeHero?.type || "Destinations"}</span>
                 <span>⭐ {activeHero?.rating || stats.rating.toFixed(1)}</span>
               </div>
             </div>
@@ -1202,6 +1191,184 @@ const guideCss = `
   .guide-section-head h2{font-size:34px;}
   .guide-info-grid{grid-template-columns:1fr;}
 }
+
+/* compact first-screen landing fix - keeps guide search, guide buttons and stats visible at 100% zoom */
+@media (min-width:1024px){
+  .guide-showcase{
+    min-height:min(560px,calc(100vh - 118px));
+  }
+  .guide-showcase-inner{
+    padding:38px 0 54px;
+    grid-template-columns:minmax(0,1.08fr) 380px;
+    gap:34px;
+  }
+  .guide-kicker{
+    padding:9px 15px;
+    font-size:11px;
+    letter-spacing:.13em;
+  }
+  .guide-hero-copy h1{
+    max-width:820px;
+    font-size:clamp(42px,5.2vw,76px);
+    line-height:.94;
+    margin:18px 0 14px;
+  }
+  .guide-hero-copy p{
+    max-width:760px;
+    font-size:16px;
+    line-height:1.55;
+    margin-bottom:18px;
+  }
+  .guide-hero-search{
+    width:min(760px,100%);
+    padding:8px 10px 8px 16px;
+    gap:10px;
+  }
+  .guide-hero-search span{font-size:22px;}
+  .guide-hero-search input{font-size:15px;}
+  .guide-hero-search button{
+    padding:12px 22px;
+  }
+  .guide-type-ribbon{
+    margin-top:16px;
+    gap:9px;
+  }
+  .guide-type-ribbon button{
+    padding:9px 14px;
+    font-size:14px;
+  }
+  .guide-spotlight-card{
+    min-height:330px;
+    border-radius:28px;
+  }
+  .spotlight-content{
+    left:24px;
+    right:24px;
+    bottom:24px;
+  }
+  .spotlight-badge{padding:8px 12px;font-size:11px;}
+  .spotlight-content h2{
+    font-size:clamp(26px,2.5vw,36px);
+    margin:16px 0 8px;
+  }
+  .spotlight-content p{font-size:14px;}
+  .spotlight-tags{margin-top:12px;gap:8px;}
+  .spotlight-tags span{padding:7px 10px;font-size:11px;}
+  .guide-stat-strip{
+    gap:12px;
+  }
+  .guide-stat-strip div{
+    padding:14px 18px;
+    border-radius:18px;
+  }
+  .guide-stat-strip strong{
+    font-size:30px;
+    margin-bottom:6px;
+  }
+  .guide-stat-strip span{font-size:11px;}
+}
+@media (min-width:1024px) and (max-height:760px){
+  .guide-showcase{min-height:520px;}
+  .guide-showcase-inner{
+    padding-top:30px;
+    padding-bottom:48px;
+  }
+  .guide-hero-copy h1{font-size:clamp(38px,4.9vw,66px);}
+  .guide-spotlight-card{min-height:300px;}
+  .guide-stat-strip div{padding:12px 16px;}
+}
+
+
+/* extra compact hero v2 - reduces guide top section height more for 100% browser zoom */
+@media (min-width:1024px){
+  .guide-showcase{
+    min-height:460px !important;
+  }
+  .guide-showcase-inner{
+    padding:24px 0 34px !important;
+    grid-template-columns:minmax(0,1.05fr) 340px !important;
+    gap:28px !important;
+  }
+  .guide-kicker{
+    padding:7px 12px !important;
+    font-size:10px !important;
+    letter-spacing:.11em !important;
+  }
+  .guide-hero-copy h1{
+    max-width:720px !important;
+    font-size:clamp(36px,4.5vw,60px) !important;
+    line-height:.93 !important;
+    margin:12px 0 10px !important;
+  }
+  .guide-hero-copy p{
+    max-width:650px !important;
+    font-size:14px !important;
+    line-height:1.45 !important;
+    margin-bottom:12px !important;
+  }
+  .guide-hero-search{
+    width:min(650px,100%) !important;
+    padding:6px 8px 6px 12px !important;
+    gap:8px !important;
+    border-radius:22px !important;
+  }
+  .guide-hero-search span{font-size:19px !important;}
+  .guide-hero-search input{font-size:13.5px !important;}
+  .guide-hero-search button{
+    padding:10px 18px !important;
+    font-size:13px !important;
+    border-radius:16px !important;
+  }
+  .guide-type-ribbon{
+    margin-top:10px !important;
+    gap:7px !important;
+  }
+  .guide-type-ribbon button{
+    padding:7px 12px !important;
+    font-size:12.5px !important;
+  }
+  .guide-spotlight-card{
+    min-height:260px !important;
+    border-radius:24px !important;
+  }
+  .spotlight-content{
+    left:18px !important;
+    right:18px !important;
+    bottom:18px !important;
+  }
+  .spotlight-badge{padding:6px 10px !important;font-size:10px !important;}
+  .spotlight-content h2{
+    font-size:clamp(21px,2vw,28px) !important;
+    margin:10px 0 6px !important;
+  }
+  .spotlight-content p{font-size:12.5px !important;}
+  .spotlight-tags{margin-top:8px !important;gap:6px !important;}
+  .spotlight-tags span{padding:6px 9px !important;font-size:10px !important;}
+  .guide-stat-strip{
+    gap:10px !important;
+    margin-top:14px !important;
+  }
+  .guide-stat-strip div{
+    padding:9px 14px !important;
+    border-radius:16px !important;
+  }
+  .guide-stat-strip strong{
+    font-size:26px !important;
+    margin-bottom:4px !important;
+  }
+  .guide-stat-strip span{font-size:9.5px !important;}
+}
+@media (min-width:1024px) and (max-height:760px){
+  .guide-showcase{min-height:430px !important;}
+  .guide-showcase-inner{
+    padding-top:20px !important;
+    padding-bottom:30px !important;
+  }
+  .guide-hero-copy h1{font-size:clamp(34px,4.1vw,54px) !important;}
+  .guide-spotlight-card{min-height:235px !important;}
+  .guide-stat-strip div{padding:8px 12px !important;}
+}
+
 `;
 
 export default TouristGuidePage;

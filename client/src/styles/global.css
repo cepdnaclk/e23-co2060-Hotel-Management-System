@@ -365,3 +365,53 @@ textarea {
   color: #fff4bf;
   text-shadow: 0 6px 20px rgba(0, 0, 0, 0.34);
 }
+
+
+/* Desktop landing hero balance for 100% Chrome zoom */
+@media (min-width: 1024px) {
+  .hero-video-shell,
+  .hero-center-copy {
+    min-height: clamp(560px, 70vh, 660px) !important;
+  }
+
+  .hero-center-copy {
+    padding-top: 48px !important;
+    padding-bottom: 52px !important;
+  }
+
+  .hotels-hero {
+    min-height: clamp(430px, 54vh, 500px) !important;
+    padding-top: 42px !important;
+    padding-bottom: 42px !important;
+  }
+
+  .events-hero-block {
+    min-height: clamp(500px, 60vh, 560px) !important;
+    padding-top: 52px !important;
+    padding-bottom: 34px !important;
+  }
+
+  .trip-planner-banner.trip-planner-showcase-hero {
+    min-height: clamp(500px, 60vh, 570px) !important;
+    padding-top: 42px !important;
+    padding-bottom: 32px !important;
+  }
+
+  .guide-showcase {
+    min-height: clamp(550px, 64vh, 620px) !important;
+  }
+
+  .guide-showcase-inner {
+    padding-top: 54px !important;
+    padding-bottom: 36px !important;
+  }
+
+  .about-hero-section {
+    padding-top: clamp(44px, 5vw, 72px) !important;
+    padding-bottom: 42px !important;
+  }
+
+  .about-hero-panel {
+    min-height: 440px !important;
+  }
+}
