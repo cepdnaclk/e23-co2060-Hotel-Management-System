@@ -32,10 +32,10 @@ const languages = [
 ];
 
 const currencies = [
-  { value: "LKR", label: "LKR" },
-  { value: "USD", label: "USD" },
-  { value: "EUR", label: "EUR" },
-  { value: "GBP", label: "GBP" },
+  { value: "LKR", label: "LKR", symbol: "Rs.", locale: "en-LK", rate: 1 },
+  { value: "USD", label: "USD", symbol: "$", locale: "en-US", rate: 1 / 300 },
+  { value: "EUR", label: "EUR", symbol: "€", locale: "de-DE", rate: 1 / 325 },
+  { value: "GBP", label: "GBP", symbol: "£", locale: "en-GB", rate: 1 / 380 },
 ];
 
 const blockedTags = new Set([
@@ -56,6 +56,10 @@ const originalText = new WeakMap();
 const originalAttributes = new WeakMap();
 const trackedTextNodes = new Set();
 const trackedAttributeElements = new Set();
+const originalCurrencyText = new WeakMap();
+const trackedCurrencyNodes = new Set();
+const originalCurrencyElementText = new WeakMap();
+const trackedCurrencyElements = new Set();
 const PreferencesContext = createContext(null);
 const googleTranslateElementId = "google_translate_element";
 const googleTranslateLanguages = languages
@@ -63,11 +67,27 @@ const googleTranslateLanguages = languages
   .map((item) => item.value)
   .join(",");
 let googleTranslateLoader = null;
+let languageReloadTimer = 0;
 
 const isSupportedLanguage = (value) => languages.some((item) => item.value === value);
 const isSupportedCurrency = (value) => currencies.some((item) => item.value === value);
 
+const readGoogleTranslateCookieLanguage = () => {
+  if (typeof document === "undefined") return "";
+
+  const cookie = document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith("googtrans="));
+
+  const language = cookie?.split("/").filter(Boolean).pop() || "";
+  return isSupportedLanguage(language) ? language : "";
+};
+
 const readSavedLanguage = () => {
+  const googleLanguage = readGoogleTranslateCookieLanguage();
+  if (googleLanguage) return googleLanguage;
+
   const saved = localStorage.getItem(LANGUAGE_KEY);
   return isSupportedLanguage(saved) ? saved : "en";
 };
@@ -197,6 +217,34 @@ const setGoogleTranslateCookie = (language) => {
   document.cookie = `googtrans=${value};path=/`;
 };
 
+const clearGoogleTranslateCookie = () => {
+  document.cookie = "googtrans=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = "googtrans=/en/en;path=/";
+};
+
+const prepareGoogleTranslateLanguage = (language) => {
+  if (typeof document === "undefined") return;
+
+  if (language === "en") {
+    clearGoogleTranslateCookie();
+    return;
+  }
+
+  setGoogleTranslateCookie(language);
+};
+
+const scheduleLanguageReload = () => {
+  if (typeof window === "undefined") return;
+
+  if (languageReloadTimer) {
+    window.clearTimeout(languageReloadTimer);
+  }
+
+  languageReloadTimer = window.setTimeout(() => {
+    window.location.reload();
+  }, 120);
+};
+
 const restoreLanguageSelectorLabels = () => {
   const languageSelect = document.querySelector("select[data-language-selector='true']");
   if (!languageSelect) return;
@@ -221,33 +269,46 @@ const syncDynamicTitles = () => {
 
 const applyGooglePageLanguage = async (language) => {
   await loadGoogleTranslate();
-  setGoogleTranslateCookie(language);
 
-  const applyComboValue = () => {
+  const setComboValue = (value) => {
     const combo = document.querySelector(".goog-te-combo");
 
     if (!combo) return false;
 
-    const desiredValue = language === "en" ? "" : language;
-
-    if (combo.value === desiredValue) {
-      return true;
-    }
-
-    combo.value = desiredValue;
+    combo.value = value;
     combo.dispatchEvent(new Event("change", { bubbles: true }));
-    window.setTimeout(restoreLanguageSelectorLabels, 100);
-    window.setTimeout(restoreLanguageSelectorLabels, 600);
-    window.setTimeout(syncDynamicTitles, 220);
-    window.setTimeout(syncDynamicTitles, 900);
     return true;
   };
 
-  if (applyComboValue()) return true;
+  const applyTargetLanguage = () => {
+    clearGoogleTranslateCookie();
+
+    if (language === "en") {
+      setComboValue("");
+      return true;
+    }
+
+    setComboValue("");
+    setGoogleTranslateCookie(language);
+
+    window.setTimeout(() => setComboValue(language), 80);
+    window.setTimeout(() => setComboValue(language), 280);
+    window.setTimeout(restoreLanguageSelectorLabels, 120);
+    window.setTimeout(restoreLanguageSelectorLabels, 700);
+    window.setTimeout(syncDynamicTitles, 260);
+    window.setTimeout(syncDynamicTitles, 950);
+    return true;
+  };
+
+  if (document.querySelector(".goog-te-combo")) {
+    return applyTargetLanguage();
+  }
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
     await new Promise((resolve) => window.setTimeout(resolve, 250));
-    if (applyComboValue()) return true;
+    if (document.querySelector(".goog-te-combo")) {
+      return applyTargetLanguage();
+    }
   }
 
   return false;
@@ -276,6 +337,133 @@ const collectTextNodes = () => {
 const collectAttributeElements = () => {
   return Array.from(document.body.querySelectorAll("[placeholder], [title], [aria-label]"))
     .filter((element) => !shouldSkipElement(element));
+};
+
+const getCurrencyOption = (value) =>
+  currencies.find((item) => item.value === value) || currencies[0];
+
+const formatCurrencyFromLkr = (amount, currency) => {
+  const option = getCurrencyOption(currency);
+  const converted = Number(amount || 0) * option.rate;
+
+  if (option.value === "LKR") {
+    return `Rs. ${Math.round(converted).toLocaleString(option.locale)}`;
+  }
+
+  return `${option.symbol}${converted.toLocaleString(option.locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const convertCurrencyText = (text, currency) => {
+  const value = String(text || "");
+  const currencyRangePattern =
+    /\b(?:Rs\.?|LKR)\s*([0-9][0-9,]*(?:\.\d+)?)(\s*[-–]\s*)([0-9][0-9,]*(?:\.\d+)?)/gi;
+  const currencyPattern = /\b(?:Rs\.?|LKR)\s*([0-9][0-9,]*(?:\.\d+)?)/gi;
+
+  return value
+    .replace(currencyRangePattern, (match, startAmount, divider, endAmount) => {
+      const startNumericAmount = Number(String(startAmount).replace(/,/g, ""));
+      const endNumericAmount = Number(String(endAmount).replace(/,/g, ""));
+
+      if (!Number.isFinite(startNumericAmount) || !Number.isFinite(endNumericAmount)) {
+        return match;
+      }
+
+      return `${formatCurrencyFromLkr(startNumericAmount, currency)}${divider}${formatCurrencyFromLkr(
+        endNumericAmount,
+        currency
+      )}`;
+    })
+    .replace(currencyPattern, (match, amount) => {
+      const numericAmount = Number(String(amount).replace(/,/g, ""));
+      if (!Number.isFinite(numericAmount)) return match;
+      return formatCurrencyFromLkr(numericAmount, currency);
+    });
+};
+
+const collectCurrencyTextNodes = () => {
+  if (typeof document === "undefined" || !document.body) return [];
+
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (shouldSkipElement(node.parentElement)) return NodeFilter.FILTER_REJECT;
+      if (!/\b(?:Rs\.?|LKR)\s*[0-9]/i.test(node.nodeValue || "")) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const nodes = [];
+  let current = walker.nextNode();
+
+  while (current) {
+    nodes.push(current);
+    current = walker.nextNode();
+  }
+
+  return nodes;
+};
+
+const collectCurrencyLeafElements = () => {
+  if (typeof document === "undefined" || !document.body) return [];
+
+  return Array.from(document.body.querySelectorAll("*")).filter((element) => {
+    if (shouldSkipElement(element)) return false;
+    if (element.children.length > 0) return false;
+    if (!/\b(?:Rs\.?|LKR)\s*[0-9]/i.test(element.textContent || "")) return false;
+    return element.childNodes.length > 1;
+  });
+};
+
+const applyCurrencyToDocument = (currency) => {
+  trackedCurrencyElements.forEach((element) => {
+    const source = originalCurrencyElementText.get(element);
+    if (source !== undefined) {
+      const target = currency === "LKR" ? source : convertCurrencyText(source, currency);
+      if (element.textContent !== target) {
+        element.textContent = target;
+      }
+    }
+  });
+
+  trackedCurrencyNodes.forEach((node) => {
+    const source = originalCurrencyText.get(node);
+    if (source !== undefined) {
+      const target = currency === "LKR" ? source : convertCurrencyText(source, currency);
+      if (node.nodeValue !== target) {
+        node.nodeValue = target;
+      }
+    }
+  });
+
+  collectCurrencyLeafElements().forEach((element) => {
+    if (!originalCurrencyElementText.has(element)) {
+      originalCurrencyElementText.set(element, element.textContent);
+      trackedCurrencyElements.add(element);
+    }
+
+    const source = originalCurrencyElementText.get(element);
+    const target = currency === "LKR" ? source : convertCurrencyText(source, currency);
+    if (element.textContent !== target) {
+      element.textContent = target;
+    }
+  });
+
+  collectCurrencyTextNodes().forEach((node) => {
+    if (!originalCurrencyText.has(node)) {
+      originalCurrencyText.set(node, node.nodeValue);
+      trackedCurrencyNodes.add(node);
+    }
+
+    const source = originalCurrencyText.get(node);
+    const target = currency === "LKR" ? source : convertCurrencyText(source, currency);
+    if (node.nodeValue !== target) {
+      node.nodeValue = target;
+    }
+  });
 };
 
 const restoreEnglish = () => {
@@ -398,12 +586,21 @@ export function PreferencesProvider({ children }) {
   const [language, setLanguageState] = useState(readSavedLanguage);
   const [currency, setCurrencyState] = useState(readSavedCurrency);
   const requestIdRef = useRef(0);
+  const currencyRef = useRef(currency);
 
-  const setLanguage = useCallback((value) => {
-    const nextLanguage = isSupportedLanguage(value) ? value : "en";
-    localStorage.setItem(LANGUAGE_KEY, nextLanguage);
-    setLanguageState(nextLanguage);
-  }, []);
+  const setLanguage = useCallback(
+    (value) => {
+      const nextLanguage = isSupportedLanguage(value) ? value : "en";
+      localStorage.setItem(LANGUAGE_KEY, nextLanguage);
+      setLanguageState(nextLanguage);
+
+      if (nextLanguage !== language) {
+        prepareGoogleTranslateLanguage(nextLanguage);
+        scheduleLanguageReload();
+      }
+    },
+    [language]
+  );
 
   const setCurrency = useCallback((value) => {
     const nextCurrency = isSupportedCurrency(value) ? value : "LKR";
@@ -418,7 +615,22 @@ export function PreferencesProvider({ children }) {
   }, [language]);
 
   useEffect(() => {
+    currencyRef.current = currency;
     document.documentElement.dataset.currency = currency;
+    applyCurrencyToDocument(currency);
+  }, [currency]);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      applyCurrencyToDocument(currency);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
   }, [currency]);
 
   useEffect(() => {
@@ -444,6 +656,7 @@ export function PreferencesProvider({ children }) {
           await translateDocument(language, requestIdRef);
         }
 
+        applyCurrencyToDocument(currencyRef.current);
         translating = false;
       });
     };
@@ -478,6 +691,7 @@ export function PreferencesProvider({ children }) {
       currencies,
       setLanguage,
       setCurrency,
+      formatMoney: (amount) => formatCurrencyFromLkr(amount, currency),
     }),
     [currency, language, setCurrency, setLanguage]
   );
