@@ -220,7 +220,7 @@ CREATE TABLE notifications (
   user_id INT NOT NULL,
   title VARCHAR(180) NOT NULL,
   message TEXT NOT NULL,
-  type ENUM('success', 'approval', 'rejection', 'booking', 'system') NOT NULL DEFAULT 'system',
+  type ENUM('success', 'approval', 'rejection', 'booking', 'property', 'event', 'system') NOT NULL DEFAULT 'system',
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_notifications_user
@@ -349,6 +349,143 @@ CREATE TABLE explore_itinerary_places (
     ON DELETE CASCADE
 );
 
+-- =========================================================
+-- TOURIST EVENTS MODULE
+-- Merged from tourist_events.sql and event approval migrations.
+-- Final flow: partner creates pending event, admin approves/rejects it.
+-- =========================================================
+CREATE TABLE tourist_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(160) NOT NULL,
+  partner_id INT NULL,
+  property_id INT NULL,
+  explore_place_id INT NULL,
+  title VARCHAR(180) NOT NULL,
+  category VARCHAR(80) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  district VARCHAR(100) NULL,
+  venue VARCHAR(180) NULL,
+  month_name VARCHAR(40) NULL,
+  month_number INT DEFAULT 1,
+  event_date DATE NULL,
+  date_label VARCHAR(100) NULL,
+  time_label VARCHAR(100) NULL,
+  price_type ENUM('Free','Budget','Paid','Premium') DEFAULT 'Budget',
+  price DECIMAL(10,2) DEFAULT 0.00,
+  duration VARCHAR(100) NULL,
+  short_description TEXT NULL,
+  description TEXT NULL,
+  image_url TEXT NULL,
+  map_url TEXT NULL,
+  contact_name VARCHAR(150) NULL,
+  contact_phone VARCHAR(30) NULL,
+  contact_email VARCHAR(150) NULL,
+  near_hotels JSON NULL,
+  highlights JSON NULL,
+  guide_recommended BOOLEAN DEFAULT FALSE,
+  featured BOOLEAN DEFAULT FALSE,
+  status ENUM('pending','approved','rejected','hidden') NOT NULL DEFAULT 'pending',
+  rejection_reason TEXT NULL,
+  submitted_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  approved_at TIMESTAMP NULL,
+  approved_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_tourist_events_partner
+    FOREIGN KEY (partner_id) REFERENCES users(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_tourist_events_property
+    FOREIGN KEY (property_id) REFERENCES properties(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_tourist_events_place
+    FOREIGN KEY (explore_place_id) REFERENCES explore_places(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_tourist_events_approved_by
+    FOREIGN KEY (approved_by) REFERENCES users(id)
+    ON DELETE SET NULL
+);
+
+-- =========================================================
+-- PARTNER GUIDES MODULE
+-- Merged from partner guide and guide payment/promotion migrations.
+-- =========================================================
+CREATE TABLE partner_guides (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  partner_id INT NOT NULL,
+  slug VARCHAR(180) NOT NULL UNIQUE,
+  full_name VARCHAR(150) NOT NULL,
+  display_name VARCHAR(150) NOT NULL,
+  guide_type VARCHAR(80) NOT NULL DEFAULT 'Heritage',
+  city VARCHAR(100) NOT NULL,
+  district VARCHAR(100) NULL,
+  base_location VARCHAR(180) NULL,
+  languages JSON NULL,
+  experience_years INT NOT NULL DEFAULT 0,
+  license_number VARCHAR(120) NULL,
+  nic_or_passport VARCHAR(120) NULL,
+  phone VARCHAR(40) NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  whatsapp_number VARCHAR(40) NULL,
+  price_per_day DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  price_per_hour DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  availability VARCHAR(180) NULL,
+  services JSON NULL,
+  specialities JSON NULL,
+  short_description VARCHAR(255) NULL,
+  bio TEXT NULL,
+  image_url TEXT NULL,
+  rating DECIMAL(3,2) NOT NULL DEFAULT 4.80,
+  total_reviews INT NOT NULL DEFAULT 0,
+  status ENUM('pending','approved','rejected','hidden') NOT NULL DEFAULT 'pending',
+  rejection_reason TEXT NULL,
+  submitted_at DATETIME NULL,
+  approved_at DATETIME NULL,
+  approved_by INT NULL,
+  registration_fee DECIMAL(10,2) NOT NULL DEFAULT 3000.00,
+  registration_payment_status ENUM('Unpaid','Paid') NOT NULL DEFAULT 'Unpaid',
+  registration_paid_at DATETIME NULL,
+  promotion_fee DECIMAL(10,2) NOT NULL DEFAULT 1500.00,
+  promotion_payment_status ENUM('Unpaid','Paid') NOT NULL DEFAULT 'Unpaid',
+  promotion_paid_at DATETIME NULL,
+  promotion_expires_at DATETIME NULL,
+  is_promoted BOOLEAN NOT NULL DEFAULT FALSE,
+  promotion_sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_partner_guides_partner
+    FOREIGN KEY (partner_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_partner_guides_approved_by
+    FOREIGN KEY (approved_by) REFERENCES users(id)
+    ON DELETE SET NULL
+);
+
+CREATE TABLE guide_payment_transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  guide_id INT NOT NULL,
+  partner_id INT NOT NULL,
+  payment_type ENUM('registration','promotion') NOT NULL,
+  amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  status ENUM('Pending','Paid') NOT NULL DEFAULT 'Paid',
+  paid_at DATETIME NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_guide_payment_transactions_guide
+    FOREIGN KEY (guide_id) REFERENCES partner_guides(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_guide_payment_transactions_partner
+    FOREIGN KEY (partner_id) REFERENCES users(id)
+    ON DELETE CASCADE
+);
+
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_properties_partner ON properties(partner_id);
 CREATE INDEX idx_properties_plan_type ON properties(plan_type);
@@ -367,3 +504,22 @@ CREATE INDEX idx_explore_places_category ON explore_places(category_id);
 CREATE INDEX idx_explore_images_place ON explore_place_images(place_id);
 CREATE INDEX idx_explore_itinerary_places_itinerary ON explore_itinerary_places(itinerary_id);
 CREATE INDEX idx_explore_itinerary_places_place ON explore_itinerary_places(place_id);
+
+CREATE UNIQUE INDEX uq_tourist_events_slug ON tourist_events(slug);
+CREATE INDEX idx_tourist_events_status ON tourist_events(status);
+CREATE INDEX idx_tourist_events_admin_status ON tourist_events(status, submitted_at);
+CREATE INDEX idx_tourist_events_partner_status ON tourist_events(partner_id, status);
+CREATE INDEX idx_tourist_events_property_status ON tourist_events(property_id, status);
+CREATE INDEX idx_tourist_events_filters ON tourist_events(status, category, city, month_name, price_type);
+CREATE INDEX idx_tourist_events_place ON tourist_events(explore_place_id, status);
+CREATE INDEX idx_tourist_events_date ON tourist_events(event_date, status);
+CREATE INDEX idx_partner_guides_partner ON partner_guides(partner_id);
+CREATE INDEX idx_partner_guides_status ON partner_guides(status);
+CREATE INDEX idx_partner_guides_city ON partner_guides(city);
+CREATE INDEX idx_partner_guides_type ON partner_guides(guide_type);
+CREATE INDEX idx_partner_guides_payment_status ON partner_guides(registration_payment_status, promotion_payment_status);
+CREATE INDEX idx_partner_guides_public_sort ON partner_guides(status, is_promoted, promotion_expires_at, promotion_sort_order, rating);
+CREATE INDEX idx_guide_payment_transactions_guide ON guide_payment_transactions(guide_id);
+CREATE INDEX idx_guide_payment_transactions_partner ON guide_payment_transactions(partner_id);
+CREATE INDEX idx_guide_payment_transactions_type ON guide_payment_transactions(payment_type, status);
+
