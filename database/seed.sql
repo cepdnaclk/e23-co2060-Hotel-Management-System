@@ -267,3 +267,406 @@ INSERT INTO explore_itinerary_places (itinerary_id, place_id, sort_order) VALUES
 (3, 4, 1),
 (3, 5, 2),
 (3, 6, 3);
+
+-- =========================================================
+-- TOURIST EVENT SEED DATA FROM MERGED EVENT FILE
+-- =========================================================
+DELETE FROM tourist_events
+WHERE slug IN (
+  'kandy-cultural-dance-night',
+  'colombo-street-food-walk',
+  'mirissa-sunset-beach-music',
+  'ella-tea-estate-experience',
+  'galle-fort-heritage-evening',
+  'sigiriya-village-food-experience',
+  'bentota-water-sports-day',
+  'yala-wildlife-evening-talk'
+);
+
+INSERT INTO tourist_events
+(slug, explore_place_id, title, category, city, district, venue, month_name, month_number, date_label, time_label, price_type, price, duration, short_description, description, image_url, map_url, near_hotels, highlights, guide_recommended, featured, status)
+VALUES
+(
+  'kandy-cultural-dance-night',
+  (SELECT id FROM explore_places WHERE slug = 'temple-of-the-sacred-tooth-relic' LIMIT 1),
+  'Kandy Cultural Dance Night', 'Cultural & Religious', 'Kandy', 'Kandy', 'Kandy Lake Club Cultural Theatre', 'July', 7, 'Every evening', '6:30 PM - 8:15 PM', 'Budget', 1500, '1 hr 45 min',
+  'Traditional Kandyan dance, drumming, masks, and fire performance close to Kandy Lake and the Temple of the Tooth.',
+  'A colourful evening experience for tourists who want to understand Sri Lankan culture in a short time. The performance includes Kandyan dance, traditional drums, mask dances, and a fire walking finale.',
+  'https://images.pexels.com/photos/38253196/pexels-photo-38253196.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Kandy+Lake+Club+Cultural+Dance',
+  JSON_ARRAY('Kandy Lake Hotel', 'Queen''s Hotel', 'Temple View Hotel', 'Lake View Resort'),
+  JSON_ARRAY('Kandyan dance and drumming', 'Easy evening plan', 'Family friendly', 'Near Kandy hotels'),
+  TRUE, TRUE, 'approved'
+),
+(
+  'colombo-street-food-walk',
+  NULL,
+  'Colombo Street Food Walk', 'Food & Culinary', 'Colombo', 'Colombo', 'Galle Face and Pettah Market', 'August', 8, 'Weekends', '5:00 PM - 8:30 PM', 'Paid', 3500, '3 hr 30 min',
+  'Taste kottu, hoppers, isso wade, tropical juices, and Sri Lankan sweets while exploring Colombo''s evening food streets.',
+  'A city food route designed for tourists staying in Colombo before travelling around the island. It combines local snacks, market stops, city stories, and safe walking guidance.',
+  'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Galle+Face+Colombo+street+food',
+  JSON_ARRAY('Cinnamon Grand', 'Galle Face Hotel', 'Marino Beach Colombo', 'Colombo City Stay'),
+  JSON_ARRAY('Sri Lankan street food', 'Pettah market walk', 'Vegetarian options', 'City evening photos'),
+  TRUE, TRUE, 'approved'
+),
+(
+  'mirissa-sunset-beach-music',
+  (SELECT id FROM explore_places WHERE slug = 'mirissa-beach-and-whale-watching' LIMIT 1),
+  'Mirissa Sunset Beach Music', 'Beach & Coastal', 'Mirissa', 'Matara', 'Mirissa Beach', 'December', 12, 'Friday - Sunday', '5:30 PM - 10:00 PM', 'Free', 0, '4 hr 30 min',
+  'A relaxed beach evening with sunset views, soft music, seafood stalls, mocktails, and coastal atmosphere.',
+  'A casual event for backpackers, couples, and beach lovers. Tourists can enjoy the sunset after whale watching or surfing and then return easily to nearby stays.',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Mirissa+Beach+Sri+Lanka',
+  JSON_ARRAY('Mirissa Beach Resort', 'Coconut Tree Hill Stay', 'South Coast Villa'),
+  JSON_ARRAY('Sunset beach atmosphere', 'Live acoustic music', 'Food stalls', 'Walking distance from beach hotels'),
+  FALSE, TRUE, 'approved'
+),
+(
+  'ella-tea-estate-experience',
+  (SELECT id FROM explore_places WHERE slug = 'nine-arch-bridge' LIMIT 1),
+  'Ella Tea Estate Experience', 'Adventure & Nature', 'Ella', 'Badulla', 'Halpewatte Tea Factory', 'March', 3, 'Daily', '9:00 AM - 12:00 PM', 'Budget', 2200, '3 hr',
+  'Walk through tea gardens, learn how Ceylon tea is produced, and enjoy a tasting session with hill-country views.',
+  'This morning experience fits well with Ella sightseeing. It is ideal before Nine Arch Bridge or Little Adam''s Peak and connects nature, photography, and local tea culture.',
+  'https://images.unsplash.com/photo-1567515275959-4421b83c7056?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Halpewatte+Tea+Factory+Ella',
+  JSON_ARRAY('Ella Mountain Resort', 'Morning Dew Hotel', 'Zion View Ella', 'Tea Garden View'),
+  JSON_ARRAY('Tea garden walk', 'Factory tour', 'Tea tasting', 'Hill-country views'),
+  TRUE, TRUE, 'approved'
+),
+(
+  'galle-fort-heritage-evening',
+  (SELECT id FROM explore_places WHERE slug = 'galle-fort' LIMIT 1),
+  'Galle Fort Heritage Evening', 'Cultural & Religious', 'Galle', 'Galle', 'Galle Dutch Fort', 'January', 1, 'This month', '4:00 PM - 7:00 PM', 'Budget', 2800, '3 hr',
+  'Explore colonial streets, lighthouse views, boutique cafes, and sunset stories inside the UNESCO-listed Galle Fort.',
+  'A heritage evening walk designed for tourists who want a calm cultural experience near boutique hotels and restaurants in Galle Fort.',
+  'https://images.unsplash.com/photo-1586611292717-f828b167408c?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Galle+Fort+Sri+Lanka',
+  JSON_ARRAY('Fort Bazaar', 'Galle Fort Hotel', 'Heritage Villa', 'Rampart View Stay'),
+  JSON_ARRAY('UNESCO fort walk', 'Sunset ramparts', 'Colonial architecture', 'Cafe stops'),
+  TRUE, FALSE, 'approved'
+),
+(
+  'sigiriya-village-food-experience',
+  (SELECT id FROM explore_places WHERE slug = 'sigiriya-rock-fortress' LIMIT 1),
+  'Sigiriya Village Food Experience', 'Food & Culinary', 'Sigiriya', 'Matale', 'Sigiriya Village Area', 'February', 2, 'Daily', '11:00 AM - 2:00 PM', 'Paid', 4200, '3 hr',
+  'Cook and taste rice and curry, coconut sambol, herbal drinks, and village-style sweets after a Sigiriya morning visit.',
+  'A local food experience for tourists visiting Sigiriya or Dambulla. It is suitable as a lunch stop after the rock fortress climb.',
+  'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Sigiriya+village+tour+Sri+Lanka',
+  JSON_ARRAY('Sigiriya Village Hotel', 'Aliya Resort', 'Water Garden Sigiriya'),
+  JSON_ARRAY('Village cooking', 'Traditional lunch', 'Local host family', 'Great after Sigiriya climb'),
+  TRUE, FALSE, 'approved'
+),
+(
+  'bentota-water-sports-day',
+  NULL,
+  'Bentota Water Sports Day', 'Adventure & Nature', 'Bentota', 'Galle', 'Bentota River', 'April', 4, 'Daily', '10:00 AM - 4:00 PM', 'Premium', 9500, 'Half day',
+  'Jet ski, banana boat, river safari, and beginner-friendly water activities near Bentota beach hotels.',
+  'A high-energy coastal activity day for tourists who want more than beach relaxation. Activity choices can be selected based on comfort and weather.',
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Bentota+water+sports',
+  JSON_ARRAY('Taj Bentota', 'Avani Bentota', 'Bentota Beach Resort'),
+  JSON_ARRAY('Water sports', 'River safari', 'Beach hotels nearby', 'Instructor support'),
+  FALSE, FALSE, 'approved'
+),
+(
+  'yala-wildlife-evening-talk',
+  (SELECT id FROM explore_places WHERE slug = 'yala-national-park' LIMIT 1),
+  'Yala Wildlife Evening Talk', 'Adventure & Nature', 'Yala', 'Hambantota', 'Tissamaharama Safari Camp Area', 'June', 6, 'Selected evenings', '6:30 PM - 8:00 PM', 'Free', 0, '1 hr 30 min',
+  'Learn safari safety, leopard behaviour, birdlife, and responsible wildlife tourism before a Yala safari day.',
+  'A useful evening session for tourists planning a safari. It improves safety awareness and helps visitors understand Yala without disturbing wildlife.',
+  'https://images.unsplash.com/photo-1549366021-9f761d040a94?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Yala+National+Park+Sri+Lanka',
+  JSON_ARRAY('Yala Safari Camp', 'Cinnamon Wild Yala', 'Tissa Lake Resort'),
+  JSON_ARRAY('Safari safety', 'Wildlife awareness', 'Leopard and birdlife facts', 'Responsible travel'),
+  TRUE, FALSE, 'approved'
+);
+
+UPDATE tourist_events
+SET submitted_at = COALESCE(submitted_at, created_at, NOW()),
+    approved_at = COALESCE(approved_at, NOW()),
+    approved_by = (SELECT id FROM users WHERE email = 'admin@tourismhub.lk' LIMIT 1)
+WHERE status = 'approved';
+
+
+-- =========================================================
+-- EXTRA DEMO DATA ADDED FOR A RICHER DATABASE
+-- =========================================================
+
+INSERT INTO users
+(full_name, email, phone, nationality, national_id, password_hash, role, is_active)
+VALUES
+('Galle Heritage Hotels', 'galle.partner@tourismhub.lk', '+94 76 33 33 333', 'Sri Lankan', NULL, '$2a$10$UzpnY3RU/AA5CSifoo8tZ.h2wGvzvaA3MjmFj7kPd7z6/.O79DXvG', 'partner', TRUE),
+('North Coast Tourism', 'north.partner@tourismhub.lk', '+94 77 44 44 444', 'Sri Lankan', NULL, '$2a$10$UzpnY3RU/AA5CSifoo8tZ.h2wGvzvaA3MjmFj7kPd7z6/.O79DXvG', 'partner', TRUE),
+('Amaya Fernando', 'amaya.tourist@demo.lk', '+94 75 55 55 555', 'Sri Lankan', '200145678901', '$2a$10$UzpnY3RU/AA5CSifoo8tZ.h2wGvzvaA3MjmFj7kPd7z6/.O79DXvG', 'tourist', TRUE),
+('Luca Martin', 'luca.traveller@demo.com', '+39 333 222 1111', 'Italian', 'P-IT-778899', '$2a$10$UzpnY3RU/AA5CSifoo8tZ.h2wGvzvaA3MjmFj7kPd7z6/.O79DXvG', 'tourist', TRUE),
+('Maya Chen', 'maya.traveller@demo.com', '+65 8111 2233', 'Singaporean', 'P-SG-445566', '$2a$10$UzpnY3RU/AA5CSifoo8tZ.h2wGvzvaA3MjmFj7kPd7z6/.O79DXvG', 'tourist', TRUE);
+
+INSERT INTO properties
+(
+  partner_id, name, city, district, address, description, quote, logo_url, hero_title,
+  theme_color, property_password_hash, property_type,
+  plan_type, room_limit,
+  registration_fee, registration_payment_status, registration_payment_method_id, registration_paid_at,
+  monthly_charge, monthly_payment_status, monthly_payment_method_id, monthly_paid_at,
+  monthly_cycle_start, monthly_cycle_end, next_monthly_due_date,
+  platform_registration_fee, fee_payment_status,
+  status, is_verified, rejection_reason
+)
+VALUES
+(
+  (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1),
+  'Galle Fort Boutique Villa', 'Galle', 'Galle', 'Church Street, Galle Fort',
+  'A calm boutique villa inside Galle Fort with heritage design, walking access to cafes, lighthouse views, and sunset ramparts.',
+  'Sleep inside the old fort walls.',
+  'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=500&q=80',
+  'Galle Fort Boutique Villa', '#7c2d12', '$2b$10$Irpq9a/MJ7m.aN.mH4jR6Ot0kVh.DaJzVjkPUS8m9LJ4kkX3V/ZGa', 'Villa',
+  'premium', 100,
+  8500.00, 'Paid', 1, NOW(),
+  4000.00, 'Paid', 2, NOW(),
+  NOW(), DATE_ADD(NOW(), INTERVAL 1 MONTH), DATE_ADD(NOW(), INTERVAL 1 MONTH),
+  8500.00, 'Paid',
+  'approved', TRUE, NULL
+),
+(
+  (SELECT id FROM users WHERE email = 'north.partner@tourismhub.lk' LIMIT 1),
+  'Jaffna Heritage Guesthouse', 'Jaffna', 'Jaffna', 'Temple Road, Nallur, Jaffna',
+  'A friendly northern guesthouse near Nallur with local food, bicycle support, and easy access to Jaffna town and islands.',
+  'Feel the northern culture with comfort.',
+  'https://images.unsplash.com/photo-1495365200479-c4ed1d35e1aa?auto=format&fit=crop&w=500&q=80',
+  'Jaffna Heritage Guesthouse', '#9333ea', '$2b$10$Irpq9a/MJ7m.aN.mH4jR6Ot0kVh.DaJzVjkPUS8m9LJ4kkX3V/ZGa', 'Guesthouse',
+  'standard', 50,
+  5000.00, 'Paid', 1, NOW(),
+  2500.00, 'Free Trial', NULL, NULL,
+  NOW(), DATE_ADD(NOW(), INTERVAL 1 MONTH), DATE_ADD(NOW(), INTERVAL 1 MONTH),
+  5000.00, 'Paid',
+  'approved', TRUE, NULL
+),
+(
+  (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1),
+  'Bentota River Resort', 'Bentota', 'Galle', 'River Side Road, Bentota',
+  'A river-side resort with boat rides, water sports support, family rooms, and beach access within a short drive.',
+  'River breeze and beach days together.',
+  'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=500&q=80',
+  'Bentota River Resort', '#0369a1', '$2b$10$Irpq9a/MJ7m.aN.mH4jR6Ot0kVh.DaJzVjkPUS8m9LJ4kkX3V/ZGa', 'Resort',
+  'premium', 100,
+  8500.00, 'Unpaid', NULL, NULL,
+  4000.00, 'Free Trial', NULL, NULL,
+  NOW(), DATE_ADD(NOW(), INTERVAL 1 MONTH), DATE_ADD(NOW(), INTERVAL 1 MONTH),
+  8500.00, 'Unpaid',
+  'pending', FALSE, NULL
+);
+
+INSERT INTO rooms
+(property_id, room_type, capacity, base_occupancy, price_per_night, extra_person_price, price_per_day, total_rooms, available_rooms)
+VALUES
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), 'Heritage Deluxe Room', 2, 2, 26000.00, 0.00, 18000.00, 6, 6),
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), 'Fort Family Suite', 4, 2, 38000.00, 4500.00, 26000.00, 3, 3),
+((SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1), 'Northern Comfort Room', 2, 2, 9500.00, 0.00, 6500.00, 8, 8),
+((SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1), 'Family Guest Room', 4, 2, 14500.00, 2500.00, 9500.00, 4, 4),
+((SELECT id FROM properties WHERE name = 'Bentota River Resort' LIMIT 1), 'River View Room', 2, 2, 21000.00, 0.00, 14500.00, 10, 10),
+((SELECT id FROM properties WHERE name = 'Bentota River Resort' LIMIT 1), 'Water Sports Family Suite', 5, 3, 42000.00, 5000.00, 30000.00, 4, 4);
+
+INSERT INTO property_photos (property_id, image_url, is_main)
+VALUES
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80', TRUE),
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80', FALSE),
+((SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1), 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80', TRUE),
+((SELECT id FROM properties WHERE name = 'Bentota River Resort' LIMIT 1), 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80', TRUE);
+
+INSERT INTO room_photos (room_id, image_url, is_main)
+VALUES
+((SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Galle Fort Boutique Villa' AND r.room_type = 'Heritage Deluxe Room' LIMIT 1), 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80', TRUE),
+((SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Galle Fort Boutique Villa' AND r.room_type = 'Fort Family Suite' LIMIT 1), 'https://images.unsplash.com/photo-1560448075-bb485b067938?auto=format&fit=crop&w=1000&q=80', TRUE),
+((SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Jaffna Heritage Guesthouse' AND r.room_type = 'Northern Comfort Room' LIMIT 1), 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1000&q=80', TRUE),
+((SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Bentota River Resort' AND r.room_type = 'River View Room' LIMIT 1), 'https://images.unsplash.com/photo-1590490359683-658d3d23f972?auto=format&fit=crop&w=1000&q=80', TRUE);
+
+INSERT INTO property_policies
+(property_id, check_in_time, check_out_time, cancellation_policy, day_package_available, night_package_available)
+VALUES
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), '14:00:00', '11:00:00', 'Free cancellation up to 5 days before check-in.', TRUE, TRUE),
+((SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1), '13:00:00', '10:30:00', 'Free cancellation up to 2 days before check-in.', TRUE, TRUE),
+((SELECT id FROM properties WHERE name = 'Bentota River Resort' LIMIT 1), '14:00:00', '11:00:00', 'Free cancellation up to 3 days before check-in.', TRUE, TRUE);
+
+INSERT INTO bookings
+(booking_reference, tourist_id, user_id, guest_session_id, property_id, room_id, full_name, email, nationality, country_code, phone, check_in, check_out, check_in_package, check_out_package, guests, nights, day_units, night_units, adults, children, total_amount, notes, partner_note, payment_status, booking_status)
+VALUES
+(
+  'THLK-DEMO-1003',
+  (SELECT id FROM users WHERE email = 'amaya.tourist@demo.lk' LIMIT 1),
+  (SELECT id FROM users WHERE email = 'amaya.tourist@demo.lk' LIMIT 1),
+  NULL,
+  (SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1),
+  (SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Galle Fort Boutique Villa' AND r.room_type = 'Fort Family Suite' LIMIT 1),
+  'Amaya Fernando', 'amaya.tourist@demo.lk', 'Sri Lankan', '+94', '+94 75 55 55 555',
+  DATE_ADD(CURDATE(), INTERVAL 21 DAY), DATE_ADD(CURDATE(), INTERVAL 23 DAY),
+  'night', 'day', 4, 2, 1, 2, 3, 1, 80500.00,
+  'Need breakfast and late checkout if possible.', 'Breakfast can be arranged.', 'Paid', 'Approved'
+),
+(
+  'THLK-DEMO-1004',
+  (SELECT id FROM users WHERE email = 'luca.traveller@demo.com' LIMIT 1),
+  (SELECT id FROM users WHERE email = 'luca.traveller@demo.com' LIMIT 1),
+  NULL,
+  (SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1),
+  (SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Jaffna Heritage Guesthouse' AND r.room_type = 'Northern Comfort Room' LIMIT 1),
+  'Luca Martin', 'luca.traveller@demo.com', 'Italian', '+39', '+39 333 222 1111',
+  DATE_ADD(CURDATE(), INTERVAL 30 DAY), DATE_ADD(CURDATE(), INTERVAL 33 DAY),
+  'night', 'day', 2, 3, 1, 3, 2, 0, 35000.00,
+  'Interested in bicycle rental around Jaffna.', NULL, 'Pending Payment', 'Pending Partner Approval'
+),
+(
+  'THLK-DEMO-1005',
+  (SELECT id FROM users WHERE email = 'maya.traveller@demo.com' LIMIT 1),
+  (SELECT id FROM users WHERE email = 'maya.traveller@demo.com' LIMIT 1),
+  NULL,
+  (SELECT id FROM properties WHERE name = 'Ella Mountain View Resort' LIMIT 1),
+  (SELECT r.id FROM rooms r JOIN properties p ON p.id = r.property_id WHERE p.name = 'Ella Mountain View Resort' AND r.room_type = 'Family Mountain Villa' LIMIT 1),
+  'Maya Chen', 'maya.traveller@demo.com', 'Singaporean', '+65', '+65 8111 2233',
+  DATE_ADD(CURDATE(), INTERVAL 10 DAY), DATE_ADD(CURDATE(), INTERVAL 12 DAY),
+  'night', 'day', 5, 2, 1, 2, 4, 1, 84000.00,
+  'Travelling with family and need a guide for Nine Arch Bridge.', NULL, 'Paid', 'Approved'
+);
+
+UPDATE rooms r
+JOIN properties p ON p.id = r.property_id
+SET r.available_rooms = r.available_rooms - 1
+WHERE ((p.name = 'Galle Fort Boutique Villa' AND r.room_type = 'Fort Family Suite')
+    OR (p.name = 'Ella Mountain View Resort' AND r.room_type = 'Family Mountain Villa'))
+  AND r.available_rooms > 0;
+
+INSERT INTO payment_transactions
+(property_id, partner_id, payment_type, plan_type, amount, status, paid_at, notes)
+VALUES
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1), 'registration', 'premium', 8500.00, 'Paid', NOW(), 'Seed registration payment for Galle Fort Boutique Villa'),
+((SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1), (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1), 'monthly', 'premium', 4000.00, 'Paid', NOW(), 'Seed monthly payment for Galle Fort Boutique Villa'),
+((SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1), (SELECT id FROM users WHERE email = 'north.partner@tourismhub.lk' LIMIT 1), 'registration', 'standard', 5000.00, 'Paid', NOW(), 'Seed registration payment for Jaffna Heritage Guesthouse');
+
+INSERT INTO notifications (user_id, title, message, type, is_read)
+VALUES
+((SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1), 'Property approved', 'Galle Fort Boutique Villa is approved and visible to tourists.', 'property', FALSE),
+((SELECT id FROM users WHERE email = 'north.partner@tourismhub.lk' LIMIT 1), 'Welcome to TourismHub LK', 'Your northern partner account and first property are ready for demo testing.', 'success', FALSE),
+((SELECT id FROM users WHERE email = 'admin@tourismhub.lk' LIMIT 1), 'Pending property request', 'Bentota River Resort is waiting for admin approval.', 'approval', FALSE),
+((SELECT id FROM users WHERE email = 'amaya.tourist@demo.lk' LIMIT 1), 'Booking approved', 'Your Galle Fort Boutique Villa booking has been approved.', 'booking', FALSE),
+((SELECT id FROM users WHERE email = 'maya.traveller@demo.com' LIMIT 1), 'Guide suggestion available', 'A promoted hill country guide can help with your Ella trip.', 'event', FALSE);
+
+-- =========================================================
+-- PARTNER GUIDE SEED DATA
+-- =========================================================
+INSERT INTO partner_guides
+(partner_id, slug, full_name, display_name, guide_type, city, district, base_location, languages, experience_years, license_number, nic_or_passport, phone, email, whatsapp_number, price_per_day, price_per_hour, availability, services, specialities, short_description, bio, image_url, rating, total_reviews, status, rejection_reason, submitted_at, approved_at, approved_by, registration_fee, registration_payment_status, registration_paid_at, promotion_fee, promotion_payment_status, promotion_paid_at, promotion_expires_at, is_promoted, promotion_sort_order)
+VALUES
+(
+  (SELECT id FROM users WHERE email = 'partner@demo.lk' LIMIT 1),
+  'nimal-kandy-heritage-guide', 'Nimal Perera', 'Nimal Heritage Guide', 'Heritage', 'Kandy', 'Kandy', 'Kandy City',
+  JSON_ARRAY('English', 'Sinhala'), 9, 'SLTG-KDY-1021', '881234567V', '+94 77 101 2020', 'nimal.guide@demo.lk', '+94 77 101 2020',
+  8500.00, 1800.00, 'Daily 8 AM - 6 PM', JSON_ARRAY('Temple tours', 'Cultural walks', 'Family tours'), JSON_ARRAY('Kandyan culture', 'Temple of the Tooth', 'Village stories'),
+  'Friendly Kandy guide for heritage walks and cultural trips.',
+  'Nimal has guided local and foreign tourists around Kandy, Peradeniya, and nearby cultural locations for many years.',
+  'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?auto=format&fit=crop&w=800&q=80', 4.90, 46, 'approved', NULL, NOW(), NOW(),
+  (SELECT id FROM users WHERE email = 'admin@tourismhub.lk' LIMIT 1), 3000.00, 'Paid', NOW(), 1500.00, 'Paid', NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), TRUE, 1
+),
+(
+  (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1),
+  'sachini-galle-fort-guide', 'Sachini Jayawardena', 'Sachini Fort Walks', 'Heritage', 'Galle', 'Galle', 'Galle Fort',
+  JSON_ARRAY('English', 'Sinhala'), 6, 'SLTG-GLE-2044', '945551234V', '+94 76 404 5050', 'sachini.guide@demo.lk', '+94 76 404 5050',
+  9500.00, 2200.00, 'Weekdays and weekends by booking', JSON_ARRAY('Fort walks', 'Photography routes', 'Food stops'), JSON_ARRAY('Galle Fort', 'Dutch history', 'Sunset viewpoints'),
+  'Galle Fort specialist guide with photography-friendly routes.',
+  'Sachini focuses on slow heritage walks, local stories, cafe stops, and sunset viewpoints inside Galle Fort.',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80', 4.85, 31, 'approved', NULL, NOW(), NOW(),
+  (SELECT id FROM users WHERE email = 'admin@tourismhub.lk' LIMIT 1), 3000.00, 'Paid', NOW(), 1500.00, 'Unpaid', NULL, NULL, FALSE, 0
+),
+(
+  (SELECT id FROM users WHERE email = 'north.partner@tourismhub.lk' LIMIT 1),
+  'arun-jaffna-culture-guide', 'Arun Rajan', 'Arun Northern Trails', 'Culture', 'Jaffna', 'Jaffna', 'Nallur',
+  JSON_ARRAY('English', 'Tamil', 'Sinhala'), 5, 'SLTG-JFN-3055', '900112233V', '+94 77 909 3030', 'arun.guide@demo.lk', '+94 77 909 3030',
+  7800.00, 1600.00, 'Daily except Monday', JSON_ARRAY('Nallur temple routes', 'Island trips', 'Local food visits'), JSON_ARRAY('Northern culture', 'Jaffna food', 'Island temples'),
+  'Pending northern guide profile for Jaffna culture trips.',
+  'Arun can support guests who want to understand Jaffna culture, food, and island routes.',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80', 4.70, 18, 'pending', NULL, NOW(), NULL, NULL, 3000.00, 'Unpaid', NULL, 1500.00, 'Unpaid', NULL, NULL, FALSE, 0
+),
+(
+  (SELECT id FROM users WHERE email = 'partner@demo.lk' LIMIT 1),
+  'old-hidden-demo-guide', 'Old Demo Guide', 'Old Demo Guide', 'Adventure', 'Colombo', 'Colombo', 'Colombo City',
+  JSON_ARRAY('English'), 1, NULL, NULL, '+94 70 000 1111', 'old.guide@demo.lk', '+94 70 000 1111',
+  5000.00, 1000.00, 'Not available', JSON_ARRAY('City walk'), JSON_ARRAY('Demo data'),
+  'Hidden guide used for admin visibility testing.',
+  'This profile stays hidden so the public guide page can be tested properly.',
+  NULL, 4.20, 3, 'hidden', NULL, NOW(), NULL, NULL, 3000.00, 'Unpaid', NULL, 1500.00, 'Unpaid', NULL, NULL, FALSE, 0
+);
+
+INSERT INTO guide_payment_transactions
+(guide_id, partner_id, payment_type, amount, status, paid_at, notes)
+VALUES
+((SELECT id FROM partner_guides WHERE slug = 'nimal-kandy-heritage-guide' LIMIT 1), (SELECT id FROM users WHERE email = 'partner@demo.lk' LIMIT 1), 'registration', 3000.00, 'Paid', NOW(), 'Seed registration payment for Nimal guide'),
+((SELECT id FROM partner_guides WHERE slug = 'nimal-kandy-heritage-guide' LIMIT 1), (SELECT id FROM users WHERE email = 'partner@demo.lk' LIMIT 1), 'promotion', 1500.00, 'Paid', NOW(), 'Seed promotion payment for Nimal guide'),
+((SELECT id FROM partner_guides WHERE slug = 'sachini-galle-fort-guide' LIMIT 1), (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1), 'registration', 3000.00, 'Paid', NOW(), 'Seed registration payment for Sachini guide');
+
+-- =========================================================
+-- EXTRA PARTNER EVENT APPROVAL DATA
+-- =========================================================
+INSERT INTO tourist_events
+(slug, partner_id, property_id, explore_place_id, title, category, city, district, venue, month_name, month_number, event_date, date_label, time_label, price_type, price, duration, short_description, description, image_url, map_url, contact_name, contact_phone, contact_email, near_hotels, highlights, guide_recommended, featured, status, rejection_reason, submitted_at, approved_at, approved_by)
+VALUES
+(
+  'galle-fort-sunset-photo-walk',
+  (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1),
+  (SELECT id FROM properties WHERE name = 'Galle Fort Boutique Villa' LIMIT 1),
+  (SELECT id FROM explore_places WHERE slug = 'galle-fort' LIMIT 1),
+  'Galle Fort Sunset Photo Walk', 'Cultural & Religious', 'Galle', 'Galle', 'Galle Lighthouse and Ramparts', 'February', 2, DATE_ADD(CURDATE(), INTERVAL 18 DAY), 'Next available evening', '4:30 PM - 6:45 PM', 'Budget', 2500.00, '2 hr 15 min',
+  'A slow evening photo walk through Galle Fort ending near the ramparts at sunset.',
+  'This approved partner event is useful for testing the public event page, partner dashboard, and admin approved flow.',
+  'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Galle+Fort+Lighthouse',
+  'Sachini Fort Walks', '+94 76 404 5050', 'sachini.guide@demo.lk',
+  JSON_ARRAY('Galle Fort Boutique Villa', 'Galle Fort Hotel', 'Rampart View Stay'),
+  JSON_ARRAY('Sunset photos', 'Lighthouse stop', 'Heritage stories', 'Easy walk'),
+  TRUE, TRUE, 'approved', NULL, NOW(), NOW(), (SELECT id FROM users WHERE email = 'admin@tourismhub.lk' LIMIT 1)
+),
+(
+  'jaffna-market-food-morning',
+  (SELECT id FROM users WHERE email = 'north.partner@tourismhub.lk' LIMIT 1),
+  (SELECT id FROM properties WHERE name = 'Jaffna Heritage Guesthouse' LIMIT 1),
+  NULL,
+  'Jaffna Market Food Morning', 'Food & Culinary', 'Jaffna', 'Jaffna', 'Jaffna Market and Nallur Area', 'March', 3, DATE_ADD(CURDATE(), INTERVAL 25 DAY), 'Pending admin date', '8:00 AM - 11:00 AM', 'Paid', 3200.00, '3 hr',
+  'Morning food route covering Jaffna snacks, market fruits, tea stops, and local breakfast items.',
+  'This event is waiting for admin approval so the pending event workflow can be tested.',
+  'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Jaffna+Market',
+  'Arun Northern Trails', '+94 77 909 3030', 'arun.guide@demo.lk',
+  JSON_ARRAY('Jaffna Heritage Guesthouse', 'Nallur City Stay'),
+  JSON_ARRAY('Local breakfast', 'Market walk', 'Tamil food culture', 'Morning route'),
+  TRUE, FALSE, 'pending', NULL, NOW(), NULL, NULL
+),
+(
+  'bentota-river-lagoon-safari',
+  (SELECT id FROM users WHERE email = 'galle.partner@tourismhub.lk' LIMIT 1),
+  (SELECT id FROM properties WHERE name = 'Bentota River Resort' LIMIT 1),
+  NULL,
+  'Bentota River Lagoon Safari', 'Adventure & Nature', 'Bentota', 'Galle', 'Bentota River Jetty', 'April', 4, DATE_ADD(CURDATE(), INTERVAL 35 DAY), 'Weekends', '9:00 AM - 12:30 PM', 'Premium', 8500.00, '3 hr 30 min',
+  'Boat safari through river islands, mangroves, and bird-watching areas near Bentota.',
+  'Approved event attached to a pending property to test partner data and event visibility separately.',
+  'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1400&q=85',
+  'https://www.google.com/maps/search/?api=1&query=Bentota+River',
+  'Bentota River Resort Team', '+94 76 333 3333', 'galle.partner@tourismhub.lk',
+  JSON_ARRAY('Bentota River Resort', 'Taj Bentota', 'Avani Bentota'),
+  JSON_ARRAY('Boat safari', 'Mangroves', 'Bird watching', 'Family friendly'),
+  FALSE, FALSE, 'approved', NULL, NOW(), NOW(), (SELECT id FROM users WHERE email = 'admin@tourismhub.lk' LIMIT 1)
+),
+(
+  'colombo-night-party-demo-rejected',
+  (SELECT id FROM users WHERE email = 'partner@demo.lk' LIMIT 1),
+  NULL,
+  NULL,
+  'Colombo Night Party Demo', 'Entertainment', 'Colombo', 'Colombo', 'Demo City Venue', 'May', 5, DATE_ADD(CURDATE(), INTERVAL 40 DAY), 'Rejected demo', '9:00 PM - 1:00 AM', 'Paid', 5000.00, '4 hr',
+  'Rejected sample event used for admin rejection testing.',
+  'This sample is rejected because the event details are not suitable for the public tourism event page in this demo.',
+  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1400&q=85',
+  NULL,
+  'Demo Partner', '+94 71 111 1111', 'partner@demo.lk',
+  JSON_ARRAY('Colombo City Stay'),
+  JSON_ARRAY('Rejected workflow', 'Admin testing'),
+  FALSE, FALSE, 'rejected', 'Event details are not clear enough for public tourist approval.', NOW(), NULL, NULL
+);
+
