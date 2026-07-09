@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePreferences } from "../context/PreferencesContext";
 
 const navLinks = [
   { to: "/", label: "Home", end: true },
@@ -11,20 +12,6 @@ const navLinks = [
   { to: "/tourist-guides", label: "Guides" },
   { to: "/about", label: "About Us" },
 ];
-
-const languages = [
-  { value: "en", label: "English" },
-  { value: "si", label: "සිංහල" },
-  { value: "ta", label: "தமிழ்" },
-];
-
-const currencies = [
-  { value: "LKR", label: "LKR" },
-  { value: "USD", label: "USD" },
-  { value: "EUR", label: "EUR" },
-  { value: "GBP", label: "GBP" },
-];
-
 
 function SiteFooter({ onNavigateTop }) {
   return (
@@ -117,15 +104,20 @@ function SiteFooter({ onNavigateTop }) {
 
 function PublicLayout() {
   const { user, isLoggedIn, logout } = useAuth();
+  const {
+    language,
+    currency,
+    languages,
+    currencies,
+    setLanguage,
+    setCurrency,
+  } = usePreferences();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [language, setLanguage] = useState(
-    () => localStorage.getItem("tourismhub_language") || "en"
-  );
-  const [currency, setCurrency] = useState(
-    () => localStorage.getItem("tourismhub_currency") || "LKR"
-  );
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const currentLanguage =
+    languages.find((item) => item.value === language) || languages[0];
 
   const username =
     user?.full_name ||
@@ -136,16 +128,9 @@ function PublicLayout() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setLanguageMenuOpen(false);
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location.pathname]);
-
-  useEffect(() => {
-    localStorage.setItem("tourismhub_language", language);
-  }, [language]);
-
-  useEffect(() => {
-    localStorage.setItem("tourismhub_currency", currency);
-  }, [currency]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -179,7 +164,12 @@ function PublicLayout() {
         <div className="top-line" />
 
         <div className="site-header-inner">
-          <Link to="/" className="brand-link" aria-label="TourismHub LK home">
+          <Link
+            to="/"
+            className="brand-link notranslate"
+            aria-label="TourismHub LK home"
+            data-no-translate
+          >
             <span className="brand-mark" aria-hidden="true">
               <span className="brand-mark-sun" />
               <span className="brand-mark-wave" />
@@ -213,6 +203,9 @@ function PublicLayout() {
                 className={({ isActive }) =>
                   isActive ? "nav-item nav-item-active" : "nav-item"
                 }
+                title={link.label}
+                data-tooltip={link.label}
+                data-dynamic-title="true"
               >
                 {link.label}
               </NavLink>
@@ -220,34 +213,87 @@ function PublicLayout() {
           </nav>
 
           <div className={`header-actions ${menuOpen ? "header-actions-open" : ""}`}>
-            <Link to="/list-your-property" className="property-link">
+            <Link
+              to="/list-your-property"
+              className="property-link"
+              title="List your property"
+              data-tooltip="List your property"
+              data-dynamic-title="true"
+            >
               List your property
             </Link>
 
-            <label className="clean-select" title="Select language">
-              <span>🌐</span>
-              <select
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
+            <div
+              className="language-picker notranslate"
+              data-no-translate
+              translate="no"
+            >
+              <button
+                type="button"
+                className="language-picker-button"
+                onClick={() => setLanguageMenuOpen((current) => !current)}
                 aria-label="Select language"
+                aria-expanded={languageMenuOpen}
               >
-                {languages.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <span className="language-globe">🌐</span>
+                <img
+                  src={currentLanguage.flag}
+                  alt=""
+                  className="language-flag"
+                  loading="lazy"
+                />
+                <span className="language-current-text">
+                  {currentLanguage.code} {currentLanguage.name}
+                </span>
+                <span className="language-caret">▾</span>
+              </button>
 
-            <label className="clean-select" title="Select currency">
+              {languageMenuOpen && (
+                <div className="language-menu" role="listbox">
+                  {languages.map((item) => (
+                    <button
+                      type="button"
+                      key={item.value}
+                      className={`language-option ${
+                        item.value === language ? "is-active" : ""
+                      }`}
+                      onClick={() => {
+                        setLanguage(item.value);
+                        setLanguageMenuOpen(false);
+                      }}
+                      role="option"
+                      aria-selected={item.value === language}
+                    >
+                      <img
+                        src={item.flag}
+                        alt=""
+                        className="language-flag"
+                        loading="lazy"
+                      />
+                      <span>{item.code}</span>
+                      <strong>{item.name}</strong>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <label
+              className="clean-select notranslate"
+              title="Select currency"
+              data-no-translate
+              translate="no"
+            >
               <span>💱</span>
               <select
                 value={currency}
                 onChange={(event) => setCurrency(event.target.value)}
                 aria-label="Select currency"
+                data-no-translate
+                translate="no"
               >
                 {currencies.map((item) => (
-                  <option key={item.value} value={item.value}>
+                  <option key={item.value} value={item.value} translate="no">
                     {item.label}
                   </option>
                 ))}
@@ -264,17 +310,36 @@ function PublicLayout() {
                 >
                   🛒
                 </Link>
-                <span className="user-greeting">Hi, {username}</span>
-                <button type="button" className="logout-button" onClick={handleLogout}>
+                <span className="user-greeting notranslate" data-no-translate>Hi, {username}</span>
+                <button
+                  type="button"
+                  className="logout-button"
+                  title="Logout"
+                  data-tooltip="Logout"
+                  data-dynamic-title="true"
+                  onClick={handleLogout}
+                >
                   Logout
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="login-link">
+                <Link
+                  to="/login"
+                  className="login-link"
+                  title="Login"
+                  data-tooltip="Login"
+                  data-dynamic-title="true"
+                >
                   Login
                 </Link>
-                <Link to="/register" className="register-link">
+                <Link
+                  to="/register"
+                  className="register-link"
+                  title="Register"
+                  data-tooltip="Register"
+                  data-dynamic-title="true"
+                >
                   Register
                 </Link>
               </>
@@ -351,16 +416,19 @@ const layoutCss = `
     margin: 0 auto;
     padding: 0 clamp(22px, 3vw, 48px);
     display: grid;
-    grid-template-columns: minmax(228px, max-content) minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(0, max-content);
     align-items: center;
     column-gap: clamp(18px, 2vw, 34px);
+    overflow: visible;
   }
 
   .brand-link {
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    min-width: max-content;
+    min-width: 0;
+    max-width: 280px;
+    overflow: hidden;
     text-decoration: none;
     flex: 0 0 auto;
   }
@@ -433,6 +501,9 @@ const layoutCss = `
     font-size: clamp(22px, 1.7vw, 27px);
     font-weight: 800;
     letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .brand-name span {
@@ -443,12 +514,17 @@ const layoutCss = `
     justify-self: center;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(14px, 1.45vw, 25px);
-    overflow: visible;
+    gap: clamp(8px, 0.9vw, 16px);
+    overflow: hidden;
     scrollbar-width: none;
+  }
+
+  .main-navigation:hover .nav-item {
+    max-width: 58px;
   }
 
   .main-navigation::-webkit-scrollbar {
@@ -457,6 +533,13 @@ const layoutCss = `
 
   .nav-item {
     position: relative;
+    min-width: 0;
+    max-width: clamp(86px, 9.5vw, 148px);
+    flex: 0 1 clamp(64px, 8vw, 118px);
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
     color: #111827;
     text-decoration: none;
     font-size: 13px;
@@ -464,7 +547,25 @@ const layoutCss = `
     line-height: 1;
     padding: 30px 0 29px;
     white-space: nowrap;
-    transition: color 0.18s ease;
+    transition: color 0.18s ease, max-width 0.2s ease, flex-basis 0.2s ease;
+  }
+
+  .main-navigation:hover .nav-item:hover {
+    flex-basis: clamp(142px, 16vw, 260px);
+    max-width: clamp(142px, 16vw, 260px);
+    text-overflow: clip;
+  }
+
+  .nav-item font,
+  .property-link font,
+  .logout-button font,
+  .login-link font,
+  .register-link font {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .nav-item:hover,
@@ -492,6 +593,7 @@ const layoutCss = `
     justify-content: flex-end;
     gap: 8px;
     white-space: nowrap;
+    overflow: visible;
   }
 
   .property-link,
@@ -512,10 +614,16 @@ const layoutCss = `
     cursor: pointer;
     white-space: nowrap;
     flex: 0 0 auto;
+    min-width: 0;
+    max-width: 154px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
   }
 
   .property-link {
+    position: relative;
+    max-width: 220px;
     background: var(--hub-green);
     color: #ffffff;
     box-shadow: 0 10px 22px rgba(8, 117, 104, 0.16);
@@ -549,6 +657,8 @@ const layoutCss = `
   }
 
   .logout-button {
+    position: relative;
+    max-width: 108px;
     background: #ef4444;
     color: #ffffff;
     box-shadow: 0 10px 22px rgba(239, 68, 68, 0.16);
@@ -585,6 +695,111 @@ const layoutCss = `
     font-weight: 720;
     cursor: pointer;
     max-width: 76px;
+  }
+
+  .clean-select select.language-select-field {
+    max-width: 156px;
+  }
+
+  .language-picker {
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .language-picker-button {
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid rgba(8, 117, 104, 0.18);
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 0 10px;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 780;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.03);
+  }
+
+  .language-globe {
+    color: var(--hub-green);
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .language-flag {
+    width: 20px;
+    height: 14px;
+    object-fit: cover;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+    flex: 0 0 auto;
+  }
+
+  .language-current-text {
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .language-caret {
+    color: #0f172a;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .language-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 1300;
+    width: 210px;
+    max-height: min(470px, calc(100vh - 110px));
+    overflow-y: auto;
+    padding: 6px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18);
+  }
+
+  .language-option {
+    width: 100%;
+    min-height: 34px;
+    display: grid;
+    grid-template-columns: 20px 28px 1fr;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    padding: 7px 8px;
+    color: #111827;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .language-option span {
+    font-size: 11px;
+    font-weight: 820;
+    color: #0f766e;
+  }
+
+  .language-option strong {
+    font-size: 13px;
+    font-weight: 820;
+    letter-spacing: 0;
+  }
+
+  .language-option:hover,
+  .language-option.is-active {
+    background: #e8f8f5;
+  }
+
+  .language-option.is-active strong {
+    color: var(--hub-green);
   }
 
   .user-greeting {
@@ -914,7 +1129,7 @@ const layoutCss = `
 
   @media (max-width: 1500px) {
     .site-header-inner {
-      grid-template-columns: minmax(215px, max-content) minmax(0, 1fr) max-content;
+      grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(0, max-content);
       min-height: 70px;
       padding-left: 18px;
       padding-right: 18px;
@@ -927,11 +1142,31 @@ const layoutCss = `
 
     .main-navigation {
       justify-content: center;
-      gap: 15px;
+      gap: 10px;
     }
 
     .nav-item {
       font-size: 12.5px;
+      max-width: 112px;
+      flex-basis: 88px;
+    }
+
+    .main-navigation:hover .nav-item {
+      max-width: 48px;
+      flex-basis: 48px;
+    }
+
+    .main-navigation:hover .nav-item:hover {
+      flex-basis: 190px;
+      max-width: 190px;
+    }
+
+    .property-link {
+      max-width: 190px;
+    }
+
+    .logout-button {
+      max-width: 96px;
     }
 
     .property-link,
@@ -1259,3 +1494,4 @@ const layoutCss = `
 `;
 
 export default PublicLayout;
+

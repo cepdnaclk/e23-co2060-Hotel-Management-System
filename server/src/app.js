@@ -19,6 +19,7 @@ const adminGuideRoutes = require("./routes/adminGuide.routes");
 const partnerGuideRoutes = require("./routes/partnerGuide.routes");
 const publicGuideRoutes = require("./routes/publicGuide.routes");
 const assistantRoutes = require("./routes/assistant.routes");
+const translationRoutes = require("./routes/translation.routes");
 
 const app = express();
 
@@ -93,6 +94,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/tourist", touristEventRoutes);
 app.use("/api/guides", publicGuideRoutes);
 app.use("/api/assistant", assistantRoutes);
+app.use("/api/translate", translationRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
