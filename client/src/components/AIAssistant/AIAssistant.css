@@ -256,6 +256,29 @@
   line-height: 1.4;
 }
 
+.ai-header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-clear-btn {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ai-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .ai-close-btn {
   flex: 0 0 auto;
   width: 36px;
@@ -307,6 +330,47 @@
   margin-left: auto;
 }
 
+.ai-error {
+  background: #fff5f5;
+  color: #9a1c1c;
+  border: 1px solid #f4c6c6;
+}
+
+.ai-typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 16px;
+}
+
+.ai-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ai-primary-light);
+  opacity: 0.5;
+  animation: aiTypingBounce 1s ease-in-out infinite;
+}
+
+.ai-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ai-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes aiTypingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
 .ai-actions {
   margin: 8px 0 14px;
   display: grid;
@@ -328,6 +392,13 @@
 .ai-actions button:hover {
   transform: translateY(-1px);
   background: var(--ai-primary-light);
+}
+
+.ai-actions button:disabled,
+.ai-quick-questions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .ai-quick-questions {
@@ -389,6 +460,16 @@
 
 .ai-chat-input button:hover {
   filter: brightness(0.98);
+}
+
+.ai-chat-input input:disabled {
+  background: #f4f7f5;
+  cursor: not-allowed;
+}
+
+.ai-chat-input button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .ai-external-links {

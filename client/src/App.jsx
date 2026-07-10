@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import AIAssistant from "./components/AIAssistant/AIAssistant";
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -24,7 +24,6 @@ import PartnerDashboardPage from "./pages/partner/PartnerDashboardPage";
 import PartnerEventRegistrationPage from "./pages/partner/PartnerEventRegistrationPage";
 import PartnerGuideRegistrationPage from "./pages/partner/PartnerGuideRegistrationPage";
 import PropertyManagementPage from "./pages/partner/PropertyManagementPage";
-import PropertyLoginPage from "./pages/partner/PropertyLoginPage";
 import RegisterPropertyPage from "./pages/partner/RegisterPropertyPage";
 
 import PartnerBookingsPage from "./pages/partner/PartnerBookingsPage";
@@ -34,6 +33,8 @@ import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
 import GuideProfilePage from "./pages/GuideProfilePage";
 import AboutUsPage from "./pages/AboutUsPage";
+import ReceptionLoginPage from "./pages/reception/ReceptionLoginPage";
+import ReceptionDashboardPage from "./pages/reception/ReceptionDashboardPage";
 
 function SimplePage({ title, message }) {
   return (
@@ -47,9 +48,15 @@ function SimplePage({ title, message }) {
 }
 
 function App() {
+  const location = useLocation();
+  const isReceptionSite = location.pathname.startsWith("/reception");
+
   return (
     <>
       <Routes>
+        <Route path="/reception/login" element={<ReceptionLoginPage />} />
+        <Route path="/reception" element={<ReceptionDashboardPage />} />
+
         <Route element={<PublicLayout />}>
           {/* Tourist/Public pages */}
           <Route path="/" element={<HomePage />} />
@@ -138,12 +145,6 @@ function App() {
             element={<RegisterPropertyPage />}
           />
 
-          {/* Property password verification */}
-          <Route
-            path="/partner/property-login/:id"
-            element={<PropertyLoginPage />}
-          />
-
           {/* Property management */}
           <Route
             path="/partner/properties/:id"
@@ -162,7 +163,7 @@ function App() {
         </Route>
       </Routes>
 
-      <AIAssistant />
+      {!isReceptionSite && <AIAssistant />}
     </>
   );
 }

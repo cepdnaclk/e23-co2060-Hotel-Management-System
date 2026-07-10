@@ -33,19 +33,16 @@ const emptyRoom = {
 };
 
 const card = {
-  background: "#ffffff",
-  border: "1px solid #bbf7d0",
-  borderRadius: 22,
-  padding: 22,
-  boxShadow: "0 18px 50px rgba(5, 46, 28, 0.08)",
+  background: "linear-gradient(180deg,#ffffff 0%,#fbfffd 100%)",
+  border: "1px solid #d6f5e3",
+  borderRadius: 26,
+  padding: 24,
+  boxShadow: "0 20px 60px rgba(15, 23, 42, 0.08)",
 };
 
 function PropertyManagementPage() {
   const { id } = useParams();
   const { user, isLoggedIn } = useAuth();
-
-  const isPropertyVerified =
-    sessionStorage.getItem(`property_verified_${id}`) === "true";
 
   const logoInputRef = useRef(null);
   const mainPhotoInputRef = useRef(null);
@@ -106,10 +103,6 @@ function PropertyManagementPage() {
         </div>
       </div>
     );
-  }
-
-  if (!isPropertyVerified) {
-    return <Navigate to={`/partner/property-login/${id}`} />;
   }
 
   const loadEverything = async () => {
@@ -570,12 +563,14 @@ function PropertyManagementPage() {
 
   return (
     <div
-      className="page"
+      className="page property-management-page"
       style={{
-        background: "linear-gradient(180deg,#f0fdf4,#f8fafc)",
+        background:
+          "radial-gradient(circle at top left, rgba(187,247,208,0.75), transparent 34%), radial-gradient(circle at top right, rgba(191,219,254,0.65), transparent 32%), linear-gradient(135deg,#f8fafc 0%,#f0fdf4 45%,#eef8ff 100%)",
         paddingBottom: 50,
       }}
     >
+      <style>{propertyManagementFormCss}</style>
       <DemoPaymentModal
         open={Boolean(paymentRequest)}
         title={paymentRequest?.title}

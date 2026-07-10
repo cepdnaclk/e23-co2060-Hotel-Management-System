@@ -7,7 +7,6 @@ const {
   getMyProperties,
   getMyPropertyById,
   createProperty,
-  verifyPropertyPassword,
   updateMyProperty,
   updateMainPropertyPhoto,
   uploadMainPropertyPhoto,
@@ -41,7 +40,6 @@ router.get("/properties", getMyProperties);
 router.post("/properties", createProperty);
 
 router.get("/properties/:id", getMyPropertyById);
-router.post("/properties/:id/verify-password", verifyPropertyPassword);
 router.put("/properties/:id", updateMyProperty);
 router.delete("/properties/:id", deleteMyProperty);
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../api/api";
+import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
@@ -32,6 +33,8 @@ function HotelsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
   const [places, setPlaces] = useState([]);
+  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("list");
   const [heroIndex, setHeroIndex] = useState(0);
@@ -71,6 +74,23 @@ function HotelsPage() {
   useEffect(() => {
     loadPageData();
   }, []);
+
+  useEffect(() => {
+    const refreshSavedItems = () => setSavedTripItems(readTripItems());
+    window.addEventListener("storage", refreshSavedItems);
+    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+
+    return () => {
+      window.removeEventListener("storage", refreshSavedItems);
+      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(() => setNotice(""), 2500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     setFilters((previous) => ({
@@ -324,9 +344,48 @@ function HotelsPage() {
       `Rs. ${filters.minPrice.toLocaleString()} - Rs. ${filters.maxPrice.toLocaleString()}`,
   ].filter(Boolean);
 
+  const savedTripIds = useMemo(
+    () => new Set(savedTripItems.map((item) => String(item.id))),
+    [savedTripItems]
+  );
+
+  const buildHotelTripItem = (property) => {
+    const image = toImageUrl(property.main_image || property.logo_url || property.hero_image);
+    const price = Number(property.starting_price || 0);
+
+    return {
+      id: `hotel-${property.id}`,
+      sourceId: property.id,
+      tripItemType: "hotel",
+      name: property.name,
+      city: property.city || "",
+      district: property.district || "",
+      region: property.property_type || "Hotel",
+      image,
+      duration: "Stay",
+      bestTime: "Check-in day",
+      budget: price >= 30000 ? "High" : price >= 15000 ? "Medium" : "Low",
+      estimatedCost: price,
+      shortDescription: property.description || "Selected hotel stay for this Sri Lanka trip.",
+      link: `/hotels/${property.id}`,
+    };
+  };
+
+  const handleToggleHotelTrip = (property) => {
+    const item = buildHotelTripItem(property);
+    const result = toggleTripItem(item);
+    setSavedTripItems(result.items);
+    setNotice(
+      result.saved
+        ? `${property.name} added to your trip basket.`
+        : `${property.name} removed from your trip basket.`
+    );
+  };
+
   return (
     <div className="hotels-page-shell">
       <style>{pageStyles}</style>
+      {notice ? <div className="hotel-trip-toast">{notice}</div> : null}
 
       <section
         className="hotels-hero"
@@ -598,7 +657,13 @@ function HotelsPage() {
           ) : (
             <div className={viewMode === "grid" ? "hotel-grid-view" : "hotel-list-view"}>
               {filteredProperties.map((property) => (
-                <HotelCard key={property.id} property={property} toImageUrl={toImageUrl} />
+                <HotelCard
+                  key={property.id}
+                  property={property}
+                  toImageUrl={toImageUrl}
+                  saved={savedTripIds.has(`hotel-${property.id}`)}
+                  onToggleTrip={handleToggleHotelTrip}
+                />
               ))}
             </div>
           )}
@@ -608,7 +673,7 @@ function HotelsPage() {
   );
 }
 
-function HotelCard({ property, toImageUrl }) {
+function HotelCard({ property, toImageUrl, saved, onToggleTrip }) {
   const imageUrl = toImageUrl(property.main_image || property.logo_url);
   const price = Number(property.starting_price || 0);
   const totalRooms = Number(property.total_rooms_count || 0);
@@ -643,6 +708,13 @@ function HotelCard({ property, toImageUrl }) {
           <span>Starting from</span>
           <strong>{price ? `Rs. ${price.toLocaleString()}` : "Contact hotel"}</strong>
           <small>per night</small>
+          <button
+            type="button"
+            className={saved ? "hotel-trip-btn saved" : "hotel-trip-btn"}
+            onClick={() => onToggleTrip(property)}
+          >
+            {saved ? "Saved to trip" : "+ Add to trip"}
+          </button>
           <Link to={`/hotels/${property.id}`}>View Details</Link>
         </div>
       </div>
@@ -651,6 +723,18 @@ function HotelCard({ property, toImageUrl }) {
 }
 
 const pageStyles = `
+  .hotel-trip-toast{
+    position:fixed;
+    right:22px;
+    bottom:98px;
+    z-index:78;
+    background:#064e45;
+    color:#fff;
+    border-radius:16px;
+    padding:14px 18px;
+    box-shadow:0 18px 40px rgba(0,0,0,.18);
+    font-weight:900;
+  }
   .hotels-page-shell{
     width:100%;
     margin:0;
@@ -1239,6 +1323,23 @@ const pageStyles = `
     font-weight:950;
     text-decoration:none;
     box-shadow:0 15px 30px rgba(0,102,85,.22);
+  }
+
+  .hotel-trip-btn{
+    margin-top:16px;
+    border:1px solid #ffcf4a;
+    background:#ffc22b;
+    color:#063c38;
+    border-radius:16px;
+    padding:12px 16px;
+    font-weight:950;
+    cursor:pointer;
+  }
+
+  .hotel-trip-btn.saved{
+    background:#e8fff5;
+    color:#05614f;
+    border-color:#64c8a8;
   }
 
   .empty-result-card{

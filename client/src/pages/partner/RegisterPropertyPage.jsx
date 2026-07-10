@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+import PasswordInput from "../../components/PasswordInput";
 
 const fallbackPlans = [
   {
@@ -445,7 +446,8 @@ function RegisterPropertyPage() {
   };
 
   return (
-    <div className="page" style={styles.pageWrap}>
+    <div className="page property-register-page" style={styles.pageWrap}>
+      <style>{registerPropertyFormCss}</style>
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "30px 18px" }}>
         <Link to="/partner/dashboard" style={styles.backLink}>
           ← Back to dashboard
@@ -472,7 +474,10 @@ function RegisterPropertyPage() {
 
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 22 }}>
           <section style={card}>
-            <h2 style={styles.sectionTitle}>1. Property details</h2>
+            <div style={styles.sectionTitleRow}>
+              <span style={styles.sectionNumber}>01</span>
+              <h2 style={styles.sectionTitle}>Property details</h2>
+            </div>
 
             <div style={styles.grid}>
               <input
@@ -546,9 +551,8 @@ function RegisterPropertyPage() {
 
             <div style={styles.grid}>
               <div>
-                <input
+                <PasswordInput
                   name="property_password"
-                  type="password"
                   placeholder="Property management password *"
                   value={form.property_password}
                   onChange={handleChange}
@@ -611,9 +615,8 @@ function RegisterPropertyPage() {
                 </div>
               </div>
 
-              <input
+              <PasswordInput
                 name="confirm_property_password"
-                type="password"
                 placeholder={
                   propertyPasswordStrength.isStrong
                     ? "Confirm property password *"
@@ -644,7 +647,10 @@ function RegisterPropertyPage() {
           </section>
 
           <section style={card}>
-            <h2 style={styles.sectionTitle}>2. Select property version</h2>
+            <div style={styles.sectionTitleRow}>
+              <span style={styles.sectionNumber}>02</span>
+              <h2 style={styles.sectionTitle}>Select property version</h2>
+            </div>
 
             <div style={styles.planGrid}>
               {plans.map((plan) => (
@@ -700,7 +706,10 @@ function RegisterPropertyPage() {
           </section>
 
           <section style={card}>
-            <h2 style={styles.sectionTitle}>3. Photos</h2>
+            <div style={styles.sectionTitleRow}>
+              <span style={styles.sectionNumber}>03</span>
+              <h2 style={styles.sectionTitle}>Photos</h2>
+            </div>
 
             <div style={styles.grid}>
               <div
@@ -788,7 +797,10 @@ function RegisterPropertyPage() {
           </section>
 
           <section style={card}>
-            <h2 style={styles.sectionTitle}>4. Rooms and room photos</h2>
+            <div style={styles.sectionTitleRow}>
+              <span style={styles.sectionNumber}>04</span>
+              <h2 style={styles.sectionTitle}>Rooms and room photos</h2>
+            </div>
 
             {rooms.map((room, index) => (
               <div key={index} style={styles.roomBox}>
@@ -959,9 +971,31 @@ const styles = {
     border: "1px solid rgba(148,163,184,0.20)",
     boxShadow: "0 24px 70px rgba(15,23,42,0.10)",
     display: "flex",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 22,
+  },
+
+  sectionTitleRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 4,
+  },
+
+  sectionNumber: {
+    flex: "0 0 auto",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    background: "#ecfdf5",
+    color: "#047857",
+    border: "1px solid #bbf7d0",
+    fontWeight: 950,
+    fontSize: 14,
   },
 
   eyebrow: {
@@ -1007,7 +1041,7 @@ const styles = {
 
   sectionTitle: {
     color: "#052e1c",
-    marginTop: 0,
+    margin: 0,
   },
 
   successBox: {
@@ -1102,7 +1136,7 @@ const styles = {
 
   dropBox: {
     minHeight: 180,
-    border: "2px dashed #93c5fd",
+    border: "2px dashed #86efac",
     borderRadius: 20,
     padding: 16,
     display: "grid",
@@ -1110,21 +1144,21 @@ const styles = {
     gap: 10,
     textAlign: "center",
     cursor: "pointer",
-    background: "linear-gradient(135deg,#eff6ff,#f0fdf4)",
+    background: "linear-gradient(135deg,#ecfdf5,#f0fdf4)",
     color: "#0f766e",
   },
 
   roomDropBox: {
     marginTop: 12,
     minHeight: 130,
-    border: "2px dashed #93c5fd",
+    border: "2px dashed #86efac",
     borderRadius: 18,
     padding: 16,
     display: "grid",
     placeItems: "center",
     gap: 10,
     textAlign: "center",
-    background: "linear-gradient(135deg,#eff6ff,#f0fdf4)",
+    background: "linear-gradient(135deg,#ecfdf5,#f0fdf4)",
     color: "#0f766e",
   },
 
@@ -1194,5 +1228,14 @@ const styles = {
     boxShadow: "0 16px 35px rgba(22, 163, 74, 0.25)",
   },
 };
+
+const registerPropertyFormCss = `
+.property-register-page input:focus,
+.property-register-page textarea:focus,
+.property-register-page select:focus {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+}
+`;
 
 export default RegisterPropertyPage;

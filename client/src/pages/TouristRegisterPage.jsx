@@ -8,6 +8,7 @@ import {
   formatCountryPhone,
   validateCountryPhone,
 } from "../utils/countryPhone";
+import PasswordInput from "../components/PasswordInput";
 import api from "../api/api";
 
 const checkPasswordStrength = (password) => {
@@ -284,9 +285,8 @@ function TouristRegisterPage() {
             <div style={styles.twoColumns}>
               <div>
                 <label style={styles.label}>Password</label>
-                <input
+                <PasswordInput
                   name="password"
-                  type="password"
                   value={form.password}
                   onChange={handleChange}
                   style={styles.input}
@@ -350,9 +350,8 @@ function TouristRegisterPage() {
 
               <div>
                 <label style={styles.label}>Confirm Password</label>
-                <input
+                <PasswordInput
                   name="confirm_password"
-                  type="password"
                   value={form.confirm_password}
                   onChange={handleChange}
                   style={{

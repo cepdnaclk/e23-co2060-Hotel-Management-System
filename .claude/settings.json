@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:\\\\Users\\\\kusha\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-kusha-OneDrive-Desktop-2YP-II-e23-co2060-Hotel-Management-System\\\\943d7213-ee94-4f7d-a7ef-2d46a0b1829b\\\\scratchpad\\\\pw-check\")",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(npx playwright *)",
+      "Bash(pkill -f \"vite --port 5183\")",
+      "Bash(pkill -f \"node src/app.js\")",
+      "Bash(npx vite *)",
+      "Bash(npx eslint *)"
+    ]
+  }
+}

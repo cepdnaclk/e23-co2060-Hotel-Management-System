@@ -1,5 +1,23 @@
 import { Link } from "react-router-dom";
-import { Building2, CheckCircle2, UserRoundPlus } from "lucide-react";
+import { Building2, CalendarDays, CheckCircle2, Compass, UserRoundPlus } from "lucide-react";
+
+const listingTypes = [
+  {
+    icon: Building2,
+    title: "Hotels & Stays",
+    text: "List a hotel, resort, villa, or guesthouse with rooms, photos, and pricing.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Tourism Events",
+    text: "Promote festivals, tours, food walks, or experiences tourists can join.",
+  },
+  {
+    icon: Compass,
+    title: "Tourist Guide Services",
+    text: "Offer your services as a local guide with your languages and specialities.",
+  },
+];
 
 const steps = [
   {
@@ -9,13 +27,13 @@ const steps = [
   },
   {
     icon: Building2,
-    title: "2. Register Property",
-    text: "Add your property details, rooms, photos, and policies.",
+    title: "2. Add What You Offer",
+    text: "List a property, register a tourism event, or set up your tourist guide profile.",
   },
   {
     icon: CheckCircle2,
     title: "3. Admin Approval",
-    text: "Your property becomes visible to tourists after admin approval.",
+    text: "Your listing becomes visible to tourists after admin approval.",
   },
 ];
 
@@ -25,10 +43,10 @@ function ListYourPropertyPage() {
       <section style={styles.hero}>
         <div style={styles.overlay}>
           <div style={styles.heroContent}>
-            <h1 style={styles.title}>List Your Property on TourismHub LK</h1>
+            <h1 style={styles.title}>Partner With TourismHub LK</h1>
             <p style={styles.subtitle}>
-              Register your hotel, resort, villa, or guesthouse and reach tourists
-              exploring Sri Lanka.
+              Register your hotel, resort, villa, or guesthouse, list a tourism event, or
+              offer your services as a tourist guide — and reach travellers exploring Sri Lanka.
             </p>
 
             <div style={styles.actions}>
@@ -41,6 +59,28 @@ function ListYourPropertyPage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="page">
+        <div style={styles.sectionHeader}>
+          <h2>What You Can List</h2>
+          <p>One partner account, three ways to reach tourists.</p>
+        </div>
+
+        <div style={styles.grid}>
+          {listingTypes.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div className="card" style={styles.card} key={item.title}>
+                <div style={styles.icon}>
+                  <Icon size={30} strokeWidth={2.3} />
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -68,8 +108,8 @@ function ListYourPropertyPage() {
         <div className="card" style={styles.notice}>
           <h3>Important Approval Rule</h3>
           <p>
-            Your property will be saved as <strong>Pending</strong> first.
-            It will only appear on the tourist hotel page after the admin approves it.
+            Your listing will be saved as <strong>Pending</strong> first.
+            It will only appear on the tourist-facing pages after the admin approves it.
           </p>
         </div>
       </section>

@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePreferences } from "../context/PreferencesContext";
+import TripBasketWidget from "../components/TripBasketWidget";
+
+const shouldHideTripBasket = (pathname) =>
+  pathname.startsWith("/partner") ||
+  pathname.startsWith("/admin") ||
+  pathname === "/list-your-property" ||
+  pathname === "/trip-planner";
 
 const navLinks = [
   { to: "/", label: "Home", end: true },
@@ -54,7 +61,7 @@ function SiteFooter({ onNavigateTop }) {
 
           <div className="public-footer-column">
             <h3>Partners</h3>
-            <Link to="/list-your-property" onClick={onNavigateTop}>List your property</Link>
+            <Link to="/list-your-property" onClick={onNavigateTop}>Become a Partner</Link>
             <Link to="/partner/login" onClick={onNavigateTop}>Partner login</Link>
             <Link to="/partner/register" onClick={onNavigateTop}>Partner register</Link>
             <Link to="/about" onClick={onNavigateTop}>About the platform</Link>
@@ -116,6 +123,7 @@ function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const showTripBasket = !shouldHideTripBasket(location.pathname);
   const currentLanguage =
     languages.find((item) => item.value === language) || languages[0];
 
@@ -216,11 +224,11 @@ function PublicLayout() {
             <Link
               to="/list-your-property"
               className="property-link"
-              title="List your property"
-              data-tooltip="List your property"
+              title="Become a Partner"
+              data-tooltip="Become a Partner"
               data-dynamic-title="true"
             >
-              List your property
+              Become a Partner
             </Link>
 
             <div
@@ -353,6 +361,8 @@ function PublicLayout() {
       </main>
 
       <SiteFooter onNavigateTop={handleNavigateTop} />
+
+      {showTripBasket ? <TripBasketWidget /> : null}
 
       <button
         type="button"

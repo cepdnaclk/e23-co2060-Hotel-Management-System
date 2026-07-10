@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
+import PasswordInput from "../components/PasswordInput";
 
 function TouristLoginPage() {
   const navigate = useNavigate();
@@ -77,9 +78,8 @@ function TouristLoginPage() {
 
             <div>
               <label style={styles.label}>Password</label>
-              <input
+              <PasswordInput
                 name="password"
-                type="password"
                 value={form.password}
                 onChange={handleChange}
                 style={styles.input}

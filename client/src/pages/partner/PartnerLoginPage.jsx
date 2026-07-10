@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+import PasswordInput from "../../components/PasswordInput";
 
 function PartnerLoginPage() {
   const navigate = useNavigate();
@@ -53,8 +54,8 @@ function PartnerLoginPage() {
           <div style={styles.imageOverlay}>
             <h2>Partner Portal</h2>
             <p>
-              Login to manage your properties, rooms, policies, and admin
-              approval status.
+              Login to manage your hotels, events, and tourist guide listings,
+              plus their admin approval status.
             </p>
           </div>
         </div>
@@ -90,9 +91,8 @@ function PartnerLoginPage() {
 
             <div>
               <label style={styles.label}>Password</label>
-              <input
+              <PasswordInput
                 name="password"
-                type="password"
                 value={form.password}
                 onChange={handleChange}
                 style={styles.input}

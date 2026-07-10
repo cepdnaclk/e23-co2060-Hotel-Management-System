@@ -509,10 +509,10 @@ function HomePage() {
 
       <section className="partner-strip-section">
         <div>
-          <span className="section-kicker light">Hotel partners</span>
-          <h2>Bring your property to travellers.</h2>
+          <span className="section-kicker light">Tourism partners</span>
+          <h2>List your hotel, event, or guide service for travellers.</h2>
         </div>
-        <Link to="/list-your-property" onClick={handleNavigateTop}>List your property</Link>
+        <Link to="/list-your-property" onClick={handleNavigateTop}>Become a Partner</Link>
       </section>
 
     </main>

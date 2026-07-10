@@ -9,6 +9,7 @@ import {
   formatCountryPhone,
   validateCountryPhone,
 } from "../../utils/countryPhone";
+import PasswordInput from "../../components/PasswordInput";
 
 const checkPasswordStrength = (password) => {
   const hasMinLength = password.length >= 8;
@@ -168,7 +169,7 @@ function PartnerRegisterPage() {
         <h1 style={styles.title}>Register as Partner</h1>
 
         <p style={styles.subtitle}>
-          Create a partner account to register and manage your properties.
+          Create a partner account to register and manage your hotels, events, and tourist guide services.
         </p>
 
         {error && <div style={styles.error}>{error}</div>}
@@ -237,10 +238,9 @@ function PartnerRegisterPage() {
           </p>
 
           <label style={styles.label}>Password</label>
-          <input
+          <PasswordInput
             style={styles.input}
             name="password"
-            type="password"
             value={form.password}
             onChange={handleChange}
             placeholder="Enter password"
@@ -290,14 +290,13 @@ function PartnerRegisterPage() {
           </div>
 
           <label style={styles.label}>Confirm Password</label>
-          <input
+          <PasswordInput
             style={{
               ...styles.input,
               background: passwordStrength.isStrong ? "white" : "#f3f4f6",
               cursor: passwordStrength.isStrong ? "text" : "not-allowed",
             }}
             name="confirm_password"
-            type="password"
             value={form.confirm_password}
             onChange={handleChange}
             placeholder={

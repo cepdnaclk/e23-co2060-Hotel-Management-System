@@ -151,7 +151,6 @@ export default function ExplorePage() {
   const [budget, setBudget] = useState("All Budgets");
   const [sort, setSort] = useState("recommended");
   const [savedPlaces, setSavedPlaces] = useState(readSavedPlaces);
-  const [savedPanelOpen, setSavedPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activities");
   const [heroSlideImages, setHeroSlideImages] = useState(defaultHeroImages);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
@@ -331,25 +330,7 @@ export default function ExplorePage() {
 
     const updated = [...current, place];
     persistSavedPlaces(updated);
-    setSavedPanelOpen(true);
     setNotice(`✓ ${place.name} saved to your trip.`);
-  };
-
-  const removeSavedPlace = (placeId) => {
-    const current = readSavedPlaces();
-    const placeToRemove = current.find((item) => String(item.id) === String(placeId));
-    const updated = current.filter((item) => String(item.id) !== String(placeId));
-
-    persistSavedPlaces(updated);
-    setNotice(`${placeToRemove?.name || "Place"} removed from saved places.`);
-  };
-
-  const clearSavedPlaces = () => {
-    if (!savedPlaces.length) return;
-    const confirmed = window.confirm("Remove all saved trip places?");
-    if (!confirmed) return;
-    persistSavedPlaces([]);
-    setNotice("All saved places removed.");
   };
 
   const clearFilters = () => {
@@ -365,56 +346,6 @@ export default function ExplorePage() {
       <style>{css}</style>
 
       {notice ? <div className="toast">{notice}</div> : null}
-
-      <button
-        type="button"
-        className={`saved-trip-fab ${savedPlaces.length ? "has-items" : ""}`}
-        onClick={() => setSavedPanelOpen(true)}
-        aria-label="Open saved trip places"
-      >
-        <span>🧭</span>
-        <strong>Saved Trip</strong>
-        <b>{savedPlaces.length}</b>
-      </button>
-
-      {savedPanelOpen ? (
-        <aside className="saved-trip-panel" aria-label="Saved trip places">
-          <div className="saved-trip-head">
-            <div>
-              <span>TRIP PLAN BASKET</span>
-              <h3>Saved places</h3>
-            </div>
-            <button type="button" onClick={() => setSavedPanelOpen(false)} aria-label="Close saved places panel">×</button>
-          </div>
-
-          {savedPlaces.length ? (
-            <>
-              <div className="saved-trip-list">
-                {savedPlaces.map((item) => (
-                  <article key={item.id} className="saved-trip-item">
-                    <img src={assetUrl(getPlaceImage(item))} alt={item.name} />
-                    <div>
-                      <h4>{item.name}</h4>
-                      <p>{item.city || "Sri Lanka"} · {item.region || "Explore"}</p>
-                    </div>
-                    <button type="button" onClick={() => removeSavedPlace(item.id)}>Remove</button>
-                  </article>
-                ))}
-              </div>
-
-              <div className="saved-trip-foot">
-                <button type="button" onClick={clearSavedPlaces}>Clear all</button>
-                <Link to="/trip-planner" onClick={() => { setSavedPanelOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Open trip planner</Link>
-              </div>
-            </>
-          ) : (
-            <div className="saved-trip-empty">
-              <strong>No saved places yet</strong>
-              <p>Tap + Save on any destination card and it will appear here.</p>
-            </div>
-          )}
-        </aside>
-      ) : null}
 
       <section className="hero-explore explore-showcase-hero" style={{ backgroundImage: `url(${currentHeroImage})` }}>
         <img

@@ -66,13 +66,7 @@ function HotelDetailsPage() {
 
   const themeColor = property.theme_color || "#5b1235";
 
-  /*
-    Important:
-    Manage Property now goes to password verification page first.
-    After password success, PropertyLoginPage will redirect to:
-    /partner/properties/:id
-  */
-  const managePropertyLink = `/partner/property-login/${property.id}`;
+  const managePropertyLink = `/partner/properties/${property.id}`;
 
   return (
     <div style={styles.site}>

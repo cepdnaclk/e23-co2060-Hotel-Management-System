@@ -9,7 +9,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("tourismhub_token");
+  const isReceptionRequest = String(config.url || "").startsWith("/reception");
+  const token = isReceptionRequest
+    ? localStorage.getItem("tourismhub_reception_token")
+    : localStorage.getItem("tourismhub_token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

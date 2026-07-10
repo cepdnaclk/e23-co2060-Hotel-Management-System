@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import api from "../../api/api";
 import "./AIAssistant.css";
 
 const AI_OPEN_STORAGE_KEY = "tourismhub_ai_assistant_open";
@@ -106,6 +107,8 @@ function AIAssistant() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const chatBodyRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -123,10 +126,21 @@ function AIAssistant() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (!chatBodyRef.current) return;
+    chatBodyRef.current.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, loading]);
+
+  useEffect(() => {
+    if (isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isOpen]);
+
   const sendMessage = async (customMessage) => {
     const userMessage = customMessage || input;
 
-    if (!userMessage.trim()) return;
+    if (!userMessage.trim() || loading) return;
 
     setInput("");
     setActions([]);
@@ -143,23 +157,13 @@ function AIAssistant() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/assistant/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          currentPage: location.pathname,
-          userRole: localStorage.getItem("role") || "guest",
-        }),
+      const response = await api.post("/assistant/chat", {
+        message: userMessage,
+        currentPage: location.pathname,
+        userRole: localStorage.getItem("role") || "guest",
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.reply || "Assistant request failed");
-      }
+      const data = response.data;
 
       setMessages((prev) => [
         ...prev,
@@ -179,20 +183,34 @@ function AIAssistant() {
       }
     } catch (error) {
       const assistantError =
-        error.message === "Failed to fetch"
-          ? "I cannot reach the backend server yet. Please start the server on port 5000, then try again."
-          : error.message ||
-            "Sorry, I could not connect to the AI assistant. Please check whether the backend server is running.";
+        error.code === "ERR_NETWORK"
+          ? "I cannot reach the backend server right now. Please try again in a moment."
+          : error.response?.data?.reply ||
+            "Sorry, I could not connect to the AI assistant. Please try again shortly.";
 
       setMessages((prev) => [
         ...prev,
         {
           sender: "assistant",
           text: assistantError,
+          isError: true,
         },
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearConversation = () => {
+    setMessages(defaultMessages);
+    setActions([]);
+    setExternalLinks([]);
+    setInput("");
+
+    try {
+      sessionStorage.removeItem(AI_MESSAGES_STORAGE_KEY);
+    } catch {
+      // session storage can fail in private browsing, so ignore safely
     }
   };
 
@@ -224,29 +242,47 @@ function AIAssistant() {
               </div>
             </div>
 
-            <button
-              type="button"
-              className="ai-close-btn"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close TourismHub AI Assistant"
-            >
-              ×
-            </button>
+            <div className="ai-header-actions">
+              <button
+                type="button"
+                className="ai-clear-btn"
+                onClick={clearConversation}
+                aria-label="Clear conversation"
+                title="Clear conversation"
+              >
+                Clear
+              </button>
+
+              <button
+                type="button"
+                className="ai-close-btn"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close TourismHub AI Assistant"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
-          <div className="ai-chat-body">
+          <div className="ai-chat-body" ref={chatBodyRef} role="log" aria-live="polite">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`ai-message ${
-                  message.sender === "user" ? "ai-user" : "ai-bot"
+                className={`ai-message ${message.sender === "user" ? "ai-user" : "ai-bot"} ${
+                  message.isError ? "ai-error" : ""
                 }`}
               >
                 {message.text}
               </div>
             ))}
 
-            {loading && <div className="ai-message ai-bot">Thinking...</div>}
+            {loading && (
+              <div className="ai-message ai-bot ai-typing" aria-label="Assistant is typing">
+                <span />
+                <span />
+                <span />
+              </div>
+            )}
 
             {actions.length > 0 && (
               <div className="ai-actions">
@@ -254,6 +290,7 @@ function AIAssistant() {
                   <button
                     key={index}
                     type="button"
+                    disabled={loading}
                     onClick={() => handleActionClick(action.path)}
                   >
                     {action.label}
@@ -284,6 +321,7 @@ function AIAssistant() {
                 <button
                   key={index}
                   type="button"
+                  disabled={loading}
                   onClick={() => sendMessage(question)}
                 >
                   {question}
@@ -294,9 +332,11 @@ function AIAssistant() {
 
           <div className="ai-chat-input">
             <input
+              ref={inputRef}
               type="text"
               placeholder="Ask TourismHub LK AI Assistant..."
               value={input}
+              disabled={loading}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -305,7 +345,7 @@ function AIAssistant() {
               }}
             />
 
-            <button type="button" onClick={() => sendMessage()}>
+            <button type="button" disabled={loading || !input.trim()} onClick={() => sendMessage()}>
               Send
             </button>
           </div>

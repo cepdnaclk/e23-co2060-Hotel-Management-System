@@ -20,6 +20,7 @@ const partnerGuideRoutes = require("./routes/partnerGuide.routes");
 const publicGuideRoutes = require("./routes/publicGuide.routes");
 const assistantRoutes = require("./routes/assistant.routes");
 const translationRoutes = require("./routes/translation.routes");
+const receptionRoutes = require("./routes/reception.routes");
 
 const app = express();
 
@@ -95,6 +96,7 @@ app.use("/api/tourist", touristEventRoutes);
 app.use("/api/guides", publicGuideRoutes);
 app.use("/api/assistant", assistantRoutes);
 app.use("/api/translate", translationRoutes);
+app.use("/api/reception", receptionRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../api/api";
+import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -110,6 +111,8 @@ function TouristGuidePage() {
   const [placesLoading, setPlacesLoading] = useState(true);
   const [error, setError] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
+  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+  const [notice, setNotice] = useState("");
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -159,6 +162,22 @@ function TouristGuidePage() {
   useEffect(() => {
     loadPlaces();
   }, []);
+
+  useEffect(() => {
+    const refreshSavedItems = () => setSavedTripItems(readTripItems());
+    window.addEventListener("storage", refreshSavedItems);
+    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+    return () => {
+      window.removeEventListener("storage", refreshSavedItems);
+      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(() => setNotice(""), 2500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const availableCities = useMemo(() => {
     const values = guides
@@ -249,6 +268,39 @@ function TouristGuidePage() {
     };
   }, [guides]);
 
+  const savedTripIds = useMemo(
+    () => new Set(savedTripItems.map((item) => String(item.id))),
+    [savedTripItems]
+  );
+
+  const buildGuideTripItem = (guide) => {
+    const price = Number(guide.price_per_day || guide.price_per_hour || 0);
+    return {
+      id: `guide-${guide.id}`,
+      sourceId: guide.id,
+      tripItemType: "guide",
+      name: guide.display_name || guide.full_name || "Tourist guide",
+      city: guide.city || "",
+      district: guide.district || "",
+      region: guide.guide_type || "Guide",
+      image: assetUrl(guide.image_url),
+      duration: "Guide support",
+      bestTime: guide.availability || "By booking",
+      budget: price >= 30000 ? "High" : price >= 15000 ? "Medium" : "Low",
+      estimatedCost: price,
+      shortDescription: guide.short_description || guide.bio || "Selected tourist guide for this trip.",
+      link: guide.slug ? `/tourist-guides/${guide.slug}` : "/tourist-guides",
+      guideLanguages: cleanArray(guide.languages),
+    };
+  };
+
+  const handleToggleGuideTrip = (guide) => {
+    const item = buildGuideTripItem(guide);
+    const result = toggleTripItem(item);
+    setSavedTripItems(result.items);
+    setNotice(result.saved ? `${item.name} added to your trip basket.` : `${item.name} removed from your trip basket.`);
+  };
+
   const clearFilters = () => {
     setSearch("");
     setType("All");
@@ -268,6 +320,7 @@ function TouristGuidePage() {
   return (
     <main className="guides-page">
       <style>{guideCss}</style>
+      {notice ? <div className="guide-trip-toast">{notice}</div> : null}
 
       <section className={`guide-showcase ${activeHero ? "has-photo" : ""}`}>
         {activeHero && (
@@ -464,9 +517,6 @@ function TouristGuidePage() {
             <div className="guide-grid">
               {filteredGuides.map((guide) => {
                 const icon = iconByType[guide.guide_type] || "🧭";
-                const languages = cleanArray(guide.languages);
-                const specialities = cleanArray(guide.specialities);
-                const services = cleanArray(guide.services);
                 const image = assetUrl(guide.image_url);
 
                 return (
@@ -490,35 +540,20 @@ function TouristGuidePage() {
                         <strong>⭐ {Number(guide.rating || 4.8).toFixed(1)}</strong>
                       </div>
 
-                      <p className="guide-card-description">
-                        {guide.short_description || guide.bio || "Approved local guide profile for Sri Lankan travel support."}
-                      </p>
-
-                      <div className="guide-info-grid">
-                        <span>🗣 {languages.length ? languages.slice(0, 3).join(" / ") : "Languages not specified"}</span>
-                        <span>🧳 {Number(guide.experience_years || 0)} year{Number(guide.experience_years || 0) === 1 ? "" : "s"} experience</span>
+                      <div className="guide-price-row">
                         <span>💰 Day {formatLkr(guide.price_per_day)}</span>
                         <span>⏱ Hour {formatLkr(guide.price_per_hour)}</span>
                       </div>
 
-                      <div className="guide-tag-row">
-                        {[...specialities, ...services].slice(0, 5).map((item) => <span key={item}>{item}</span>)}
-                      </div>
-
                       <div className="guide-actions">
                         {guide.slug && <Link to={`/tourist-guides/${guide.slug}`}>View profile</Link>}
-                        {(guide.phone || guide.whatsapp_number || guide.email) && (
-                          <details className="guide-contact-menu">
-                            <summary>Contacts</summary>
-                            <div>
-                              {guide.phone && <a href={`tel:${guide.phone}`}>Call</a>}
-                              {guide.whatsapp_number && <a href={`https://wa.me/${String(guide.whatsapp_number).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a>}
-                              {guide.email && <a href={`mailto:${guide.email}`}>Email</a>}
-                            </div>
-                          </details>
-                        )}
-                        <Link to="/trip-planner">Add to trip</Link>
-                        <Link to={`/hotels?city=${encodeURIComponent(guide.city || "")}`}>Hotels nearby</Link>
+                        <button
+                          type="button"
+                          className={savedTripIds.has(`guide-${guide.id}`) ? "guide-trip-btn saved" : "guide-trip-btn"}
+                          onClick={() => handleToggleGuideTrip(guide)}
+                        >
+                          {savedTripIds.has(`guide-${guide.id}`) ? "Saved to trip" : "+ Add to trip"}
+                        </button>
                       </div>
                     </div>
                   </article>
@@ -538,6 +573,18 @@ const guideCss = `
   background:linear-gradient(135deg,#f4faf6 0%,#fffdf4 50%,#ecf8f5 100%);
   color:#102033;
   font-family:Inter,system-ui,Arial,sans-serif;
+}
+.guide-trip-toast{
+  position:fixed;
+  right:22px;
+  bottom:98px;
+  z-index:78;
+  background:#064e45;
+  color:#fff;
+  border-radius:16px;
+  padding:14px 18px;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+  font-weight:900;
 }
 .guide-showcase{
   position:relative;
@@ -997,16 +1044,16 @@ const guideCss = `
 .guide-card{
   background:#fff;
   border:1px solid #dbece7;
-  border-radius:30px;
+  border-radius:22px;
   overflow:hidden;
-  box-shadow:0 22px 60px rgba(6,78,69,.08);
+  box-shadow:0 16px 40px rgba(6,78,69,.08);
   display:grid;
-  grid-template-columns:230px minmax(0,1fr);
-  min-height:330px;
+  grid-template-columns:150px minmax(0,1fr);
+  min-height:190px;
 }
 .guide-card-media{
   position:relative;
-  min-height:330px;
+  min-height:190px;
   background:linear-gradient(135deg,#0a7c6e,#ffc527);
   overflow:hidden;
 }
@@ -1024,26 +1071,26 @@ const guideCss = `
 }
 .guide-card-media span{
   position:absolute;
-  top:16px;
-  left:16px;
+  top:10px;
+  left:10px;
   z-index:2;
   background:rgba(255,255,255,.92);
   color:#064e45;
   border-radius:999px;
-  padding:8px 12px;
-  font-size:12px;
+  padding:6px 10px;
+  font-size:11px;
   font-weight:1000;
 }
 .guide-sponsored-badge{
   position:absolute;
-  right:16px;
-  bottom:16px;
+  right:10px;
+  bottom:10px;
   z-index:2;
   background:#ffc527;
   color:#063f38;
   border-radius:999px;
-  padding:8px 12px;
-  font-size:12px;
+  padding:6px 10px;
+  font-size:11px;
   font-weight:1000;
   box-shadow:0 12px 26px rgba(0,0,0,.22);
 }
@@ -1051,117 +1098,81 @@ const guideCss = `
   height:100%;
   display:grid;
   place-items:center;
-  font-size:72px;
+  font-size:44px;
   color:#fff;
 }
-.guide-card-body{padding:22px;min-width:0;}
+.guide-card-body{padding:14px 16px;min-width:0;display:flex;flex-direction:column;}
 .guide-card-title-row{
   display:flex;
   justify-content:space-between;
-  gap:14px;
+  gap:10px;
   align-items:flex-start;
 }
 .guide-card-title-row h3{
   color:#064e45;
-  font-size:26px;
-  line-height:1.05;
-  letter-spacing:-.04em;
-  margin:0 0 7px;
+  font-size:18px;
+  line-height:1.15;
+  letter-spacing:-.03em;
+  margin:0 0 4px;
 }
-.guide-card-title-row p{margin:0;color:#64748b;font-weight:900;}
+.guide-card-title-row p{margin:0;color:#64748b;font-weight:900;font-size:13px;}
 .guide-card-title-row strong{
   flex:0 0 auto;
   background:#fff5c6;
   color:#9a5b00;
   border-radius:999px;
-  padding:8px 10px;
+  padding:6px 9px;
   font-size:12px;
 }
-.guide-card-description{
-  color:#435368;
-  line-height:1.65;
-  font-weight:700;
-  margin:15px 0;
-}
-.guide-info-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:9px;
-}
-.guide-info-grid span{
-  background:#f6fbf8;
-  border:1px solid #dbece7;
-  border-radius:14px;
-  padding:9px 10px;
-  color:#334155;
-  font-size:12px;
-  font-weight:900;
-}
-.guide-tag-row{
+.guide-price-row{
   display:flex;
   flex-wrap:wrap;
-  gap:8px;
-  margin-top:14px;
+  gap:7px;
+  margin-top:10px;
 }
-.guide-tag-row span{
-  background:#f8f5ec;
-  color:#25364a;
+.guide-price-row span{
+  background:#f6fbf8;
+  border:1px solid #dbece7;
   border-radius:999px;
-  padding:7px 10px;
+  padding:6px 10px;
+  color:#334155;
   font-size:12px;
   font-weight:900;
 }
 .guide-actions{
   display:flex;
   flex-wrap:wrap;
-  gap:8px;
-  margin-top:18px;
+  gap:6px;
+  margin-top:auto;
+  padding-top:10px;
   align-items:flex-start;
 }
-.guide-actions a,.guide-contact-menu summary{
+.guide-actions a,.guide-actions button.guide-trip-btn{
   text-decoration:none;
   border:1px solid #d5e7e2;
   color:#064e45;
   background:#fff;
-  border-radius:14px;
-  padding:10px 12px;
-  font-size:13px;
+  border-radius:12px;
+  padding:8px 11px;
+  font-size:12px;
   font-weight:1000;
-  list-style:none;
   cursor:pointer;
+  font-family:inherit;
 }
-.guide-contact-menu{position:relative;}
-.guide-contact-menu[open]{
-  flex:1 1 100%;
-  order:5;
+.guide-actions button.guide-trip-btn{
+  background:#ffc527;
+  color:#063f38;
+  border-color:#ffc527;
 }
-.guide-contact-menu summary::-webkit-details-marker{display:none;}
-.guide-contact-menu div{
-  flex:1 1 100%;
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:7px;
-  background:#f8fffc;
-  border:1px solid #d5e7e2;
-  border-radius:16px;
-  padding:9px;
-  margin-top:8px;
-}
-.guide-contact-menu div a{
-  width:100%;
-  border-radius:11px;
-  padding:9px 10px;
-  text-align:center;
+.guide-actions button.guide-trip-btn.saved{
+  background:#e8fff5;
+  color:#05614f;
+  border-color:#64c8a8;
 }
 .guide-actions>a:first-child{
   background:#064e45;
   color:#fff;
   border-color:#064e45;
-}
-.guide-actions>a:nth-last-child(2){
-  background:#ffc527;
-  color:#063f38;
-  border-color:#ffc527;
 }
 @media(max-width:1180px){
   .guide-showcase-inner{grid-template-columns:1fr;}
@@ -1181,7 +1192,7 @@ const guideCss = `
   .guide-section-head{align-items:flex-start;flex-direction:column;}
   .guide-grid{grid-template-columns:1fr;}
   .guide-card{grid-template-columns:1fr;}
-  .guide-card-media{min-height:260px;height:260px;}
+  .guide-card-media{min-height:200px;height:200px;}
 }
 @media(max-width:560px){
   .guide-hero-copy h1{font-size:42px;}
@@ -1189,7 +1200,6 @@ const guideCss = `
   .guide-stat-strip{grid-template-columns:1fr;}
   .spotlight-image-wrap{height:210px;}
   .guide-section-head h2{font-size:34px;}
-  .guide-info-grid{grid-template-columns:1fr;}
 }
 
 /* compact first-screen landing fix - keeps guide search, guide buttons and stats visible at 100% zoom */

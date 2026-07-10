@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import api from "../api/api";
@@ -10,9 +10,68 @@ import {
   getTravelTime,
   travelStyles,
 } from "../data/exploreData";
+import {
+  getTripItemCategoryKey,
+  getTripItemTypeLabel,
+  groupTripItemsByType,
+  SAVED_TRIP_EVENT,
+} from "../utils/tripBasket";
 
 const SAVED_PLACES_KEY = "tourismhub_trip_places";
 const TRIP_PLAN_KEY = "tourismhub_trip_plan";
+
+const CATEGORY_CONFIG = [
+  { key: "destinations", label: "Destinations", browseTo: "/explore", browseLabel: "Explore places" },
+  { key: "events", label: "Events", browseTo: "/events", browseLabel: "Browse events" },
+  { key: "hotels", label: "Hotels", browseTo: "/hotels", browseLabel: "Find hotels" },
+  { key: "guides", label: "Guides", browseTo: "/tourist-guides", browseLabel: "Tourist guides" },
+];
+
+const getDayItems = (day) =>
+  CATEGORY_CONFIG.flatMap((category) => day[category.key] || []);
+
+const getDayDestinationDistrict = (day) =>
+  String(day.destinations?.[0]?.district || "").trim();
+
+const monthNameFromDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { month: "long" });
+};
+
+const validateItemForDay = (item, day, category) => {
+  if (category === "destinations") return { ok: true };
+
+  const dayDistrict = getDayDestinationDistrict(day);
+  if (!dayDistrict) {
+    return {
+      ok: false,
+      reason: `Add a destination to this day before adding a ${getTripItemTypeLabel(item).toLowerCase()}.`,
+    };
+  }
+
+  const itemDistrict = String(item.district || "").trim();
+  if (!itemDistrict || itemDistrict.toLowerCase() !== dayDistrict.toLowerCase()) {
+    return {
+      ok: false,
+      reason: `${item.name} is not in ${dayDistrict} district, so it can't be added to this day.`,
+    };
+  }
+
+  if (category === "events") {
+    const dayMonth = monthNameFromDate(day.date);
+    const eventMonth = String(item.eventMonth || "").trim();
+    if (dayMonth && eventMonth && eventMonth.toLowerCase() !== dayMonth.toLowerCase()) {
+      return {
+        ok: false,
+        reason: `${item.name} happens in ${eventMonth}, but this day falls in ${dayMonth}.`,
+      };
+    }
+  }
+
+  return { ok: true };
+};
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const ASSET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -31,6 +90,23 @@ const firstDbImage = (...candidates) => {
   }
   return "";
 };
+
+const getTripItemDetailsLink = (item) => {
+  const type = String(item?.tripItemType || "place").toLowerCase();
+  if (item?.link) return item.link;
+  if (type === "hotel") return `/hotels/${item.sourceId || String(item.id || "").replace(/^hotel-/, "")}`;
+  if (type === "event") return "/events";
+  if (type === "guide") return "/tourist-guides";
+  return `/explore?place=${item.id}`;
+};
+
+const getTripItemMeta = (item) =>
+  [getTripItemTypeLabel(item), item?.city || item?.district || "Sri Lanka", item?.region]
+    .filter(Boolean)
+    .join(" • ");
+
+const getTripItemImage = (item) =>
+  item?.image || item?.imageUrl || item?.image_url || item?.main_image || "";
 
 
 const todayInputValue = () => {
@@ -69,10 +145,29 @@ const createDays = (startDate, daysCount) =>
   Array.from({ length: Number(daysCount) || 1 }, (_, index) => ({
     dayNumber: index + 1,
     date: addDays(startDate, index),
-    places: [],
-    hotelBooked: false,
+    destinations: [],
+    hotels: [],
+    guides: [],
+    events: [],
     notes: "",
   }));
+
+const migrateDayGroups = (existingDay) => {
+  if (Array.isArray(existingDay?.places)) {
+    const grouped = { destinations: [], hotels: [], guides: [], events: [] };
+    existingDay.places.forEach((item) => {
+      grouped[getTripItemCategoryKey(item)].push(item);
+    });
+    return grouped;
+  }
+
+  return {
+    destinations: Array.isArray(existingDay?.destinations) ? existingDay.destinations : [],
+    hotels: Array.isArray(existingDay?.hotels) ? existingDay.hotels : [],
+    guides: Array.isArray(existingDay?.guides) ? existingDay.guides : [],
+    events: Array.isArray(existingDay?.events) ? existingDay.events : [],
+  };
+};
 
 const normalizeDays = (days, startDate, daysCount) => {
   const requiredDays = Number(daysCount) || 1;
@@ -83,23 +178,25 @@ const normalizeDays = (days, startDate, daysCount) => {
     return {
       dayNumber: index + 1,
       date: addDays(startDate, index),
-      places: Array.isArray(existing?.places) ? existing.places : [],
-      hotelBooked: Boolean(existing?.hotelBooked),
+      ...migrateDayGroups(existing),
       notes: existing?.notes || "",
     };
   });
 };
 
 const calculateDayCost = (day) =>
-  day.places.reduce((total, place) => total + Number(place.estimatedCost || 0), 0);
+  getDayItems(day).reduce((total, item) => total + Number(item.estimatedCost || 0), 0);
 
-const calculateTransitMinutes = (day) =>
-  day.places.reduce((total, place, index) => {
+const calculateTransitMinutes = (day) => {
+  const destinations = day.destinations || [];
+  return destinations.reduce((total, place, index) => {
     if (index === 0) return total;
-    const previous = day.places[index - 1];
+    const previous = destinations[index - 1];
+    if (!previous.city || !place.city) return total;
     const estimate = getTravelTime(previous.city, place.city);
     return total + Number(estimate?.minutes || 0);
   }, 0);
+};
 
 const formatDuration = (minutes) => {
   if (!minutes) return "0m";
@@ -143,20 +240,20 @@ const starterRoutes = [
 
 const guideSteps = [
   {
-    title: "Choose your starting point",
-    text: "Start with saved destinations from Explore or pick a ready-made route template. You can change everything later.",
+    title: "Save items to your basket",
+    text: "Save destinations, hotels, guides, and events from Explore, Hotels, Guides, and Events pages, or pick a ready-made route template. Everything lands in your basket first.",
   },
   {
-    title: "Arrange days naturally",
-    text: "Place each destination into a travel day. Keep nearby cities together to reduce travel time.",
+    title: "Add a destination to each day",
+    text: "Every day starts with a destination — that sets the day's district. Use the floating Saved Items button once you scroll down, or drag a saved card onto a day.",
   },
   {
-    title: "Check stays for every night",
-    text: "When a day has destinations, use the hotel prompt to find stays near the city for that date.",
+    title: "Then add hotels, guides, and events",
+    text: "Each day has its own Hotels, Guides, and Events sections. Only saved items that match that day's district (and, for events, the day's month) can be added — anything else is rejected with a clear reason.",
   },
   {
     title: "Save and download",
-    text: "Save the plan in the browser and export a detailed PDF itinerary with places, costs, notes, and hotel status.",
+    text: "Save the plan in the browser and export a detailed PDF itinerary with places, costs, notes, and hotel status, grouped the same way as your day cards.",
   },
 ];
 
@@ -240,6 +337,70 @@ const drawWrappedPdfText = (doc, text, x, y, maxWidth, lineHeight = 4.5) => {
   return y + lines.length * lineHeight;
 };
 
+const drawPdfItemCard = async (doc, item, indexInGroup, startY) => {
+  let y = ensurePdfSpace(doc, startY, 72);
+
+  doc.setFillColor(255, 252, 244);
+  doc.setDrawColor(...pdfTheme.border);
+  doc.roundedRect(14, y, 182, 66, 2, 2, "FD");
+
+  let imageAdded = false;
+  try {
+    const imageData = await loadImageAsDataUrl(item.image);
+    doc.addImage(imageData, "JPEG", 18, y + 5, 42, 30);
+    imageAdded = true;
+  } catch {
+    // no-op: fall through to placeholder image below
+  }
+
+  if (!imageAdded) {
+    doc.setFillColor(238, 231, 214);
+    doc.rect(18, y + 5, 42, 30, "F");
+    doc.setTextColor(...pdfTheme.muted);
+    doc.setFontSize(8);
+    doc.text("Image", 33, y + 22);
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...pdfTheme.green);
+  doc.text(`${indexInGroup + 1}. ${item.name}`, 66, y + 9, { maxWidth: 126 });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...pdfTheme.ink);
+  doc.text(`${item.city || "Sri Lanka"}, ${item.district || ""} • ${item.duration || ""}`, 66, y + 17, {
+    maxWidth: 126,
+  });
+  doc.text(`Best: ${item.bestTime || "Check local season"}`, 66, y + 23, {
+    maxWidth: 126,
+  });
+  doc.text(`Estimated cost: ${formatLkr(Number(item.estimatedCost || 0))}`, 66, y + 29);
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(...pdfTheme.muted);
+  drawWrappedPdfText(
+    doc,
+    item.shortDescription || item.fullDescription || "",
+    18,
+    y + 43,
+    172,
+    4
+  );
+
+  const things = Array.isArray(item.experiences)
+    ? item.experiences.slice(0, 2).map((experience) => experience.title).join(" • ")
+    : "";
+  if (things) {
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...pdfTheme.red);
+    doc.text(`Things to do: ${things}`, 18, y + 60, { maxWidth: 172 });
+  }
+
+  y += 73;
+  return y;
+};
+
 function TripPlannerPage() {
   const savedPlan = useMemo(() => loadJson(TRIP_PLAN_KEY, null), []);
   const today = useMemo(() => todayInputValue(), []);
@@ -257,7 +418,23 @@ function TripPlannerPage() {
   const [activeGuideStep, setActiveGuideStep] = useState(0);
   const [showGuide, setShowGuide] = useState(!savedPlan);
   const [draggedPlace, setDraggedPlace] = useState(null);
+  const [quickAddDayByItem, setQuickAddDayByItem] = useState({});
+  const [activeSavedCategory, setActiveSavedCategory] = useState("destinations");
+  const [showSavedButton, setShowSavedButton] = useState(false);
+  const [showSavedPanel, setShowSavedPanel] = useState(false);
+  const tripPlanSectionRef = useRef(null);
   const [notice, setNotice] = useState("");
+  const [noticeIsError, setNoticeIsError] = useState(false);
+
+  const showRejection = (reason) => {
+    setNoticeIsError(true);
+    setNotice(reason);
+  };
+
+  const showSuccess = (text) => {
+    setNoticeIsError(false);
+    setNotice(text);
+  };
   const [heroSlides, setHeroSlides] = useState([]);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
@@ -268,7 +445,28 @@ function TripPlannerPage() {
 
     refreshSavedPlaces();
     window.addEventListener("storage", refreshSavedPlaces);
-    return () => window.removeEventListener("storage", refreshSavedPlaces);
+    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedPlaces);
+    return () => {
+      window.removeEventListener("storage", refreshSavedPlaces);
+      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedPlaces);
+    };
+  }, []);
+
+  useEffect(() => {
+    const target = tripPlanSectionRef.current;
+    if (!target) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShowSavedButton(true);
+        }
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -357,10 +555,10 @@ function TripPlannerPage() {
     return () => window.clearInterval(timer);
   }, [heroSlides.length]);
 
-  const totalPlaces = days.reduce((total, day) => total + day.places.length, 0);
+  const totalPlaces = days.reduce((total, day) => total + getDayItems(day).length, 0);
   const totalCost = days.reduce((total, day) => total + calculateDayCost(day), 0);
   const totalTransit = days.reduce((total, day) => total + calculateTransitMinutes(day), 0);
-  const hotelCoveredDays = days.filter((day) => !day.places.length || day.hotelBooked).length;
+  const hotelCoveredDays = days.filter((day) => !getDayItems(day).length || day.hotels.length > 0).length;
   const readiness = Math.min(
     100,
     Math.round(
@@ -374,19 +572,21 @@ function TripPlannerPage() {
 
   const dailyBudgetTarget = budgetDailyTargets[budgetLevel] || budgetDailyTargets.Medium;
   const unusedSavedPlaces = savedPlaces.filter(
-    (savedPlace) => !days.some((day) => day.places.some((place) => place.id === savedPlace.id))
+    (savedPlace) => !days.some((day) => getDayItems(day).some((item) => item.id === savedPlace.id))
   );
+  const savedPlaceGroups = groupTripItemsByType(unusedSavedPlaces, { includeEmpty: true });
+  const activeSavedGroup = savedPlaceGroups.find((group) => group.key === activeSavedCategory);
   const popularPlaces = explorePlaces.slice(0, 6);
 
   const routeCities = days
-    .flatMap((day) => day.places.map((place) => place.city))
+    .flatMap((day) => (day.destinations || []).map((place) => place.city))
     .filter((city, index, array) => city && array.indexOf(city) === index);
 
   const currentHeroSlide = heroSlides[heroSlideIndex % Math.max(heroSlides.length, 1)] || null;
   const tripHeroStats = [
     { value: days.length, label: "travel days" },
-    { value: savedPlaces.length, label: "saved places" },
-    { value: totalPlaces, label: "planned stops" },
+    { value: savedPlaces.length, label: "saved items" },
+    { value: totalPlaces, label: "planned items" },
     { value: heroSlides.length || "DB", label: "live photos" },
   ];
 
@@ -394,7 +594,7 @@ function TripPlannerPage() {
     const safeDaysCount = Math.min(Math.max(Number(daysCount) || 1, 1), 14);
     setDaysCount(String(safeDaysCount));
     setDays((currentDays) => normalizeDays(currentDays, startDate || today, safeDaysCount));
-    setNotice("Trip dates and day cards updated.");
+    showSuccess("Trip dates and day cards updated.");
   };
 
   const saveTripPlan = () => {
@@ -410,87 +610,97 @@ function TripPlannerPage() {
     };
 
     localStorage.setItem(TRIP_PLAN_KEY, JSON.stringify(plan));
-    setNotice("Trip plan saved on this browser.");
+    showSuccess("Trip plan saved on this browser.");
   };
 
   const clearPlan = () => {
-    if (!window.confirm("Clear current trip plan? Saved Explore places will stay.")) return;
+    if (!window.confirm("Clear current trip plan? Saved trip basket items will stay.")) return;
     const freshDays = createDays(startDate || today, Number(daysCount) || 1);
     setDays(freshDays);
     localStorage.removeItem(TRIP_PLAN_KEY);
-    setNotice("Trip plan cleared.");
+    showSuccess("Trip plan cleared.");
   };
 
-  const addPlaceToDay = (place, dayIndex) => {
-    if (!place) return;
+  const addItemToDay = (item, dayIndex) => {
+    if (!item) return;
+    const category = getTripItemCategoryKey(item);
+    const day = days[dayIndex];
+    if (!day) return;
+
+    const validation = validateItemForDay(item, day, category);
+    if (!validation.ok) {
+      showRejection(validation.reason);
+      return;
+    }
 
     setDays((currentDays) =>
-      currentDays.map((day, index) => {
-        if (index !== dayIndex) return day;
-        if (day.places.some((existing) => existing.id === place.id)) return day;
-        return { ...day, places: [...day.places, place] };
+      currentDays.map((currentDay, index) => {
+        if (index !== dayIndex) return currentDay;
+        if (currentDay[category].some((existing) => existing.id === item.id)) return currentDay;
+        return { ...currentDay, [category]: [...currentDay[category], item] };
       })
     );
-    setNotice(`${place.name} added to Day ${dayIndex + 1}.`);
+    showSuccess(`${item.name} added to Day ${dayIndex + 1} (${getTripItemTypeLabel(item)}).`);
   };
 
-  const removePlaceFromDay = (dayIndex, placeId) => {
+  const removeItemFromDay = (dayIndex, category, itemId) => {
     setDays((currentDays) =>
       currentDays.map((day, index) =>
         index === dayIndex
-          ? { ...day, places: day.places.filter((place) => place.id !== placeId) }
+          ? { ...day, [category]: day[category].filter((item) => item.id !== itemId) }
           : day
       )
     );
   };
 
-  const movePlaceWithinDay = (dayIndex, placeIndex, direction) => {
+  const moveItemWithinDay = (dayIndex, category, itemIndex, direction) => {
     setDays((currentDays) =>
       currentDays.map((day, index) => {
         if (index !== dayIndex) return day;
-        const nextIndex = placeIndex + direction;
-        if (nextIndex < 0 || nextIndex >= day.places.length) return day;
-        const updatedPlaces = [...day.places];
-        [updatedPlaces[placeIndex], updatedPlaces[nextIndex]] = [
-          updatedPlaces[nextIndex],
-          updatedPlaces[placeIndex],
+        const nextIndex = itemIndex + direction;
+        if (nextIndex < 0 || nextIndex >= day[category].length) return day;
+        const updatedItems = [...day[category]];
+        [updatedItems[itemIndex], updatedItems[nextIndex]] = [
+          updatedItems[nextIndex],
+          updatedItems[itemIndex],
         ];
-        return { ...day, places: updatedPlaces };
+        return { ...day, [category]: updatedItems };
       })
     );
   };
 
-  const movePlaceToDay = (fromDayIndex, placeId, toDayIndex) => {
+  const moveItemToDay = (fromDayIndex, category, itemId, toDayIndex) => {
     if (fromDayIndex === toDayIndex) return;
 
-    setDays((currentDays) => {
-      const placeToMove = currentDays[fromDayIndex]?.places.find((place) => place.id === placeId);
-      if (!placeToMove) return currentDays;
+    const itemToMove = days[fromDayIndex]?.[category]?.find((item) => item.id === itemId);
+    if (!itemToMove) return;
 
-      return currentDays.map((day, index) => {
+    const targetDay = days[toDayIndex];
+    if (!targetDay) return;
+
+    const validation = validateItemForDay(itemToMove, targetDay, category);
+    if (!validation.ok) {
+      showRejection(validation.reason);
+      return;
+    }
+
+    setDays((currentDays) =>
+      currentDays.map((day, index) => {
         if (index === fromDayIndex) {
-          return { ...day, places: day.places.filter((place) => place.id !== placeId) };
+          return { ...day, [category]: day[category].filter((item) => item.id !== itemId) };
         }
         if (index === toDayIndex) {
-          if (day.places.some((place) => place.id === placeId)) return day;
-          return { ...day, places: [...day.places, placeToMove] };
+          if (day[category].some((item) => item.id === itemId)) return day;
+          return { ...day, [category]: [...day[category], itemToMove] };
         }
         return day;
-      });
-    });
+      })
+    );
   };
 
   const updateDayNotes = (dayIndex, notes) => {
     setDays((currentDays) =>
       currentDays.map((day, index) => (index === dayIndex ? { ...day, notes } : day))
-    );
-  };
-
-  const toggleHotel = (dayIndex) => {
-    setDays((currentDays) =>
-      currentDays.map((day, index) =>
-        index === dayIndex ? { ...day, hotelBooked: !day.hotelBooked } : day
-      )
     );
   };
 
@@ -501,24 +711,26 @@ function TripPlannerPage() {
 
     selectedPlaces.forEach((place, index) => {
       const targetIndex = index % safeDays;
-      nextDays[targetIndex].places.push(place);
+      const category = getTripItemCategoryKey(place);
+      nextDays[targetIndex][category].push(place);
     });
 
     setDays(nextDays);
-    setNotice("Starter route created. You can edit every day.");
+    showSuccess("Starter route created. You can edit every day.");
   };
 
   const addPopularToSaved = (place) => {
     const currentSaved = loadJson(SAVED_PLACES_KEY, []);
     if (currentSaved.some((item) => item.id === place.id)) {
-      setNotice(`${place.name} is already saved.`);
+      showRejection(`${place.name} is already saved.`);
       return;
     }
 
     const updated = [...currentSaved, place];
     localStorage.setItem(SAVED_PLACES_KEY, JSON.stringify(updated));
     setSavedPlaces(updated);
-    setNotice(`${place.name} added to saved places.`);
+    window.dispatchEvent(new Event(SAVED_TRIP_EVENT));
+    showSuccess(`${place.name} added to saved trip items.`);
   };
 
   const handleDragStart = (payload) => {
@@ -529,18 +741,18 @@ function TripPlannerPage() {
     if (!draggedPlace) return;
 
     if (draggedPlace.source === "saved") {
-      addPlaceToDay(draggedPlace.place, dayIndex);
+      addItemToDay(draggedPlace.place, dayIndex);
     }
 
     if (draggedPlace.source === "day") {
-      movePlaceToDay(draggedPlace.dayIndex, draggedPlace.place.id, dayIndex);
+      moveItemToDay(draggedPlace.dayIndex, draggedPlace.category, draggedPlace.place.id, dayIndex);
     }
 
     setDraggedPlace(null);
   };
 
   const getHotelSearchLink = (day) => {
-    const city = day.places[0]?.city || "";
+    const city = day.destinations[0]?.city || "";
     const params = new URLSearchParams();
     if (city) params.set("city", city);
     if (day.date) params.set("check_in", day.date);
@@ -649,11 +861,12 @@ function TripPlannerPage() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
         doc.text(`Day ${day.dayNumber} • ${formatDate(day.date)}`, 18, y + 8.5);
-        doc.text(day.hotelBooked ? "Hotel selected" : "Hotel not selected", 145, y + 8.5);
+        doc.text(day.hotels.length > 0 ? "Hotel selected" : "Hotel not selected", 145, y + 8.5);
         y += 18;
 
         const dayCost = calculateDayCost(day);
         const dayTransit = calculateTransitMinutes(day);
+        const dayItems = getDayItems(day);
         doc.setFillColor(...pdfTheme.soft);
         doc.setDrawColor(...pdfTheme.border);
         doc.roundedRect(14, y, 182, 15, 2, 2, "FD");
@@ -662,10 +875,10 @@ function TripPlannerPage() {
         doc.setTextColor(...pdfTheme.ink);
         doc.text(`Activity cost: ${formatLkr(dayCost)}`, 18, y + 6);
         doc.text(`Transit time: ${formatDuration(dayTransit)}`, 76, y + 6);
-        doc.text(`Places: ${day.places.length}`, 132, y + 6);
+        doc.text(`Places: ${dayItems.length}`, 132, y + 6);
         y += 22;
 
-        if (!day.places.length) {
+        if (!dayItems.length) {
           doc.setFont("helvetica", "italic");
           doc.setTextColor(...pdfTheme.muted);
           doc.text("No destinations added for this day.", 18, y);
@@ -673,82 +886,41 @@ function TripPlannerPage() {
           continue;
         }
 
-        for (let placeIndex = 0; placeIndex < day.places.length; placeIndex += 1) {
-          const place = day.places[placeIndex];
-          y = ensurePdfSpace(doc, y, 72);
+        const categoryGroups = [
+          { label: "Destinations", items: day.destinations },
+          { label: "Events", items: day.events },
+          { label: "Hotels", items: day.hotels },
+          { label: "Guides", items: day.guides },
+        ];
 
-          doc.setFillColor(255, 252, 244);
-          doc.setDrawColor(...pdfTheme.border);
-          doc.roundedRect(14, y, 182, 66, 2, 2, "FD");
+        for (const group of categoryGroups) {
+          if (!group.items.length) continue;
 
-          let imageAdded = false;
-          try {
-            const imageData = await loadImageAsDataUrl(place.image);
-            doc.addImage(imageData, "JPEG", 18, y + 5, 42, 30);
-            imageAdded = true;
-          } catch {
-            imageAdded = false;
-          }
-
-          if (!imageAdded) {
-            doc.setFillColor(238, 231, 214);
-            doc.rect(18, y + 5, 42, 30, "F");
-            doc.setTextColor(...pdfTheme.muted);
-            doc.setFontSize(8);
-            doc.text("Image", 33, y + 22);
-          }
-
+          y = ensurePdfSpace(doc, y, 14);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(12);
-          doc.setTextColor(...pdfTheme.green);
-          doc.text(`${placeIndex + 1}. ${place.name}`, 66, y + 9, { maxWidth: 126 });
+          doc.setFontSize(10.5);
+          doc.setTextColor(...pdfTheme.teal);
+          doc.text(group.label, 18, y);
+          y += 8;
 
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(9);
-          doc.setTextColor(...pdfTheme.ink);
-          doc.text(`${place.city}, ${place.district} • ${place.duration}`, 66, y + 17, {
-            maxWidth: 126,
-          });
-          doc.text(`Best: ${place.bestTime || "Check local season"}`, 66, y + 23, {
-            maxWidth: 126,
-          });
-          doc.text(`Estimated cost: ${formatLkr(Number(place.estimatedCost || 0))}`, 66, y + 29);
+          for (let itemIndex = 0; itemIndex < group.items.length; itemIndex += 1) {
+            const item = group.items[itemIndex];
+            y = await drawPdfItemCard(doc, item, itemIndex, y);
 
-          doc.setFontSize(8.5);
-          doc.setTextColor(...pdfTheme.muted);
-          drawWrappedPdfText(
-            doc,
-            place.shortDescription || place.fullDescription || "",
-            18,
-            y + 43,
-            172,
-            4
-          );
-
-          const things = Array.isArray(place.experiences)
-            ? place.experiences.slice(0, 2).map((item) => item.title).join(" • ")
-            : "";
-          if (things) {
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(...pdfTheme.red);
-            doc.text(`Things to do: ${things}`, 18, y + 60, { maxWidth: 172 });
-          }
-
-          y += 73;
-
-          if (placeIndex > 0) {
-            const previous = day.places[placeIndex - 1];
-            const travel = getTravelTime(previous.city, place.city);
-            y = ensurePdfSpace(doc, y, 12);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(9);
-            doc.setTextColor(...pdfTheme.teal);
-            doc.text(
-              `Transit from ${previous.city} to ${place.city}: ${travel.label} by ${travel.mode}`,
-              18,
-              y
-            );
-            y += 8;
+            if (group.label === "Destinations" && itemIndex > 0) {
+              const previous = group.items[itemIndex - 1];
+              const travel = getTravelTime(previous.city, item.city);
+              y = ensurePdfSpace(doc, y, 12);
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9);
+              doc.setTextColor(...pdfTheme.teal);
+              doc.text(
+                `Transit from ${previous.city} to ${item.city}: ${travel.label} by ${travel.mode}`,
+                18,
+                y
+              );
+              y += 8;
+            }
           }
         }
 
@@ -878,6 +1050,13 @@ function TripPlannerPage() {
             <span>Start with saved destinations, mix nearby hotels, organise each day, and turn your ideas into a clean traveller-ready plan.</span>
 
             <div className="trip-showcase-actions" aria-label="Trip planning actions">
+              <button
+                type="button"
+                className="guide-me-btn"
+                onClick={() => setShowGuide((current) => !current)}
+              >
+                🧭 Guide Me
+              </button>
               <Link to="/explore">Explore Places</Link>
               <a href="#saved-destinations">Saved Places</a>
               <a href="#suggested-itineraries">Suggested Plans</a>
@@ -944,7 +1123,7 @@ function TripPlannerPage() {
           <div className="planner-hero-actions">
             <Link to="/explore" className="planner-primary-btn">Add places from Explore</Link>
             <button className="planner-dark-btn" onClick={() => buildStarterPlan()}>Use island highlights</button>
-            <button className="planner-ghost-btn" onClick={() => setShowGuide(true)}>How it works</button>
+            <button className="planner-ghost-btn" onClick={() => setShowGuide((current) => !current)}>How it works</button>
           </div>
         </article>
 
@@ -955,12 +1134,12 @@ function TripPlannerPage() {
           <Link to="/hotels">Accommodation</Link>
           <Link to="/events">Events</Link>
           <Link to="/tourist-guides">Tour guides</Link>
-          <button type="button" onClick={() => setShowGuide(true)}>Planner guide</button>
+          <button type="button" onClick={() => setShowGuide((current) => !current)}>Planner guide</button>
         </aside>
       </section>
 
       {notice && (
-        <div className="planner-notice">
+        <div className={noticeIsError ? "planner-notice error" : "planner-notice"}>
           <span>{notice}</span>
           <button onClick={() => setNotice("")} aria-label="Dismiss notification">×</button>
         </div>
@@ -1062,44 +1241,93 @@ function TripPlannerPage() {
         ))}
       </section>
 
-      <section className="planner-dashboard-grid" id="saved-destinations">
+      <section className="planner-dashboard-grid" id="saved-destinations" ref={tripPlanSectionRef}>
+        {showSavedButton ? (
+          <button
+            type="button"
+            className={`saved-panel-fab ${unusedSavedPlaces.length ? "has-items" : ""}`}
+            onClick={() => setShowSavedPanel((current) => !current)}
+            aria-label={showSavedPanel ? "Close saved trip items" : "Open saved trip items"}
+          >
+            <span>🧺</span>
+            <strong>Saved Items</strong>
+            <b>{unusedSavedPlaces.length}</b>
+          </button>
+        ) : null}
+
+        {showSavedPanel ? (
         <aside className="saved-destinations-panel">
           <div className="panel-title-row">
             <div>
-              <span className="planner-eyebrow light">From Explore</span>
-              <h2>Saved destinations</h2>
+              <span className="planner-eyebrow light">From your basket</span>
+              <h2>Saved trip items</h2>
             </div>
-            <Link to="/explore">Open Explore</Link>
+            <div className="panel-title-actions">
+              <Link to="/explore">Add more</Link>
+              <button type="button" className="saved-panel-close" onClick={() => setShowSavedPanel(false)} aria-label="Close saved trip items">
+                ×
+              </button>
+            </div>
           </div>
 
           {unusedSavedPlaces.length ? (
-            <div className="saved-place-list">
-              {unusedSavedPlaces.map((place) => (
-                <article
-                  className="saved-place-card"
-                  key={place.id}
-                  draggable
-                  onDragStart={() => handleDragStart({ source: "saved", place })}
-                >
-                  <img src={place.image} alt={place.name} />
-                  <div>
-                    <h3>{place.name}</h3>
-                    <p>{place.city} • {place.region}</p>
-                    <div className="quick-day-row">
-                      {days.slice(0, 5).map((day, index) => (
-                        <button key={day.dayNumber} onClick={() => addPlaceToDay(place, index)}>
-                          D{index + 1}
-                        </button>
-                      ))}
-                    </div>
+            <>
+              <div className="saved-category-tabs">
+                {savedPlaceGroups.map((group) => (
+                  <button
+                    key={group.key}
+                    type="button"
+                    className={activeSavedCategory === group.key ? "active" : ""}
+                    onClick={() => setActiveSavedCategory(group.key)}
+                  >
+                    <span>{group.icon} {group.label}</span>
+                    <b>{group.items.length}</b>
+                  </button>
+                ))}
+              </div>
+
+              <div className="saved-place-list">
+                {activeSavedGroup?.items.length ? (
+                  activeSavedGroup.items.map((place) => (
+                    <article
+                      className="saved-place-card"
+                      key={place.id}
+                      draggable
+                      onDragStart={() => handleDragStart({ source: "saved", place })}
+                    >
+                      <img src={getTripItemImage(place)} alt={place.name} />
+                      <div>
+                        <h3>{place.name}</h3>
+                        <p className="trip-item-meta">{getTripItemMeta(place)}</p>
+                        <div className="quick-day-row">
+                          <select
+                            value={quickAddDayByItem[place.id] ?? ""}
+                            onChange={(event) => {
+                              const dayIndex = event.target.value;
+                              setQuickAddDayByItem((current) => ({ ...current, [place.id]: "" }));
+                              if (dayIndex !== "") addItemToDay(place, Number(dayIndex));
+                            }}
+                          >
+                            <option value="">Add to day...</option>
+                            {days.map((day, index) => (
+                              <option key={day.dayNumber} value={index}>Day {day.dayNumber}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="saved-category-empty">
+                    No {activeSavedGroup?.label.toLowerCase()} saved yet.
                   </div>
-                </article>
-              ))}
-            </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="quick-add-box">
-              <strong>No unused saved places</strong>
-              <p>Save destinations from Explore, or add a few popular places now.</p>
+              <strong>No unused saved trip items</strong>
+              <p>Save places, hotels, events, or guides, then add them to your travel days.</p>
               <div className="quick-add-list">
                 {popularPlaces.map((place) => (
                   <button key={place.id} onClick={() => addPopularToSaved(place)}>
@@ -1110,6 +1338,7 @@ function TripPlannerPage() {
             </div>
           )}
         </aside>
+        ) : null}
 
         <section className="itinerary-board" id="itinerary-board">
           <div className="route-overview-card">
@@ -1132,7 +1361,8 @@ function TripPlannerPage() {
               const dayCost = calculateDayCost(day);
               const transitMinutes = calculateTransitMinutes(day);
               const isOverBudget = dayCost > dailyBudgetTarget;
-              const city = day.places[0]?.city || "this city";
+              const dayItems = getDayItems(day);
+              const city = day.destinations[0]?.city || "this city";
 
               return (
                 <article
@@ -1151,70 +1381,123 @@ function TripPlannerPage() {
                         <strong>Day {day.dayNumber}</strong>
                         <h3>{formatDate(day.date)}</h3>
                       </div>
-                      <button
-                        className={day.hotelBooked ? "hotel-status selected" : "hotel-status missing"}
-                        onClick={() => toggleHotel(dayIndex)}
-                      >
-                        {day.hotelBooked ? "Hotel selected" : "Need hotel"}
-                      </button>
+                      <span className={day.hotels.length > 0 ? "hotel-status selected" : "hotel-status missing"}>
+                        {day.hotels.length > 0 ? "Hotel selected" : "Need hotel"}
+                      </span>
                     </header>
 
                     <div className="day-metrics-row">
                       <span className={isOverBudget ? "warning" : ""}>Cost {formatLkr(dayCost)}</span>
                       <span>Transit {formatDuration(transitMinutes)}</span>
-                      <span>{day.places.length} places</span>
+                      <span>{dayItems.length} items</span>
                     </div>
 
-                    {!day.places.length ? (
+                    {!dayItems.length ? (
                       <div className="empty-drop-zone">
-                        <strong>Drop destinations here</strong>
-                        <p>Use saved places from the left panel or apply a suggested itinerary.</p>
+                        <strong>Drop trip items here</strong>
+                        <p>Use saved places, hotels, events, or guides from the left panel.</p>
                       </div>
-                    ) : (
-                      <div className="scheduled-place-list">
-                        {day.places.map((place, placeIndex) => {
-                          const travel = placeIndex
-                            ? getTravelTime(day.places[placeIndex - 1].city, place.city)
-                            : null;
+                    ) : null}
 
-                          return (
-                            <div className="place-schedule-block" key={place.id}>
-                              {travel && (
-                                <div className="travel-connector">
-                                  <span>{travel.mode}</span>
-                                  <p>{travel.label} from {day.places[placeIndex - 1].city} to {place.city}</p>
-                                </div>
-                              )}
-
-                              <article
-                                className="scheduled-place-card"
-                                draggable
-                                onDragStart={() => handleDragStart({ source: "day", dayIndex, place })}
-                              >
-                                <div className="place-time-badge">{daySlotLabels[placeIndex] || "Later"}</div>
-                                <img src={place.image} alt={place.name} />
-                                <div className="scheduled-place-info">
-                                  <h4>{place.name}</h4>
-                                  <p>{place.city} • {place.duration}</p>
-                                  <div className="place-tags-row">
-                                    <span>{place.budget}</span>
-                                    <span>{formatLkr(Number(place.estimatedCost || 0))}</span>
-                                  </div>
-                                </div>
-                                <div className="place-action-stack">
-                                  <Link to={`/explore?place=${place.id}`}>Details</Link>
-                                  <button onClick={() => movePlaceWithinDay(dayIndex, placeIndex, -1)}>↑</button>
-                                  <button onClick={() => movePlaceWithinDay(dayIndex, placeIndex, 1)}>↓</button>
-                                  <button onClick={() => removePlaceFromDay(dayIndex, place.id)}>Remove</button>
-                                </div>
-                              </article>
-                            </div>
+                    {CATEGORY_CONFIG.map((category) => {
+                      const categoryItems = day[category.key];
+                      const dayDistrict = getDayDestinationDistrict(day);
+                      const needsDestinationFirst = category.key !== "destinations" && !dayDistrict;
+                      const hasSavedOfType = savedPlaces.some(
+                        (item) => getTripItemCategoryKey(item) === category.key
+                      );
+                      const availableToAdd = needsDestinationFirst
+                        ? []
+                        : savedPlaces.filter(
+                            (item) =>
+                              getTripItemCategoryKey(item) === category.key &&
+                              !categoryItems.some((existing) => existing.id === item.id) &&
+                              validateItemForDay(item, day, category.key).ok
                           );
-                        })}
-                      </div>
-                    )}
 
-                    {day.places.length > 0 && !day.hotelBooked && (
+                      return (
+                        <div className="day-category-section" key={category.key}>
+                          <div className="day-category-header">
+                            <span>{category.label}</span>
+                            {!needsDestinationFirst && availableToAdd.length ? (
+                              <select
+                                value=""
+                                onChange={(event) => {
+                                  const item = availableToAdd.find(
+                                    (candidate) => String(candidate.id) === event.target.value
+                                  );
+                                  if (item) addItemToDay(item, dayIndex);
+                                }}
+                              >
+                                <option value="">Add a {category.label.toLowerCase().replace(/s$/, "")}...</option>
+                                {availableToAdd.map((item) => (
+                                  <option key={item.id} value={item.id}>{item.name}</option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </div>
+
+                          {categoryItems.length ? (
+                            <div className="scheduled-place-list">
+                              {categoryItems.map((place, placeIndex) => {
+                                const previousPlace = placeIndex ? categoryItems[placeIndex - 1] : null;
+                                const travel = category.key === "destinations" && previousPlace?.city && place.city
+                                  ? getTravelTime(previousPlace.city, place.city)
+                                  : null;
+
+                                return (
+                                  <div className="place-schedule-block" key={place.id}>
+                                    {travel && (
+                                      <div className="travel-connector">
+                                        <span>{travel.mode}</span>
+                                        <p>{travel.label} from {previousPlace.city} to {place.city}</p>
+                                      </div>
+                                    )}
+
+                                    <article
+                                      className="scheduled-place-card"
+                                      draggable
+                                      onDragStart={() => handleDragStart({ source: "day", dayIndex, category: category.key, place })}
+                                    >
+                                      <div className="place-time-badge">{daySlotLabels[placeIndex] || "Later"}</div>
+                                      <img src={getTripItemImage(place)} alt={place.name} />
+                                      <div className="scheduled-place-info">
+                                        <h4>{place.name}</h4>
+                                        <p className="trip-item-meta">{getTripItemMeta(place)} • {place.duration || "Plan item"}</p>
+                                        <div className="place-tags-row">
+                                          <span>{place.budget || getTripItemTypeLabel(place)}</span>
+                                          <span>{formatLkr(Number(place.estimatedCost || 0))}</span>
+                                        </div>
+                                      </div>
+                                      <div className="place-action-stack">
+                                        <Link to={getTripItemDetailsLink(place)}>Details</Link>
+                                        <button onClick={() => moveItemWithinDay(dayIndex, category.key, placeIndex, -1)}>↑</button>
+                                        <button onClick={() => moveItemWithinDay(dayIndex, category.key, placeIndex, 1)}>↓</button>
+                                        <button onClick={() => removeItemFromDay(dayIndex, category.key, place.id)}>Remove</button>
+                                      </div>
+                                    </article>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : needsDestinationFirst ? (
+                            <p className="day-category-empty-hint">
+                              Add a destination to this day first.
+                            </p>
+                          ) : !hasSavedOfType ? (
+                            <p className="day-category-empty-hint">
+                              No saved {category.label.toLowerCase()} yet. <Link to={category.browseTo}>{category.browseLabel}</Link>
+                            </p>
+                          ) : !availableToAdd.length ? (
+                            <p className="day-category-empty-hint">
+                              No saved {category.label.toLowerCase()} in {dayDistrict} district yet.
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+
+                    {dayItems.length > 0 && !day.hotels.length && (
                       <div className="stay-check-card">
                         <div>
                           <strong>Stay check</strong>
@@ -1224,7 +1507,7 @@ function TripPlannerPage() {
                       </div>
                     )}
 
-                    {day.places.length > 0 && day.hotelBooked && (
+                    {dayItems.length > 0 && day.hotels.length > 0 && (
                       <div className="stay-selected-card">Stay selected for this day.</div>
                     )}
 
@@ -1684,6 +1967,7 @@ const plannerCss = `
     gap: 12px;
   }
   .planner-notice span { flex: 1; padding: 14px 16px; border-radius: 18px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 950; }
+  .planner-notice.error span { background: #fff1f0; border-color: #fecaca; color: #b91c1c; }
   .planner-notice button { border: none; background: transparent; font-size: 24px; color: #0f766e; cursor: pointer; }
 
   .planner-settings-band {
@@ -1764,18 +2048,62 @@ const plannerCss = `
   .planner-dashboard-grid {
     padding-top: 34px;
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr) 280px;
+    grid-template-columns: 280px minmax(0, 1fr);
     gap: 20px;
     align-items: start;
+    position: relative;
   }
-  .saved-destinations-panel,
-  .plan-assistant-panel { position: sticky; top: 96px; }
-  .saved-destinations-panel,
+  .plan-assistant-panel { position: sticky; top: 96px; order: -1; }
   .assistant-card { border-radius: 28px; padding: 18px; }
-  .panel-title-row { display: flex; justify-content: space-between; align-items: start; gap: 14px; margin-bottom: 14px; }
-  .panel-title-row h2 { margin: 10px 0 0; font-size: 28px; letter-spacing: -0.04em; }
-  .panel-title-row a { font-size: 13px; min-height: auto; padding: 9px 12px; }
-  .saved-place-list { display: grid; gap: 12px; max-height: 670px; overflow: auto; padding-right: 4px; }
+  .saved-panel-fab {
+    position: fixed;
+    right: 22px;
+    bottom: 24px;
+    z-index: 72;
+    border: 2px solid rgba(255, 194, 43, 0.82);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #064e45, #087768);
+    color: #fff;
+    box-shadow: 0 18px 44px rgba(3, 58, 54, 0.28), 0 0 0 6px rgba(255, 194, 43, 0.14);
+    padding: 12px 14px 12px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .saved-panel-fab span { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #ffc22b; color: #063c38; font-size: 20px; }
+  .saved-panel-fab strong { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .saved-panel-fab b { min-width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: #fff; color: #064e45; font-size: 13px; }
+  .saved-panel-fab.has-items { animation: savedPanelPulse 2.8s ease-in-out infinite; }
+  @keyframes savedPanelPulse { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .saved-destinations-panel {
+    position: fixed;
+    right: 22px;
+    bottom: 94px;
+    z-index: 76;
+    width: min(380px, calc(100vw - 32px));
+    max-height: min(650px, calc(100vh - 130px));
+    overflow: auto;
+    border-radius: 26px;
+    padding: 18px;
+    box-shadow: 0 24px 70px rgba(2, 50, 49, 0.24);
+    border: 1px solid #dbece4;
+  }
+  .panel-title-actions { display: flex; align-items: center; gap: 8px; }
+  .saved-panel-close { border: none; background: #eef8f4; color: #07584e; border-radius: 999px; width: 32px; height: 32px; font-size: 18px; line-height: 1; cursor: pointer; }
+  .panel-title-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .panel-title-row h2 { margin: 4px 0 0; font-size: 17px; line-height: 1.15; letter-spacing: -0.02em; }
+  .panel-title-row a { font-size: 12px; min-height: auto; padding: 8px 11px; }
+  .saved-place-list { display: grid; gap: 18px; max-height: 670px; overflow: auto; padding-right: 4px; }
+  .saved-category-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .saved-category-tabs button { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px solid #d7f8ef; background: #f8fffc; border-radius: 14px; padding: 9px 6px; cursor: pointer; }
+  .saved-category-tabs button span { color: #063f3a; font-weight: 900; font-size: 11px; text-align: center; line-height: 1.2; }
+  .saved-category-tabs button b { background: #eef8f4; color: #07584e; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 950; }
+  .saved-category-tabs button.active { background: #0f766e; border-color: #0f766e; }
+  .saved-category-tabs button.active span { color: #fff; }
+  .saved-category-tabs button.active b { background: #ffc72c; color: #10201e; }
+  .saved-category-empty { padding: 24px 8px; text-align: center; color: #64748b; font-weight: 750; }
   .saved-place-card {
     display: grid;
     grid-template-columns: 78px 1fr;
@@ -1790,7 +2118,7 @@ const plannerCss = `
   .saved-place-card h3 { margin: 0 0 4px; color: #063f3a; font-size: 16px; }
   .saved-place-card p { margin: 0; color: #64748b; font-weight: 750; font-size: 13px; }
   .quick-day-row { margin-top: 8px; }
-  .quick-day-row button { border: none; border-radius: 999px; background: #e5fdf7; color: #0f766e; font-weight: 950; padding: 6px 8px; cursor: pointer; }
+  .quick-day-row select { width: 100%; border: 1px solid #cfe9e0; border-radius: 999px; background: #e5fdf7; color: #0f766e; font-weight: 850; font-size: 12px; padding: 7px 10px; }
   .quick-add-box { display: grid; gap: 10px; color: #64748b; font-weight: 750; }
   .quick-add-list { display: grid; gap: 7px; }
   .quick-add-list button { text-align: left; background: #f8fffc; color: #063f3a; border: 1px solid #d7f8ef; border-radius: 14px; }
@@ -1811,47 +2139,54 @@ const plannerCss = `
 
   .day-route-list { display: grid; gap: 18px; }
   .day-itinerary-card {
-    border-radius: 30px;
+    border-radius: 24px;
     display: grid;
-    grid-template-columns: 70px 1fr;
+    grid-template-columns: 50px 1fr;
     overflow: hidden;
   }
-  .day-number-rail { background: linear-gradient(180deg, #063f3a, #0f766e); display: flex; justify-content: center; padding-top: 24px; }
-  .day-number-rail span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #ffc72c; color: #10201e; font-weight: 950; }
-  .day-card-content { padding: 20px; }
+  .day-number-rail { background: linear-gradient(180deg, #063f3a, #0f766e); display: flex; justify-content: center; padding-top: 16px; }
+  .day-number-rail span { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #ffc72c; color: #10201e; font-weight: 950; font-size: 13px; }
+  .day-card-content { padding: 14px 16px; }
   .day-card-header { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
-  .day-card-header strong { color: #0f766e; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
-  .day-card-header h3 { margin: 6px 0 0; color: #063f3a; font-size: 26px; }
-  .hotel-status { border: none; border-radius: 999px; padding: 10px 13px; font-weight: 950; cursor: pointer; }
+  .day-card-header strong { color: #0f766e; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
+  .day-card-header h3 { margin: 4px 0 0; color: #063f3a; font-size: 19px; }
+  .hotel-status { display: inline-block; border: none; border-radius: 999px; padding: 7px 11px; font-weight: 950; font-size: 12px; }
   .hotel-status.selected { background: #dcfce7; color: #166534; }
   .hotel-status.missing { background: #fee2e2; color: #b91c1c; }
-  .day-metrics-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-  .day-metrics-row span { background: #f8fffc; border: 1px solid #d7f8ef; border-radius: 999px; color: #0f766e; padding: 7px 10px; font-weight: 950; font-size: 12px; }
+  .day-metrics-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .day-metrics-row span { background: #f8fffc; border: 1px solid #d7f8ef; border-radius: 999px; color: #0f766e; padding: 5px 9px; font-weight: 950; font-size: 11px; }
   .day-metrics-row .warning { background: #fff7ed; color: #b45309; border-color: #fed7aa; }
-  .empty-drop-zone { border: 1.5px dashed #98d9cd; border-radius: 22px; padding: 28px; text-align: center; background: #f8fffc; color: #64748b; font-weight: 760; }
-  .empty-drop-zone strong { display: block; color: #063f3a; font-size: 20px; margin-bottom: 6px; }
-  .scheduled-place-list { display: grid; gap: 12px; }
-  .travel-connector { display: flex; align-items: center; gap: 10px; margin: 5px 0 10px 88px; color: #0f766e; font-weight: 850; }
-  .travel-connector span { background: #d7fff4; border-radius: 999px; padding: 6px 10px; font-size: 12px; text-transform: uppercase; }
-  .travel-connector p { margin: 0; color: #64748b; font-size: 13px; }
+  .empty-drop-zone { border: 1.5px dashed #98d9cd; border-radius: 18px; padding: 20px; text-align: center; background: #f8fffc; color: #64748b; font-weight: 760; }
+  .empty-drop-zone strong { display: block; color: #063f3a; font-size: 17px; margin-bottom: 4px; }
+  .day-category-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e6f2ee; }
+  .day-category-section:first-of-type { margin-top: 4px; padding-top: 0; border-top: none; }
+  .day-category-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .day-category-header > span { color: #063f3a; font-weight: 950; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .day-category-header select { border: 1px solid #cfe9e0; border-radius: 999px; background: #f8fffc; color: #0f766e; font-weight: 850; font-size: 11px; padding: 6px 9px; max-width: 200px; }
+  .day-category-empty-hint { margin: 0; color: #94a3b8; font-weight: 700; font-size: 12px; }
+  .day-category-empty-hint a { color: #0f766e; font-weight: 900; }
+  .scheduled-place-list { display: grid; gap: 8px; }
+  .travel-connector { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px 60px; color: #0f766e; font-weight: 850; }
+  .travel-connector span { background: #d7fff4; border-radius: 999px; padding: 5px 9px; font-size: 11px; text-transform: uppercase; }
+  .travel-connector p { margin: 0; color: #64748b; font-size: 12px; }
   .scheduled-place-card {
     display: grid;
-    grid-template-columns: 86px 132px minmax(0, 1fr) auto;
-    gap: 14px;
+    grid-template-columns: 60px 88px minmax(0, 1fr) auto;
+    gap: 10px;
     align-items: center;
     background: #f8fffc;
     border: 1px solid #d7f8ef;
-    border-radius: 24px;
-    padding: 12px;
+    border-radius: 18px;
+    padding: 9px;
   }
-  .place-time-badge { background: #063f3a; color: white; border-radius: 999px; padding: 8px 10px; text-align: center; font-weight: 950; font-size: 12px; }
-  .scheduled-place-card img { width: 132px; height: 90px; object-fit: cover; border-radius: 18px; }
-  .scheduled-place-info h4 { margin: 0 0 6px; color: #063f3a; font-size: 20px; }
-  .scheduled-place-info p { margin: 0 0 9px; color: #64748b; font-weight: 760; }
-  .place-tags-row span { background: #ecfdf5; color: #0f766e; border-radius: 999px; padding: 6px 9px; font-weight: 950; font-size: 12px; }
-  .place-action-stack { display: grid; gap: 6px; justify-items: stretch; }
+  .place-time-badge { background: #063f3a; color: white; border-radius: 999px; padding: 6px 8px; text-align: center; font-weight: 950; font-size: 11px; }
+  .scheduled-place-card img { width: 88px; height: 68px; object-fit: cover; border-radius: 14px; }
+  .scheduled-place-info h4 { margin: 0 0 3px; color: #063f3a; font-size: 16px; }
+  .scheduled-place-info p { margin: 0 0 6px; color: #64748b; font-weight: 760; font-size: 12.5px; }
+  .place-tags-row span { background: #ecfdf5; color: #0f766e; border-radius: 999px; padding: 5px 8px; font-weight: 950; font-size: 11px; }
+  .place-action-stack { display: grid; gap: 4px; justify-items: stretch; }
   .place-action-stack a,
-  .place-action-stack button { min-height: auto; padding: 7px 9px; font-size: 12px; text-align: center; }
+  .place-action-stack button { min-height: auto; padding: 6px 8px; font-size: 11px; text-align: center; }
   .stay-check-card,
   .stay-selected-card {
     margin-top: 14px;
@@ -1908,8 +2243,12 @@ const plannerCss = `
 
   @media (max-width: 1180px) {
     .planner-dashboard-grid { grid-template-columns: 1fr; }
-    .saved-destinations-panel,
     .plan-assistant-panel { position: static; }
+  }
+  @media (max-width: 680px) {
+    .saved-panel-fab { right: 14px; bottom: 18px; }
+    .saved-panel-fab strong { display: none; }
+    .saved-destinations-panel { right: 12px; bottom: 82px; width: calc(100vw - 24px); }
   }
   @media (max-width: 980px) {
     .planner-hero-pro { grid-template-columns: 1fr; }
@@ -2343,6 +2682,24 @@ const plannerCss = `
   .trip-showcase-actions a:first-child {
     background: #ffc22b;
     color: #083c38;
+  }
+
+  .guide-me-btn {
+    border: none;
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 13px 22px;
+    font-size: 15px;
+    font-weight: 900;
+    background: #ffc22b;
+    color: #083c38;
+    box-shadow: 0 14px 35px rgba(0,0,0,.14), 0 0 0 5px rgba(255,194,43,.22);
+    animation: guideMePulse 2.6s ease-in-out infinite;
+  }
+
+  @keyframes guideMePulse {
+    0%, 100% { transform: translateY(0); box-shadow: 0 14px 35px rgba(0,0,0,.14), 0 0 0 5px rgba(255,194,43,.22); }
+    50% { transform: translateY(-3px); box-shadow: 0 18px 42px rgba(0,0,0,.18), 0 0 0 9px rgba(255,194,43,.14); }
   }
 
   .trip-showcase-card {

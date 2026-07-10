@@ -179,7 +179,7 @@ function PartnerDashboardPage() {
   }
 
   const handleManageProperty = (propertyId) => {
-    navigate(`/partner/property-login/${propertyId}`);
+    navigate(`/partner/properties/${propertyId}`);
   };
 
   const handleLogout = () => {

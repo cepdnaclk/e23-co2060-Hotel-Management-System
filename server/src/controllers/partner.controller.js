@@ -469,58 +469,6 @@ const createProperty = async (req, res) => {
   }
 };
 
-const verifyPropertyPassword = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { property_password } = req.body;
-
-    if (!property_password) {
-      return res.status(400).json({
-        success: false,
-        message: "Property password is required",
-      });
-    }
-
-    const [properties] = await pool.query(
-      `SELECT id, property_password_hash
-       FROM properties
-       WHERE id = ? AND partner_id = ?`,
-      [id, req.user.id]
-    );
-
-    if (properties.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found or you do not own this property",
-      });
-    }
-
-    const isMatch = await bcrypt.compare(
-      property_password,
-      properties[0].property_password_hash
-    );
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid property password",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Property password verified",
-    });
-  } catch (error) {
-    console.error("Verify property password error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Server error while verifying property password",
-    });
-  }
-};
-
 const updateMyProperty = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1460,7 +1408,6 @@ module.exports = {
   getMyProperties,
   getMyPropertyById,
   createProperty,
-  verifyPropertyPassword,
   updateMyProperty,
   updateMainPropertyPhoto,
   uploadMainPropertyPhoto,

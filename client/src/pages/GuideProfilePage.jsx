@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import api from "../api/api";
 import DemoPaymentModal from "../components/DemoPaymentModal";
+import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -108,6 +109,8 @@ function GuideProfilePage() {
   const [reviewSort, setReviewSort] = useState("recent");
   const [guidePaymentOpen, setGuidePaymentOpen] = useState(false);
   const [guidePaymentSuccess, setGuidePaymentSuccess] = useState("");
+  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+  const [tripNotice, setTripNotice] = useState("");
   const [inquiry, setInquiry] = useState({
     date: "",
     guests: "2",
@@ -131,6 +134,23 @@ function GuideProfilePage() {
     loadGuide();
   }, [slug]);
 
+  useEffect(() => {
+    const refreshSavedItems = () => setSavedTripItems(readTripItems());
+    window.addEventListener("storage", refreshSavedItems);
+    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+
+    return () => {
+      window.removeEventListener("storage", refreshSavedItems);
+      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tripNotice) return undefined;
+    const timer = window.setTimeout(() => setTripNotice(""), 2500);
+    return () => window.clearTimeout(timer);
+  }, [tripNotice]);
+
   const guideData = guide || {};
   const image = assetUrl(guideData.image_url);
   const languages = useMemo(() => cleanArray(guideData.languages), [guideData.languages]);
@@ -147,6 +167,36 @@ function GuideProfilePage() {
     `Hi ${guideData.display_name || "there"},\n\nI would like to request a guide experience.\nDate: ${inquiry.date || "Not selected"}\nGuests: ${inquiry.guests}\nInterest: ${inquiry.interest}\n\nThank you.`
   );
   const guideBookingAmount = Number(guideData.price_per_day || guideData.price_per_hour || 0);
+
+  const isGuideSaved = useMemo(
+    () => (guideData.id ? savedTripItems.some((item) => String(item.id) === `guide-${guideData.id}`) : false),
+    [savedTripItems, guideData.id]
+  );
+
+  const handleToggleGuideTrip = () => {
+    const price = Number(guideData.price_per_day || guideData.price_per_hour || 0);
+    const item = {
+      id: `guide-${guideData.id}`,
+      sourceId: guideData.id,
+      tripItemType: "guide",
+      name: guideData.display_name || guideData.full_name || "Tourist guide",
+      city: guideData.city || "",
+      district: guideData.district || "",
+      region: guideData.guide_type || "Guide",
+      image,
+      duration: "Guide support",
+      bestTime: guideData.availability || "By booking",
+      budget: price >= 30000 ? "High" : price >= 15000 ? "Medium" : "Low",
+      estimatedCost: price,
+      shortDescription: guideData.short_description || guideData.bio || "Selected tourist guide for this trip.",
+      link: guideData.slug ? `/tourist-guides/${guideData.slug}` : "/tourist-guides",
+      guideLanguages: languages,
+    };
+
+    const result = toggleTripItem(item);
+    setSavedTripItems(result.items);
+    setTripNotice(result.saved ? `${item.name} added to your trip basket.` : `${item.name} removed from your trip basket.`);
+  };
 
   const shareProfile = async () => {
     const url = window.location.href;
@@ -211,6 +261,7 @@ function GuideProfilePage() {
   return (
     <main className="guide-profile-page">
       <style>{profileCss}</style>
+      {tripNotice ? <div className="guide-profile-trip-toast">{tripNotice}</div> : null}
       <DemoPaymentModal
         open={guidePaymentOpen}
         title="Guide booking payment"
@@ -443,9 +494,13 @@ function GuideProfilePage() {
             <Link className="booking-secondary" to={`/hotels?city=${encodeURIComponent(guideData.city || "")}`}>
               Hotels nearby
             </Link>
-            <Link className="booking-trip" to="/trip-planner">
-              Add to trip
-            </Link>
+            <button
+              type="button"
+              className={isGuideSaved ? "booking-trip saved" : "booking-trip"}
+              onClick={handleToggleGuideTrip}
+            >
+              {isGuideSaved ? "Saved to trip" : "Add to trip"}
+            </button>
           </div>
 
           <div className="trust-stack">
@@ -473,7 +528,8 @@ const profileCss = `
 .offer-grid{display:grid;gap:14px;margin-top:20px}.offer-card{display:grid;grid-template-columns:48px 1fr;gap:16px;border:1px solid #dbece7;background:#fbfefd;border-radius:22px;padding:18px}.offer-icon{width:48px;height:48px;border-radius:16px;background:#fff2bd;color:#8a5600;display:grid;place-items:center}.offer-card h3{margin:0 0 8px;color:#064e45;font-size:20px}.offer-card p{margin:0;color:#435368;line-height:1.6;font-weight:700}.offer-meta,.offer-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.offer-meta span{background:#064e45;color:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000}.offer-tags span,.profile-chip-board span{background:#f8f5ec;color:#25364a;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900}
 .personalize-section{display:flex;gap:20px;justify-content:space-between;align-items:center;background:#fff7d8;border-color:#f5d76e}.personalize-section a{flex:0 0 auto;background:#064e45;color:#fff;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.profile-chip-board{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
 .reviews-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.reviews-top label{display:grid;gap:7px;color:#64748b;font-size:12px;font-weight:1000;text-transform:uppercase}.reviews-top select{border:1px solid #dbece7;border-radius:14px;padding:10px 12px;font-weight:850;color:#102033;background:#fff}.review-summary{display:flex;align-items:center;gap:12px;margin-top:18px;background:#f6fbf8;border:1px solid #dbece7;border-radius:18px;padding:14px}.review-summary strong{display:inline-flex;align-items:center;gap:7px;color:#9a5b00}.review-summary span{font-weight:850;color:#435368}.review-empty{margin-top:14px;border:1px dashed #bddbd3;border-radius:20px;padding:20px;color:#64748b}.review-empty h3{margin:0 0 8px;color:#064e45}.review-empty p{margin:0;line-height:1.6;font-weight:750}
-.profile-booking-panel{position:sticky;top:92px;display:grid;gap:16px}.booking-panel-card{padding:22px}.booking-panel-card h2{margin:0 0 8px;color:#063f38;font-size:25px;letter-spacing:-.035em}.booking-panel-card p{margin:0 0 18px;color:#64748b;font-weight:750;line-height:1.55}.booking-panel-card label{display:grid;gap:7px;margin-bottom:13px;color:#334155;font-size:12px;font-weight:1000;text-transform:uppercase}.booking-panel-card input,.booking-panel-card select{width:100%;border:1px solid #d5e7e2;border-radius:14px;padding:12px 13px;font-weight:850;color:#102033;background:#fff}.booking-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.booking-price-grid div{background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px}.booking-price-grid span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase}.booking-price-grid strong{display:block;margin-top:6px;color:#064e45;font-size:14px}.guide-payment-success{background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:15px;padding:12px 13px;font-size:13px;font-weight:900;line-height:1.45;margin-bottom:12px}.booking-primary,.booking-secondary,.booking-trip,.booking-pay-btn{display:flex;justify-content:center;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.booking-primary{background:#064e45;color:#fff}.booking-pay-btn{width:100%;border:none;background:#0b63ce;color:#fff;margin-top:9px;cursor:pointer}.booking-pay-btn:disabled{opacity:.58;cursor:not-allowed}.booking-secondary{margin-top:9px;background:#fff;border:1px solid #d5e7e2;color:#064e45}.booking-trip{margin-top:9px;background:#ffc527;color:#063f38}
+.profile-booking-panel{position:sticky;top:92px;display:grid;gap:16px}.booking-panel-card{padding:22px}.booking-panel-card h2{margin:0 0 8px;color:#063f38;font-size:25px;letter-spacing:-.035em}.booking-panel-card p{margin:0 0 18px;color:#64748b;font-weight:750;line-height:1.55}.booking-panel-card label{display:grid;gap:7px;margin-bottom:13px;color:#334155;font-size:12px;font-weight:1000;text-transform:uppercase}.booking-panel-card input,.booking-panel-card select{width:100%;border:1px solid #d5e7e2;border-radius:14px;padding:12px 13px;font-weight:850;color:#102033;background:#fff}.booking-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.booking-price-grid div{background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px}.booking-price-grid span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase}.booking-price-grid strong{display:block;margin-top:6px;color:#064e45;font-size:14px}.guide-payment-success{background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:15px;padding:12px 13px;font-size:13px;font-weight:900;line-height:1.45;margin-bottom:12px}.booking-primary,.booking-secondary,.booking-trip,.booking-pay-btn{display:flex;justify-content:center;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.booking-primary{background:#064e45;color:#fff}.booking-pay-btn{width:100%;border:none;background:#0b63ce;color:#fff;margin-top:9px;cursor:pointer}.booking-pay-btn:disabled{opacity:.58;cursor:not-allowed}.booking-secondary{margin-top:9px;background:#fff;border:1px solid #d5e7e2;color:#064e45}.booking-trip{width:100%;border:none;margin-top:9px;background:#ffc527;color:#063f38;cursor:pointer;font-family:inherit;font-size:inherit}.booking-trip.saved{background:#e8fff5;color:#05614f;border:1px solid #64c8a8}
+.guide-profile-trip-toast{position:fixed;right:22px;bottom:98px;z-index:78;background:#064e45;color:#fff;border-radius:16px;padding:14px 18px;box-shadow:0 18px 40px rgba(0,0,0,.18);font-weight:900}
 .trust-stack{padding:16px;display:grid;gap:10px}.trust-stack div{display:flex;gap:10px;align-items:flex-start;background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px;color:#064e45}.trust-stack span{color:#334155;font-weight:800;line-height:1.45;font-size:13px}
 @media(max-width:980px){.profile-hero-grid,.profile-content-grid{grid-template-columns:1fr}.profile-photo-panel,.profile-photo-panel img,.profile-photo-empty{min-height:420px}.profile-booking-panel{position:static}.personalize-section{align-items:flex-start;flex-direction:column}}
 @media(max-width:620px){.guide-profile-hero{padding:24px 14px 34px}.profile-content-grid{width:calc(100% - 24px);margin-top:24px}.profile-photo-panel,.profile-photo-panel img,.profile-photo-empty{min-height:340px}.profile-section{padding:21px}.profile-main-actions a,.profile-main-actions button{width:100%;justify-content:center}.profile-rating-row span,.profile-facts span{width:100%;border-radius:16px}.reviews-top{flex-direction:column}.booking-price-grid{grid-template-columns:1fr}.profile-hero-copy h1{font-size:44px}}
