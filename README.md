@@ -478,7 +478,6 @@ The current backend contains APIs for:
 
 ## Screenshots
 
-```markdown
 ### Landing Page
 
 ![TourismHub LK Landing Page](docs/screenshots/home-page.jpeg)
@@ -502,9 +501,7 @@ The current backend contains APIs for:
 ### Admin Dashboard
 
 ![Admin Dashboard](docs/screenshots/admin-dashboard.jpeg)
-```
 
-The screenshot filenames must exactly match the files inside the folder.
 
 ---
 
