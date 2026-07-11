@@ -492,7 +492,7 @@ The current backend contains APIs for:
 
 ### Hotel Details
 
-![Hotel Details Page](docs/screenshots/hotel-details-page.png)
+![Hotel Details Page](docs/screenshots/hotel-details-page.jpeg)
 
 ### Partner Dashboard
 
