@@ -11,19 +11,19 @@
 
 **TourismHub LK** is a mobile-responsive smart hotel and tourism management platform developed for the Sri Lankan tourism industry.
 
-The platform connects tourists, hotel and tourism partners, tourist guides, event providers, reception staff, and administrators through one integrated system.
+The platform connects tourists, hotel and tourism partners, tourist guides, event providers, reception staff and administrators through one integrated system.
 
-Tourists can explore Sri Lankan destinations, create travel plans, search for hotels, check rooms, make bookings, view events, find tourist guides, manage reservations, select languages and currencies, and use an AI tourism assistant.
+Tourists can explore Sri Lankan destinations, create travel plans, search for hotels, check rooms, make bookings, view events, find tourist guides, manage reservations, select languages and currencies and use an AI tourism assistant.
 
-Hotel and tourism partners can register properties and services, manage rooms, prices, bookings, events, guides, photos, policies, and selected payment-related functions.
+Hotel and tourism partners can register properties and services, manage rooms, prices, bookings, events, guides, photos, policies and selected payment-related functions.
 
-Administrators can verify properties, manage users, approve events and guides, maintain Explore content, monitor payments, and control platform activities.
+Administrators can verify properties, manage users, approve events and guides, maintain Explore content, monitor payments and control platform activities.
 
 ---
 
 ## Project Overview
 
-Tourism information, hotel booking, trip planning, tourist events, and guide services are often available through separate platforms. TourismHub LK brings these services together and provides a connected workflow for tourists and tourism businesses.
+Tourism information, hotel booking, trip planning, tourist events and guide services are often available through separate platforms. TourismHub LK brings these services together and provides a connected workflow for tourists and tourism businesses.
 
 A typical tourist journey through the platform is:
 
@@ -43,7 +43,7 @@ Create a booking
 Manage the booking in My Bookings
 ```
 
-The system also provides separate operational portals for hotel partners, administrators, and reception staff.
+The system also provides separate operational portals for hotel partners, administrators and reception staff.
 
 ---
 
@@ -57,7 +57,7 @@ Tourists can:
 - Browse the mobile-responsive landing page
 - Search for hotels by name or location
 - Filter and sort hotel results
-- View hotel information, photos, facilities, rooms, prices, and policies
+- View hotel information, photos, facilities, rooms, prices and policies
 - View room details and check availability
 - Create hotel bookings
 - Use a demonstration payment workflow
@@ -143,7 +143,7 @@ The Explore module provides destination information using categories such as:
 - Spiritual destinations
 - Food and culture
 
-Each place may include photographs, descriptions, location details, highlights, estimated duration, and related travel information.
+Each place may include photographs, descriptions, location details, highlights, estimated duration and related travel information.
 
 ### Trip Planner
 
@@ -478,44 +478,18 @@ The current backend contains APIs for:
 
 ## Screenshots
 
-Store the latest screenshots inside:
-
-```text
-docs/screenshots/
-```
-
-Recommended screenshot names:
-
-```text
-home-page.png
-explore-page.png
-place-details-page.png
-trip-planner-page.png
-hotels-page.png
-hotel-details-page.png
-booking-page.png
-my-bookings-page.png
-events-page.png
-guides-page.png
-partner-dashboard.png
-admin-dashboard.png
-reception-dashboard.png
-```
-
-Example:
-
 ```markdown
 ### Landing Page
 
-![TourismHub LK Landing Page](docs/screenshots/home-page.png)
+![TourismHub LK Landing Page](docs/screenshots/home-page.jpeg)
 
 ### Explore Sri Lanka
 
-![Explore Sri Lanka Page](docs/screenshots/explore-page.png)
+![Explore Sri Lanka Page](docs/screenshots/explore-page.jpeg)
 
 ### Trip Planner
 
-![Trip Planner Page](docs/screenshots/trip-planner-page.png)
+![Trip Planner Page](docs/screenshots/trip-planner-page.jpeg)
 
 ### Hotel Details
 
@@ -523,11 +497,11 @@ Example:
 
 ### Partner Dashboard
 
-![Partner Dashboard](docs/screenshots/partner-dashboard.png)
+![Partner Dashboard](docs/screenshots/partner-dashboard.jpeg)
 
 ### Admin Dashboard
 
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
+![Admin Dashboard](docs/screenshots/admin-dashboard.jpeg)
 ```
 
 The screenshot filenames must exactly match the files inside the folder.
