@@ -36,6 +36,7 @@ const allowedOrigins = [
   "https://e23-co2060-hotel-management-system.vercel.app",
   process.env.CLIENT_URL,
   process.env.ADMIN_CLIENT_URL,
+  process.env.RECEPTION_CLIENT_URL,
 ].filter(Boolean);
 
 const isLocalDevelopmentOrigin = (origin) => {

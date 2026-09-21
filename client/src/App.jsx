@@ -1,4 +1,4 @@
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import AIAssistant from "./components/AIAssistant/AIAssistant";
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -33,8 +33,6 @@ import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
 import GuideProfilePage from "./pages/GuideProfilePage";
 import AboutUsPage from "./pages/AboutUsPage";
-import ReceptionLoginPage from "./pages/reception/ReceptionLoginPage";
-import ReceptionDashboardPage from "./pages/reception/ReceptionDashboardPage";
 
 function SimplePage({ title, message }) {
   return (
@@ -48,15 +46,9 @@ function SimplePage({ title, message }) {
 }
 
 function App() {
-  const location = useLocation();
-  const isReceptionSite = location.pathname.startsWith("/reception");
-
   return (
     <>
       <Routes>
-        <Route path="/reception/login" element={<ReceptionLoginPage />} />
-        <Route path="/reception" element={<ReceptionDashboardPage />} />
-
         <Route element={<PublicLayout />}>
           {/* Tourist/Public pages */}
           <Route path="/" element={<HomePage />} />
@@ -163,7 +155,7 @@ function App() {
         </Route>
       </Routes>
 
-      {!isReceptionSite && <AIAssistant />}
+      <AIAssistant />
     </>
   );
 }

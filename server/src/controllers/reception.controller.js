@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const RECEPTION_BOOKING_PREFIX = "THLK-R-";
 
 const generateReceptionToken = (payload) =>
   jwt.sign(
@@ -28,10 +29,24 @@ const mapRoom = (room) => ({
   extra_person_price: Number(room.extra_person_price || 0),
 });
 
+const mapBooking = (booking) => ({
+  ...booking,
+  guests: Number(booking.guests || 0),
+  adults: Number(booking.adults || 0),
+  children: Number(booking.children || 0),
+  nights: Number(booking.nights || 0),
+  day_units: Number(booking.day_units || 0),
+  night_units: Number(booking.night_units || 0),
+  total_amount: Number(booking.total_amount || 0),
+  booking_source: String(booking.booking_reference || "").startsWith(RECEPTION_BOOKING_PREFIX)
+    ? "Reception"
+    : "Online",
+});
+
 const createBookingReference = () => {
   const now = Date.now();
   const random = crypto.randomBytes(2).toString("hex").toUpperCase();
-  return `THLK-R-${now}-${random}`;
+  return `${RECEPTION_BOOKING_PREFIX}${now}-${random}`;
 };
 
 const getDateOnly = (dateValue) => new Date(`${dateValue}T00:00:00`);
@@ -84,15 +99,6 @@ const calculateRoomAmount = ({ room, guests, dayUnits, nightUnits }) => {
   );
 };
 
-const mapBooking = (booking) => ({
-  ...booking,
-  guests: Number(booking.guests || 0),
-  nights: Number(booking.nights || 0),
-  day_units: Number(booking.day_units || 0),
-  night_units: Number(booking.night_units || 0),
-  total_amount: Number(booking.total_amount || 0),
-});
-
 const loadReceptionProperty = async (propertyId) => {
   const [properties] = await pool.query(
     `SELECT 
@@ -110,7 +116,9 @@ const loadReceptionProperty = async (propertyId) => {
       p.is_verified,
       u.full_name AS partner_name,
       u.email AS partner_email,
-      pp.image_url AS main_image
+      pp.image_url AS main_image,
+      (SELECT check_in_time FROM property_policies pol WHERE pol.property_id = p.id ORDER BY pol.id DESC LIMIT 1) AS check_in_time,
+      (SELECT check_out_time FROM property_policies pol WHERE pol.property_id = p.id ORDER BY pol.id DESC LIMIT 1) AS check_out_time
      FROM properties p
      INNER JOIN users u ON p.partner_id = u.id
      LEFT JOIN property_photos pp ON p.id = pp.property_id AND pp.is_main = TRUE
@@ -119,9 +127,7 @@ const loadReceptionProperty = async (propertyId) => {
     [propertyId]
   );
 
-  if (properties.length === 0) {
-    return null;
-  }
+  if (properties.length === 0) return null;
 
   const [rooms] = await pool.query(
     `SELECT
@@ -147,6 +153,51 @@ const loadReceptionProperty = async (propertyId) => {
     ...properties[0],
     rooms: rooms.map(mapRoom),
   };
+};
+
+const loadReceptionBookings = async (propertyId) => {
+  const [bookings] = await pool.query(
+    `SELECT
+      b.id,
+      b.booking_reference,
+      b.property_id,
+      b.room_id,
+      b.full_name,
+      b.email,
+      b.nationality,
+      b.country_code,
+      b.phone,
+      b.check_in,
+      b.check_out,
+      b.check_in_package,
+      b.check_out_package,
+      b.guests,
+      b.adults,
+      b.children,
+      b.nights,
+      b.day_units,
+      b.night_units,
+      b.total_amount,
+      b.notes,
+      b.partner_note,
+      b.payment_status,
+      b.booking_status,
+      b.created_at,
+      b.updated_at,
+      r.room_type,
+      r.capacity,
+      r.available_rooms,
+      rp.image_url AS room_image
+     FROM bookings b
+     INNER JOIN rooms r ON b.room_id = r.id
+     LEFT JOIN room_photos rp ON r.id = rp.room_id AND rp.is_main = TRUE
+     WHERE b.property_id = ?
+     ORDER BY b.created_at DESC
+     LIMIT 200`,
+    [propertyId]
+  );
+
+  return bookings.map(mapBooking);
 };
 
 const loginReception = async (req, res) => {
@@ -178,6 +229,7 @@ const loginReception = async (req, res) => {
        WHERE u.email = ?
          AND u.role = 'partner'
          AND u.is_active = TRUE
+         AND p.status = 'approved'
          ${propertyFilter}
        ORDER BY p.created_at DESC`,
       params
@@ -218,7 +270,6 @@ const loginReception = async (req, res) => {
     });
   } catch (error) {
     console.error("Reception login error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Server error while logging in to reception",
@@ -237,13 +288,9 @@ const getReceptionProperty = async (req, res) => {
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: property,
-    });
+    return res.status(200).json({ success: true, data: property });
   } catch (error) {
     console.error("Get reception property error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Server error while loading reception property",
@@ -254,8 +301,7 @@ const getReceptionProperty = async (req, res) => {
 const updateReceptionRoomAvailability = async (req, res) => {
   try {
     const { roomId } = req.params;
-    const { available_rooms } = req.body;
-    const nextAvailable = Number(available_rooms);
+    const nextAvailable = Number(req.body.available_rooms);
 
     if (!Number.isInteger(nextAvailable) || nextAvailable < 0) {
       return res.status(400).json({
@@ -294,7 +340,6 @@ const updateReceptionRoomAvailability = async (req, res) => {
     );
 
     const property = await loadReceptionProperty(req.user.property_id);
-
     return res.status(200).json({
       success: true,
       message: "Room availability updated",
@@ -302,7 +347,6 @@ const updateReceptionRoomAvailability = async (req, res) => {
     });
   } catch (error) {
     console.error("Update reception room availability error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Server error while updating room availability",
@@ -312,52 +356,10 @@ const updateReceptionRoomAvailability = async (req, res) => {
 
 const getReceptionBookings = async (req, res) => {
   try {
-    const [bookings] = await pool.query(
-      `SELECT
-        b.id,
-        b.booking_reference,
-        b.property_id,
-        b.room_id,
-        b.full_name,
-        b.email,
-        b.nationality,
-        b.country_code,
-        b.phone,
-        b.check_in,
-        b.check_out,
-        b.check_in_package,
-        b.check_out_package,
-        b.guests,
-        b.nights,
-        b.day_units,
-        b.night_units,
-        b.total_amount,
-        b.notes,
-        b.partner_note,
-        b.payment_status,
-        b.booking_status,
-        b.created_at,
-        r.room_type,
-        r.capacity,
-        r.available_rooms,
-        rp.image_url AS room_image
-       FROM bookings b
-       INNER JOIN rooms r ON b.room_id = r.id
-       LEFT JOIN room_photos rp ON r.id = rp.room_id AND rp.is_main = TRUE
-       WHERE b.property_id = ?
-       ORDER BY b.created_at DESC
-       LIMIT 80`,
-      [req.user.property_id]
-    );
-
-    return res.status(200).json({
-      success: true,
-      count: bookings.length,
-      data: bookings.map(mapBooking),
-    });
+    const bookings = await loadReceptionBookings(req.user.property_id);
+    return res.status(200).json({ success: true, count: bookings.length, data: bookings });
   } catch (error) {
     console.error("Get reception bookings error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Server error while loading reception bookings",
@@ -383,12 +385,13 @@ const createReceptionBooking = async (req, res) => {
       check_in_package,
       check_out_package,
       guests,
+      adults,
+      children,
       notes,
       payment_method,
     } = req.body;
 
     const cleanPaymentMethod = String(payment_method || "").toLowerCase();
-
     if (!["cash", "card"].includes(cleanPaymentMethod)) {
       await connection.rollback();
       return res.status(400).json({
@@ -397,17 +400,22 @@ const createReceptionBooking = async (req, res) => {
       });
     }
 
-    if (!room_id || !full_name || !email || !nationality || !phone || !check_in || !check_out || !guests) {
+    if (!room_id || !full_name || !nationality || !phone || !check_in || !check_out) {
       await connection.rollback();
       return res.status(400).json({
         success: false,
-        message: "Guest, stay, and payment details are required",
+        message: "Guest name, nationality, phone number and stay details are required",
       });
+    }
+
+    const cleanEmail = normalizeEmail(email);
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: "Enter a valid guest email address" });
     }
 
     const checkInDate = getDateOnly(check_in);
     const checkOutDate = getDateOnly(check_out);
-
     if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
       await connection.rollback();
       return res.status(400).json({
@@ -451,21 +459,18 @@ const createReceptionBooking = async (req, res) => {
     }
 
     const room = rooms[0];
-    const guestCount = Number(guests);
+    const adultCount = Number.isInteger(Number(adults)) && Number(adults) >= 1 ? Number(adults) : 1;
+    const childCount = Number.isInteger(Number(children)) && Number(children) >= 0 ? Number(children) : 0;
+    const requestedGuestCount = Number(guests);
+    const guestCount = Number.isInteger(requestedGuestCount) && requestedGuestCount >= 1
+      ? requestedGuestCount
+      : adultCount + childCount;
 
-    if (!Number.isInteger(guestCount) || guestCount < 1) {
+    if (guestCount < 1 || guestCount > Number(room.capacity || 0)) {
       await connection.rollback();
       return res.status(400).json({
         success: false,
-        message: "Guest count must be at least 1",
-      });
-    }
-
-    if (guestCount > Number(room.capacity || 0)) {
-      await connection.rollback();
-      return res.status(400).json({
-        success: false,
-        message: `This room allows maximum ${room.capacity} guest(s).`,
+        message: `This room allows between 1 and ${room.capacity} guest(s).`,
       });
     }
 
@@ -518,40 +523,19 @@ const createReceptionBooking = async (req, res) => {
     const [result] = await connection.query(
       `INSERT INTO bookings
        (
-        booking_reference,
-        tourist_id,
-        user_id,
-        guest_session_id,
-        property_id,
-        room_id,
-        full_name,
-        email,
-        nationality,
-        country_code,
-        phone,
-        check_in,
-        check_out,
-        check_in_package,
-        check_out_package,
-        guests,
-        nights,
-        day_units,
-        night_units,
-        adults,
-        children,
-        total_amount,
-        notes,
-        partner_note,
-        payment_status,
-        booking_status
+        booking_reference, tourist_id, user_id, guest_session_id, property_id, room_id,
+        full_name, email, nationality, country_code, phone,
+        check_in, check_out, check_in_package, check_out_package,
+        guests, nights, day_units, night_units, adults, children,
+        total_amount, notes, partner_note, payment_status, booking_status
        )
-       VALUES (?, NULL, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'Paid', 'Approved')`,
+       VALUES (?, NULL, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Paid', 'Approved')`,
       [
         bookingReference,
         req.user.property_id,
         room_id,
         String(full_name).trim(),
-        String(email).trim(),
+        cleanEmail || null,
         String(nationality).trim(),
         country_code || "+94",
         String(phone).trim(),
@@ -563,7 +547,8 @@ const createReceptionBooking = async (req, res) => {
         bookingUnits.nightUnits,
         bookingUnits.dayUnits,
         bookingUnits.nightUnits,
-        guestCount,
+        adultCount,
+        childCount,
         totalAmount,
         notes || null,
         `Reception walk-in payment: ${paymentLabel}`,
@@ -578,12 +563,11 @@ const createReceptionBooking = async (req, res) => {
     );
 
     await connection.commit();
-
     const property = await loadReceptionProperty(req.user.property_id);
 
     return res.status(201).json({
       success: true,
-      message: `${paymentLabel} payment successful. Room marked occupied.`,
+      message: `${paymentLabel} payment recorded. Booking ${bookingReference} created successfully.`,
       booking_id: result.insertId,
       booking_reference: bookingReference,
       payment_status: "Paid",
@@ -595,7 +579,6 @@ const createReceptionBooking = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error("Create reception booking error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Server error while creating reception booking",
@@ -605,10 +588,169 @@ const createReceptionBooking = async (req, res) => {
   }
 };
 
+const updateReceptionBookingStatus = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const bookingId = Number(req.params.bookingId);
+    const action = String(req.body.action || "").trim().toLowerCase();
+    const note = String(req.body.note || "").trim();
+
+    const [rows] = await connection.query(
+      `SELECT b.id, b.room_id, b.booking_status, r.available_rooms, r.total_rooms
+       FROM bookings b
+       INNER JOIN rooms r ON b.room_id = r.id
+       WHERE b.id = ? AND b.property_id = ?
+       FOR UPDATE`,
+      [bookingId, req.user.property_id]
+    );
+
+    if (rows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Booking not found for this property" });
+    }
+
+    const booking = rows[0];
+    const currentStatus = booking.booking_status;
+    let nextStatus = currentStatus;
+    let roomDelta = 0;
+    let partnerNote = note || null;
+
+    if (action === "approve") {
+      if (currentStatus !== "Pending Partner Approval") {
+        await connection.rollback();
+        return res.status(400).json({ success: false, message: "Only pending bookings can be approved" });
+      }
+      if (Number(booking.available_rooms || 0) <= 0) {
+        await connection.rollback();
+        return res.status(400).json({ success: false, message: "No rooms are available in this room type" });
+      }
+      nextStatus = "Approved";
+      roomDelta = -1;
+      partnerNote = null;
+    } else if (action === "reject") {
+      if (currentStatus !== "Pending Partner Approval") {
+        await connection.rollback();
+        return res.status(400).json({ success: false, message: "Only pending bookings can be rejected" });
+      }
+      nextStatus = "Rejected";
+      partnerNote = note || "Rejected by reception";
+    } else if (action === "check_in") {
+      if (currentStatus !== "Approved") {
+        await connection.rollback();
+        return res.status(400).json({ success: false, message: "Only approved bookings can be checked in" });
+      }
+      nextStatus = "Checked In";
+      partnerNote = note || null;
+    } else if (action === "check_out") {
+      if (currentStatus !== "Checked In") {
+        await connection.rollback();
+        return res.status(400).json({ success: false, message: "Only checked-in bookings can be checked out" });
+      }
+      nextStatus = "Checked Out";
+      roomDelta = 1;
+      partnerNote = note || null;
+    } else if (action === "cancel") {
+      if (!["Pending Partner Approval", "Approved"].includes(currentStatus)) {
+        await connection.rollback();
+        return res.status(400).json({ success: false, message: "This booking cannot be cancelled from reception" });
+      }
+      if (currentStatus === "Approved") roomDelta = 1;
+      nextStatus = "Cancelled";
+      partnerNote = note || "Cancelled by reception";
+    } else {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: "Unsupported booking action" });
+    }
+
+    await connection.query(
+      `UPDATE bookings
+       SET booking_status = ?, partner_note = ?
+       WHERE id = ? AND property_id = ?`,
+      [nextStatus, partnerNote, bookingId, req.user.property_id]
+    );
+
+    if (roomDelta < 0) {
+      await connection.query(
+        `UPDATE rooms
+         SET available_rooms = GREATEST(available_rooms - 1, 0)
+         WHERE id = ? AND property_id = ?`,
+        [booking.room_id, req.user.property_id]
+      );
+    } else if (roomDelta > 0) {
+      await connection.query(
+        `UPDATE rooms
+         SET available_rooms = LEAST(available_rooms + 1, total_rooms)
+         WHERE id = ? AND property_id = ?`,
+        [booking.room_id, req.user.property_id]
+      );
+    }
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: `Booking updated to ${nextStatus}`,
+      booking_status: nextStatus,
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Update reception booking status error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating booking status",
+    });
+  } finally {
+    connection.release();
+  }
+};
+
+const updateReceptionBookingPayment = async (req, res) => {
+  try {
+    const bookingId = Number(req.params.bookingId);
+    const paymentStatus = String(req.body.payment_status || "").trim();
+    const allowedStatuses = ["Paid", "Pending Payment"];
+
+    if (!allowedStatuses.includes(paymentStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment status must be Paid or Pending Payment",
+      });
+    }
+
+    const [result] = await pool.query(
+      `UPDATE bookings
+       SET payment_status = ?
+       WHERE id = ? AND property_id = ?`,
+      [paymentStatus, bookingId, req.user.property_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Booking not found for this property" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Payment status updated to ${paymentStatus}`,
+      payment_status: paymentStatus,
+    });
+  } catch (error) {
+    console.error("Update reception booking payment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating payment status",
+    });
+  }
+};
+
 module.exports = {
   loginReception,
   getReceptionProperty,
   updateReceptionRoomAvailability,
   getReceptionBookings,
   createReceptionBooking,
+  updateReceptionBookingStatus,
+  updateReceptionBookingPayment,
 };

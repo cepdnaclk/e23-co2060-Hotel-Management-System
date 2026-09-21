@@ -7,10 +7,13 @@ build/
 client/node_modules/
 server/node_modules/
 admin-client/node_modules/
+reception-client/node_modules/
 
 code/client/node_modules/
 code/server/node_modules/
 code/admin-client/node_modules/
+code/reception-client/node_modules/
+reception-client/node_modules/
 
 uploads/
 server/uploads/
