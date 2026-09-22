@@ -22,6 +22,31 @@ const statusClass = (status) => {
   return "status-badge status-pending";
 };
 
+function GuideApprovalAction({ guide, busy, onApprove, label = "Approve" }) {
+  if (guide.status === "approved") return null;
+  const needsPayment = guide.registration_payment_status !== "Paid";
+
+  return (
+    <div style={{ display: "grid", gap: 8, maxWidth: 260 }}>
+      <button
+        type="button"
+        className="approve-btn"
+        disabled={busy || needsPayment}
+        style={needsPayment ? { background: "#e2e8f0", color: "#475569", cursor: "not-allowed" } : undefined}
+        onClick={() => onApprove(guide.id)}
+      >
+        {needsPayment ? "Awaiting registration payment" : busy ? "Please wait..." : label}
+      </button>
+      {needsPayment && (
+        <small style={{ color: "#92400e", lineHeight: 1.5 }}>
+          The partner must complete Pay registration for this guide, then refresh
+          this page. Top ad payment is optional.
+        </small>
+      )}
+    </div>
+  );
+}
+
 function GuideApprovalsPage() {
   const [guides, setGuides] = useState([]);
   const [stats, setStats] = useState(null);
@@ -75,7 +100,7 @@ function GuideApprovalsPage() {
       await api.put(`/admin/guides/${guideId}/approve`);
       setMessage("Guide profile approved successfully. It is now visible to tourists.");
       await loadGuides();
-      await refreshSelectedGuide(guideId);
+      if (selectedGuide?.id === guideId) await refreshSelectedGuide(guideId);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve guide profile");
     } finally {
@@ -96,7 +121,7 @@ function GuideApprovalsPage() {
       });
       setMessage("Guide profile rejected successfully. Partner can edit and resubmit it.");
       await loadGuides();
-      await refreshSelectedGuide(guideId);
+      if (selectedGuide?.id === guideId) await refreshSelectedGuide(guideId);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject guide profile");
     } finally {
@@ -134,9 +159,6 @@ function GuideApprovalsPage() {
           </p>
         </div>
       </section>
-
-      {message && <div className="admin-success">{message}</div>}
-      {error && <div className="admin-error">{error}</div>}
 
       <section className="admin-grid">
         <div className="admin-card">
@@ -202,6 +224,9 @@ function GuideApprovalsPage() {
             </button>
           ))}
         </div>
+
+        {!selectedGuide && message && <div className="admin-success" role="status">{message}</div>}
+        {!selectedGuide && error && <div className="admin-error" role="alert">{error}</div>}
 
         {loading ? (
           <div className="empty-box">Loading partner guide profiles...</div>
@@ -270,17 +295,7 @@ function GuideApprovalsPage() {
                       <button type="button" onClick={() => setSelectedGuide(guide)}>
                         Review
                       </button>
-                      {guide.status !== "approved" && (
-                        <button
-                          type="button"
-                          className="approve-btn"
-                          disabled={actionLoading || guide.registration_payment_status !== "Paid"}
-                          title={guide.registration_payment_status !== "Paid" ? "Registration fee must be paid before approval" : ""}
-                          onClick={() => approveGuide(guide.id)}
-                        >
-                          Approve
-                        </button>
-                      )}
+                      <GuideApprovalAction guide={guide} busy={actionLoading} onApprove={approveGuide} />
                       {guide.status !== "rejected" && (
                         <button
                           type="button"
@@ -313,6 +328,20 @@ function GuideApprovalsPage() {
                 ×
               </button>
             </div>
+
+            {message && <div className="admin-success" role="status">{message}</div>}
+            {error && <div className="admin-error" role="alert">{error}</div>}
+            <button
+              type="button"
+              className="refresh-btn"
+              disabled={loading || actionLoading}
+              onClick={async () => {
+                await loadGuides();
+                await refreshSelectedGuide(selectedGuide.id);
+              }}
+            >
+              Refresh payment status
+            </button>
 
             {selectedGuide.image_url && (
               <img className="event-review-image" src={selectedGuide.image_url} alt={selectedGuide.display_name} />
@@ -383,17 +412,7 @@ function GuideApprovalsPage() {
             </div>
 
             <div className="modal-actions">
-              {selectedGuide.status !== "approved" && (
-                <button
-                  type="button"
-                  className="approve-btn"
-                  disabled={actionLoading || selectedGuide.registration_payment_status !== "Paid"}
-                  title={selectedGuide.registration_payment_status !== "Paid" ? "Registration fee must be paid before approval" : ""}
-                  onClick={() => approveGuide(selectedGuide.id)}
-                >
-                  Approve Guide
-                </button>
-              )}
+              <GuideApprovalAction guide={selectedGuide} busy={actionLoading} onApprove={approveGuide} label="Approve Guide" />
               {selectedGuide.status !== "rejected" && (
                 <button
                   type="button"
