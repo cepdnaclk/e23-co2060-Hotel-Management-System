@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/api";
 
 const todayValue = () => {
@@ -137,8 +137,25 @@ const bookingStatusClass = (status) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+const RECEPTION_SECTIONS = ["overview", "rooms", "new-booking", "bookings", "guests"];
+
 function ReceptionDashboardPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get("section");
+  const section = RECEPTION_SECTIONS.includes(requestedSection) ? requestedSection : "overview";
+
+  const setSection = (nextSection) => {
+    if (!RECEPTION_SECTIONS.includes(nextSection) || nextSection === section) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextSection === "overview") nextParams.delete("section");
+    else nextParams.set("section", nextSection);
+
+    // Push a history entry so Back/Forward restore the previous desk section.
+    setSearchParams(nextParams);
+  };
+
   const token = localStorage.getItem("tourismhub_reception_token");
   const [property, setProperty] = useState(getStoredProperty);
   const [bookings, setBookings] = useState([]);
@@ -146,7 +163,6 @@ function ReceptionDashboardPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [section, setSection] = useState("overview");
   const [bookingForm, setBookingForm] = useState(makeBookingForm);
   const [bookingSearch, setBookingSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
