@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
@@ -86,26 +86,9 @@ function PropertyManagementPage() {
   const [uploadingIntroPhotoIndex, setUploadingIntroPhotoIndex] = useState(null);
   const [uploadingRoomId, setUploadingRoomId] = useState(null);
 
-  useEffect(() => {
-    loadEverything();
-  }, [id]);
+  const loadEverything = useCallback(async () => {
+    if (!isLoggedIn || user?.role !== "partner") return;
 
-  if (!isLoggedIn) {
-    return <Navigate to="/partner/login" />;
-  }
-
-  if (user?.role !== "partner") {
-    return (
-      <div className="page">
-        <div className="card">
-          <h2>Access denied</h2>
-          <p>This page is only for partners.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const loadEverything = async () => {
     try {
       setLoading(true);
       setError("");
@@ -117,6 +100,7 @@ function PropertyManagementPage() {
       ]);
 
       const propertyData = propertyRes.data.data;
+      if (!propertyData) throw new Error("Property not found.");
       const activePlans = plansRes.data.data || [];
 
       setProperty(propertyData);
@@ -153,11 +137,31 @@ function PropertyManagementPage() {
 
       setEditRoomForms(roomEdits);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load property");
+      setProperty(null);
+      setError(err.response?.data?.message || err.message || "Failed to load property");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, isLoggedIn, user?.role]);
+
+  useEffect(() => {
+    loadEverything();
+  }, [loadEverything]);
+
+  if (!isLoggedIn) {
+    return <Navigate to="/partner/login" />;
+  }
+
+  if (user?.role !== "partner") {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Access denied</h2>
+          <p>This page is only for partners.</p>
+        </div>
+      </div>
+    );
+  }
 
   const showResult = (ok, text) => {
     setMessage(ok ? text : "");
@@ -546,7 +550,16 @@ function PropertyManagementPage() {
   if (!property) {
     return (
       <div className="page">
-        <div className="card">Property not found.</div>
+        <div className="card" style={card}>
+          <h2>Unable to load property</h2>
+          <p role="alert">{error || "Property not found."}</p>
+          <button type="button" onClick={loadEverything} style={styles.primaryBtn}>
+            Try again
+          </button>{" "}
+          <Link to="/partner/dashboard" style={styles.backLink}>
+            Back to dashboard
+          </Link>
+        </div>
       </div>
     );
   }
@@ -1139,6 +1152,15 @@ function PropertyManagementPage() {
     </div>
   );
 }
+
+const propertyManagementFormCss = `
+.property-management-page input:focus,
+.property-management-page textarea:focus,
+.property-management-page select:focus {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+}
+`;
 
 const styles = {
   backLink: {
