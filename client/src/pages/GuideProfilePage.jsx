@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   BadgeCheck,
   CalendarDays,
@@ -19,8 +19,8 @@ import {
   Users,
 } from "lucide-react";
 import api from "../api/api";
-import DemoPaymentModal from "../components/DemoPaymentModal";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
+import { useAuth } from "../context/AuthContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -102,19 +102,27 @@ const makeOfferCards = (guide) => {
 
 function GuideProfilePage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { isLoggedIn, user } = useAuth();
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [reviewSort, setReviewSort] = useState("recent");
-  const [guidePaymentOpen, setGuidePaymentOpen] = useState(false);
-  const [guidePaymentSuccess, setGuidePaymentSuccess] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [bookingMessage, setBookingMessage] = useState("");
+  const [bookingSending, setBookingSending] = useState(false);
   const [savedTripItems, setSavedTripItems] = useState(readTripItems);
   const [tripNotice, setTripNotice] = useState("");
   const [inquiry, setInquiry] = useState({
     date: "",
     guests: "2",
     interest: "Personalized tour",
+    duration_type: "full_day",
+    hours: "3",
+    start_time: "09:00",
+    pickup_location: "",
+    message: "",
   });
 
   useEffect(() => {
@@ -133,6 +141,18 @@ function GuideProfilePage() {
 
     loadGuide();
   }, [slug]);
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const response = await api.get(`/guides/${slug}/reviews`, { params: { sort: reviewSort } });
+        setReviews(response.data.reviews || []);
+      } catch {
+        setReviews([]);
+      }
+    };
+    loadReviews();
+  }, [slug, reviewSort]);
 
   useEffect(() => {
     const refreshSavedItems = () => setSavedTripItems(readTripItems());
@@ -166,7 +186,9 @@ function GuideProfilePage() {
   const emailBody = encodeURIComponent(
     `Hi ${guideData.display_name || "there"},\n\nI would like to request a guide experience.\nDate: ${inquiry.date || "Not selected"}\nGuests: ${inquiry.guests}\nInterest: ${inquiry.interest}\n\nThank you.`
   );
-  const guideBookingAmount = Number(guideData.price_per_day || guideData.price_per_hour || 0);
+  const guideBookingAmount = inquiry.duration_type === "hourly"
+    ? Number(guideData.price_per_hour || 0) * Number(inquiry.hours || 1)
+    : Number(guideData.price_per_day || 0);
 
   const isGuideSaved = useMemo(
     () => (guideData.id ? savedTripItems.some((item) => String(item.id) === `guide-${guideData.id}`) : false),
@@ -217,23 +239,35 @@ function GuideProfilePage() {
     }
   };
 
-  const confirmGuideBookingPayment = async ({ gateway, card_last4 }) => {
-    const receipt = {
-      guide_id: guideData.id,
-      guide_name: guideData.display_name,
-      date: inquiry.date,
-      guests: inquiry.guests,
-      interest: inquiry.interest,
-      amount: guideBookingAmount,
-      gateway,
-      card_last4,
-      paid_at: new Date().toISOString(),
-    };
-
-    const current = JSON.parse(localStorage.getItem("tourismhub_guide_payments") || "[]");
-    localStorage.setItem("tourismhub_guide_payments", JSON.stringify([receipt, ...current]));
-    setGuidePaymentOpen(false);
-    setGuidePaymentSuccess("Guide booking payment completed. Contact the guide to confirm meeting details.");
+  const submitGuideBooking = async () => {
+    setBookingMessage("");
+    if (!isLoggedIn || user?.role !== "tourist") {
+      navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (!inquiry.date) {
+      setBookingMessage("Please select a booking date.");
+      return;
+    }
+    try {
+      setBookingSending(true);
+      const response = await api.post("/guide-bookings", {
+        guide_id: guideData.id,
+        booking_date: inquiry.date,
+        start_time: inquiry.duration_type === "hourly" ? inquiry.start_time : null,
+        duration_type: inquiry.duration_type,
+        hours: inquiry.duration_type === "hourly" ? Number(inquiry.hours) : null,
+        guests: Number(inquiry.guests),
+        tour_type: inquiry.interest,
+        pickup_location: inquiry.pickup_location,
+        message: inquiry.message,
+      });
+      setBookingMessage(`${response.data.message} Reference: ${response.data.booking?.booking_reference || "created"}`);
+    } catch (err) {
+      setBookingMessage(err.response?.data?.message || "Could not send guide booking request.");
+    } finally {
+      setBookingSending(false);
+    }
   };
 
   if (loading) {
@@ -262,16 +296,6 @@ function GuideProfilePage() {
     <main className="guide-profile-page">
       <style>{profileCss}</style>
       {tripNotice ? <div className="guide-profile-trip-toast">{tripNotice}</div> : null}
-      <DemoPaymentModal
-        open={guidePaymentOpen}
-        title="Guide booking payment"
-        description="Select a gateway and enter card details for this demo guide booking payment."
-        amount={guideBookingAmount}
-        reference={guideData.display_name}
-        submitLabel="Pay guide booking"
-        onClose={() => setGuidePaymentOpen(false)}
-        onConfirm={confirmGuideBookingPayment}
-      />
 
       <section className="guide-profile-hero">
         <div className="guide-profile-breadcrumb">
@@ -314,7 +338,7 @@ function GuideProfilePage() {
             </div>
 
             <div className="profile-main-actions">
-              {guideData.phone && <a className="primary" href={`tel:${guideData.phone}`}><Phone size={18} /> Book me</a>}
+              <a className="primary" href="#guide-booking"><CalendarDays size={18} /> Request booking</a>
               {whatsappHref && <a href={whatsappHref} target="_blank" rel="noreferrer"><MessageCircle size={18} /> Contact me</a>}
               {guideData.email && <a href={`mailto:${guideData.email}?subject=${emailSubject}&body=${emailBody}`}><Mail size={18} /> Email</a>}
               <button type="button" onClick={shareProfile}><Copy size={18} /> {copied ? "Copied" : "Share profile"}</button>
@@ -372,11 +396,7 @@ function GuideProfilePage() {
                 private Sri Lanka experience around your travel style.
               </p>
             </div>
-            {guideData.email ? (
-              <a href={`mailto:${guideData.email}?subject=${emailSubject}&body=${emailBody}`}>Request personalized offer</a>
-            ) : (
-              <Link to="/trip-planner">Plan trip details</Link>
-            )}
+            <a href="#guide-booking">Request personalized offer</a>
           </section>
 
           <section className="profile-section">
@@ -414,20 +434,26 @@ function GuideProfilePage() {
               <span>{reviewCount ? `${reviewCount} public review${reviewCount === 1 ? "" : "s"}` : "No public reviews yet"}</span>
             </div>
 
-            <div className="review-empty">
-              <h3>Review collection is ready</h3>
-              <p>
-                When tourists complete guide experiences, their public reviews can appear here with date,
-                rating, trip title, and comments.
-              </p>
-            </div>
+            {reviews.length ? (
+              <div className="review-list">
+                {reviews.map((review) => (
+                  <article className="review-item" key={review.id}>
+                    <div><strong>{review.tourist_name}</strong><span>{"★".repeat(Number(review.rating || 0))}</span></div>
+                    <p>{review.comment || "Great guide experience."}</p>
+                    <small>{review.tour_type || "Guide experience"} · {new Date(review.created_at).toLocaleDateString("en-LK")}</small>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="review-empty"><h3>No reviews yet</h3><p>Completed and reviewed guide experiences will appear here.</p></div>
+            )}
           </section>
         </div>
 
         <aside className="profile-booking-panel">
-          <div className="booking-panel-card">
-            <h2>Plan with {guideData.display_name}</h2>
-            <p>Send a quick inquiry using the guide contact details.</p>
+          <div className="booking-panel-card" id="guide-booking">
+            <h2>Book {guideData.display_name}</h2>
+            <p>Send a booking request. Payment becomes available after the guide approves it.</p>
 
             <label>
               Date
@@ -437,6 +463,17 @@ function GuideProfilePage() {
                 onChange={(event) => setInquiry((current) => ({ ...current, date: event.target.value }))}
               />
             </label>
+            <label>
+              Booking type
+              <select value={inquiry.duration_type} onChange={(event) => setInquiry((current) => ({ ...current, duration_type: event.target.value }))}>
+                <option value="full_day">Full day</option>
+                <option value="hourly">Hourly</option>
+              </select>
+            </label>
+            {inquiry.duration_type === "hourly" && <>
+              <label>Start time<input type="time" value={inquiry.start_time} onChange={(event) => setInquiry((current) => ({ ...current, start_time: event.target.value }))} /></label>
+              <label>Hours<input type="number" min="1" max="12" value={inquiry.hours} onChange={(event) => setInquiry((current) => ({ ...current, hours: event.target.value }))} /></label>
+            </>}
             <label>
               Guests
               <input
@@ -460,6 +497,15 @@ function GuideProfilePage() {
               </select>
             </label>
 
+            <label>
+              Pickup location
+              <input value={inquiry.pickup_location} placeholder="Hotel, station or landmark" onChange={(event) => setInquiry((current) => ({ ...current, pickup_location: event.target.value }))} />
+            </label>
+            <label>
+              Message
+              <textarea rows="3" value={inquiry.message} placeholder="Tell the guide what you would like to do" onChange={(event) => setInquiry((current) => ({ ...current, message: event.target.value }))} />
+            </label>
+
             <div className="booking-price-grid">
               <div>
                 <span>Day price</span>
@@ -471,21 +517,11 @@ function GuideProfilePage() {
               </div>
             </div>
 
-            {guidePaymentSuccess && <div className="guide-payment-success">{guidePaymentSuccess}</div>}
-
-            {guideData.email && (
-              <a className="booking-primary" href={`mailto:${guideData.email}?subject=${emailSubject}&body=${emailBody}`}>
-                Request guide
-              </a>
-            )}
-            <button
-              className="booking-pay-btn"
-              type="button"
-              onClick={() => setGuidePaymentOpen(true)}
-              disabled={guideBookingAmount <= 0}
-            >
-              Pay guide booking
+            {bookingMessage && <div className="guide-payment-success">{bookingMessage}</div>}
+            <button className="booking-primary" type="button" onClick={submitGuideBooking} disabled={bookingSending || guideBookingAmount <= 0}>
+              {bookingSending ? "Sending request..." : `Send booking request · ${formatLkr(guideBookingAmount)}`}
             </button>
+            <Link className="booking-secondary" to="/my-guide-bookings">My guide bookings</Link>
             {whatsappHref && (
               <a className="booking-secondary" href={whatsappHref} target="_blank" rel="noreferrer">
                 WhatsApp guide
@@ -506,7 +542,7 @@ function GuideProfilePage() {
           <div className="trust-stack">
             <div><ShieldCheck size={20} /><span>Verified by admin before public listing</span></div>
             <div><RefreshCcw size={20} /><span>Discuss changes directly with your guide</span></div>
-            <div><CreditCard size={20} /><span>Future online checkout can support local and card payments</span></div>
+            <div><CreditCard size={20} /><span>Pay securely after the guide accepts your request</span></div>
             <div><HeartHandshake size={20} /><span>Private, flexible, locally hosted travel support</span></div>
           </div>
         </aside>
@@ -527,8 +563,8 @@ const profileCss = `
 .profile-content-grid{width:min(1180px,calc(100% - 32px));margin:34px auto 86px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}.profile-main-column{display:grid;gap:22px}.profile-section,.booking-panel-card,.trust-stack{background:#fff;border:1px solid #dbece7;border-radius:28px;box-shadow:0 22px 60px rgba(6,78,69,.08)}.profile-section{padding:28px}.section-heading span,.personalize-section span{display:block;color:#c47a00;font-size:12px;font-weight:1000;letter-spacing:.13em;text-transform:uppercase}.section-heading h2,.personalize-section h2{margin:8px 0 0;color:#063f38;font-size:32px;line-height:1.05;letter-spacing:-.04em}.about-section p,.personalize-section p{color:#435368;font-weight:700;line-height:1.8;font-size:16px}.profile-mini-facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.profile-mini-facts span{display:inline-flex;align-items:center;gap:7px;background:#f4fbf8;border:1px solid #dbece7;border-radius:999px;padding:9px 12px;color:#064e45;font-weight:900;font-size:13px}
 .offer-grid{display:grid;gap:14px;margin-top:20px}.offer-card{display:grid;grid-template-columns:48px 1fr;gap:16px;border:1px solid #dbece7;background:#fbfefd;border-radius:22px;padding:18px}.offer-icon{width:48px;height:48px;border-radius:16px;background:#fff2bd;color:#8a5600;display:grid;place-items:center}.offer-card h3{margin:0 0 8px;color:#064e45;font-size:20px}.offer-card p{margin:0;color:#435368;line-height:1.6;font-weight:700}.offer-meta,.offer-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.offer-meta span{background:#064e45;color:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000}.offer-tags span,.profile-chip-board span{background:#f8f5ec;color:#25364a;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900}
 .personalize-section{display:flex;gap:20px;justify-content:space-between;align-items:center;background:#fff7d8;border-color:#f5d76e}.personalize-section a{flex:0 0 auto;background:#064e45;color:#fff;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.profile-chip-board{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
-.reviews-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.reviews-top label{display:grid;gap:7px;color:#64748b;font-size:12px;font-weight:1000;text-transform:uppercase}.reviews-top select{border:1px solid #dbece7;border-radius:14px;padding:10px 12px;font-weight:850;color:#102033;background:#fff}.review-summary{display:flex;align-items:center;gap:12px;margin-top:18px;background:#f6fbf8;border:1px solid #dbece7;border-radius:18px;padding:14px}.review-summary strong{display:inline-flex;align-items:center;gap:7px;color:#9a5b00}.review-summary span{font-weight:850;color:#435368}.review-empty{margin-top:14px;border:1px dashed #bddbd3;border-radius:20px;padding:20px;color:#64748b}.review-empty h3{margin:0 0 8px;color:#064e45}.review-empty p{margin:0;line-height:1.6;font-weight:750}
-.profile-booking-panel{position:sticky;top:92px;display:grid;gap:16px}.booking-panel-card{padding:22px}.booking-panel-card h2{margin:0 0 8px;color:#063f38;font-size:25px;letter-spacing:-.035em}.booking-panel-card p{margin:0 0 18px;color:#64748b;font-weight:750;line-height:1.55}.booking-panel-card label{display:grid;gap:7px;margin-bottom:13px;color:#334155;font-size:12px;font-weight:1000;text-transform:uppercase}.booking-panel-card input,.booking-panel-card select{width:100%;border:1px solid #d5e7e2;border-radius:14px;padding:12px 13px;font-weight:850;color:#102033;background:#fff}.booking-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.booking-price-grid div{background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px}.booking-price-grid span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase}.booking-price-grid strong{display:block;margin-top:6px;color:#064e45;font-size:14px}.guide-payment-success{background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:15px;padding:12px 13px;font-size:13px;font-weight:900;line-height:1.45;margin-bottom:12px}.booking-primary,.booking-secondary,.booking-trip,.booking-pay-btn{display:flex;justify-content:center;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.booking-primary{background:#064e45;color:#fff}.booking-pay-btn{width:100%;border:none;background:#0b63ce;color:#fff;margin-top:9px;cursor:pointer}.booking-pay-btn:disabled{opacity:.58;cursor:not-allowed}.booking-secondary{margin-top:9px;background:#fff;border:1px solid #d5e7e2;color:#064e45}.booking-trip{width:100%;border:none;margin-top:9px;background:#ffc527;color:#063f38;cursor:pointer;font-family:inherit;font-size:inherit}.booking-trip.saved{background:#e8fff5;color:#05614f;border:1px solid #64c8a8}
+.reviews-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.reviews-top label{display:grid;gap:7px;color:#64748b;font-size:12px;font-weight:1000;text-transform:uppercase}.reviews-top select{border:1px solid #dbece7;border-radius:14px;padding:10px 12px;font-weight:850;color:#102033;background:#fff}.review-summary{display:flex;align-items:center;gap:12px;margin-top:18px;background:#f6fbf8;border:1px solid #dbece7;border-radius:18px;padding:14px}.review-summary strong{display:inline-flex;align-items:center;gap:7px;color:#9a5b00}.review-summary span{font-weight:850;color:#435368}.review-empty{margin-top:14px;border:1px dashed #bddbd3;border-radius:20px;padding:20px;color:#64748b}.review-empty h3{margin:0 0 8px;color:#064e45}.review-empty p{margin:0;line-height:1.6;font-weight:750}.review-list{display:grid;gap:12px;margin-top:14px}.review-item{border:1px solid #dbece7;border-radius:18px;padding:16px;background:#fbfefd}.review-item div{display:flex;justify-content:space-between;gap:12px}.review-item div span{color:#c47a00}.review-item p{color:#435368;line-height:1.6}.review-item small{color:#64748b;font-weight:800}
+.profile-booking-panel{position:sticky;top:92px;display:grid;gap:16px}.booking-panel-card{padding:22px}.booking-panel-card h2{margin:0 0 8px;color:#063f38;font-size:25px;letter-spacing:-.035em}.booking-panel-card p{margin:0 0 18px;color:#64748b;font-weight:750;line-height:1.55}.booking-panel-card label{display:grid;gap:7px;margin-bottom:13px;color:#334155;font-size:12px;font-weight:1000;text-transform:uppercase}.booking-panel-card input,.booking-panel-card select,.booking-panel-card textarea{width:100%;border:1px solid #d5e7e2;border-radius:14px;padding:12px 13px;font-weight:850;color:#102033;background:#fff}.booking-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.booking-price-grid div{background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px}.booking-price-grid span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase}.booking-price-grid strong{display:block;margin-top:6px;color:#064e45;font-size:14px}.guide-payment-success{background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:15px;padding:12px 13px;font-size:13px;font-weight:900;line-height:1.45;margin-bottom:12px}.booking-primary,.booking-secondary,.booking-trip,.booking-pay-btn{display:flex;justify-content:center;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.booking-primary{background:#064e45;color:#fff;border:none;width:100%;cursor:pointer}.booking-primary:disabled{opacity:.58;cursor:not-allowed}.booking-pay-btn{width:100%;border:none;background:#0b63ce;color:#fff;margin-top:9px;cursor:pointer}.booking-pay-btn:disabled{opacity:.58;cursor:not-allowed}.booking-secondary{margin-top:9px;background:#fff;border:1px solid #d5e7e2;color:#064e45}.booking-trip{width:100%;border:none;margin-top:9px;background:#ffc527;color:#063f38;cursor:pointer;font-family:inherit;font-size:inherit}.booking-trip.saved{background:#e8fff5;color:#05614f;border:1px solid #64c8a8}
 .guide-profile-trip-toast{position:fixed;right:22px;bottom:98px;z-index:78;background:#064e45;color:#fff;border-radius:16px;padding:14px 18px;box-shadow:0 18px 40px rgba(0,0,0,.18);font-weight:900}
 .trust-stack{padding:16px;display:grid;gap:10px}.trust-stack div{display:flex;gap:10px;align-items:flex-start;background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px;color:#064e45}.trust-stack span{color:#334155;font-weight:800;line-height:1.45;font-size:13px}
 @media(max-width:980px){.profile-hero-grid,.profile-content-grid{grid-template-columns:1fr}.profile-photo-panel,.profile-photo-panel img,.profile-photo-empty{min-height:420px}.profile-booking-panel{position:static}.personalize-section{align-items:flex-start;flex-direction:column}}

@@ -1,0 +1,12 @@
+const express = require("express");
+const { protect } = require("../middleware/auth.middleware");
+const { allowRoles } = require("../middleware/role.middleware");
+const { createBooking, getMyBookings, payBooking, cancelBooking, createReview } = require("../controllers/guideBooking.controller");
+const router = express.Router();
+router.use(protect, allowRoles("tourist"));
+router.post("/", createBooking);
+router.get("/my", getMyBookings);
+router.post("/:id/pay", payBooking);
+router.patch("/:id/cancel", cancelBooking);
+router.post("/:id/review", createReview);
+module.exports = router;

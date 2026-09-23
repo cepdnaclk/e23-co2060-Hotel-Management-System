@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AIAssistant from "./components/AIAssistant/AIAssistant";
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -33,6 +33,8 @@ import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
 import GuideProfilePage from "./pages/GuideProfilePage";
+import MyGuideBookingsPage from "./pages/MyGuideBookingsPage";
+import PartnerGuideBookingsPage from "./pages/partner/PartnerGuideBookingsPage";
 import AboutUsPage from "./pages/AboutUsPage";
 
 function SimplePage({ title, message }) {
@@ -89,6 +91,7 @@ function App() {
           <Route path="/events/:id" element={<EventDetailsPage />} />
           <Route path="/tourist-guides" element={<TouristGuidePage />} />
           <Route path="/tourist-guides/:slug" element={<GuideProfilePage />} />
+          <Route path="/my-guide-bookings" element={<MyGuideBookingsPage />} />
           <Route path="/about" element={<AboutUsPage />} />
 
           <Route
@@ -102,6 +105,8 @@ function App() {
           <Route path="/partner/login" element={<PartnerLoginPage />} />
           <Route path="/partner/dashboard" element={<PartnerDashboardPage />} />
           <Route path="/partner/bookings" element={<PartnerBookingsPage />} />
+          <Route path="/partner/guide-bookings" element={<Navigate to="/partner/guides" replace />} />
+          <Route path="/partner/guides/:guideId/requests" element={<PartnerGuideBookingsPage />} />
 
           <Route
             path="/partner/event-registration"
