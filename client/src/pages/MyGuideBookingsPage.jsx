@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
-import DemoPaymentModal from "../components/DemoPaymentModal";
+import PaymentModal from "../components/PaymentModal";
 
 const money = (n) => `Rs. ${Number(n || 0).toLocaleString("en-LK")}`;
 const dateText = (v) => v ? new Date(v).toLocaleDateString("en-LK", { year:"numeric", month:"short", day:"numeric" }) : "-";
@@ -46,7 +46,7 @@ export default function MyGuideBookingsPage() {
   };
 
   return <main className="gb-page"><style>{css}</style>
-    <DemoPaymentModal open={!!paymentBooking} title="Pay guide booking" description="Complete the demo payment for your approved guide request." amount={paymentBooking?.total_amount || 0} reference={paymentBooking?.booking_reference || ""} submitLabel="Pay and confirm" onClose={()=>setPaymentBooking(null)} onConfirm={pay}/>
+    <PaymentModal open={!!paymentBooking} title="Pay guide booking" description="Complete payment for your approved guide request." amount={paymentBooking?.total_amount || 0} reference={paymentBooking?.booking_reference || ""} submitLabel="Pay and confirm" onClose={()=>setPaymentBooking(null)} onConfirm={pay}/>
     {reviewBooking && <div className="gb-modal"><div className="gb-modal-card"><h2>Review {reviewBooking.guide_name}</h2><label>Rating<select value={review.rating} onChange={e=>setReview({...review,rating:Number(e.target.value)})}>{[5,4,3,2,1].map(n=><option key={n} value={n}>{n} star{n>1?"s":""}</option>)}</select></label><label>Comment<textarea rows="4" value={review.comment} onChange={e=>setReview({...review,comment:e.target.value})}/></label><div className="gb-actions"><button onClick={()=>setReviewBooking(null)}>Cancel</button><button className="primary" onClick={submitReview}>Submit review</button></div></div></div>}
 
     <section className="gb-hero"><span>Tourist account</span><h1>My Guide Bookings</h1><p>Track requests, pay approved bookings, contact your guide, and review completed trips.</p></section>

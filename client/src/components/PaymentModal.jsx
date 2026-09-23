@@ -157,10 +157,10 @@ const renderPaymentLogo = (option) => {
   }
 };
 
-function DemoPaymentModal({
+function PaymentModal({
   open,
   title = "Online payment",
-  description = "Complete this demo card payment.",
+  description = "Complete your payment.",
   amount = 0,
   reference = "",
   submitLabel = "Pay now",
@@ -253,12 +253,12 @@ function DemoPaymentModal({
   };
 
   return (
-    <div className="demo-payment-overlay" role="dialog" aria-modal="true">
+    <div className="payment-overlay" role="dialog" aria-modal="true">
       <style>{paymentCss}</style>
-      <form className="demo-payment-modal" onSubmit={handleSubmit}>
+      <form className="payment-modal" onSubmit={handleSubmit}>
         <div className="payment-modal-head">
           <div>
-            <span><Lock size={14} /> Secure demo checkout</span>
+            <span><Lock size={14} /> Payment checkout</span>
             <h2>{title}</h2>
             <p>{description}</p>
           </div>
@@ -392,7 +392,7 @@ function DemoPaymentModal({
               </label>
               <div className="payment-help-box">
                 <ShieldCheck size={18} />
-                Confirm the one-time wallet prompt in your mobile app to complete this demo payment.
+                Confirm the payment request in your mobile wallet app.
               </div>
             </div>
           )}
@@ -414,7 +414,7 @@ function DemoPaymentModal({
               </label>
               <div className="payment-help-box">
                 <ShieldCheck size={18} />
-                Use your bank's secure portal reference. This app only records the successful demo status.
+                Enter the payment reference provided by your bank.
               </div>
             </div>
           )}
@@ -427,7 +427,7 @@ function DemoPaymentModal({
         </button>
 
         <p className="payment-footnote">
-          Demo only: card details are validated in the browser and are not sent to a real bank gateway.
+          Your payment status will be recorded after confirmation.
         </p>
       </form>
     </div>
@@ -435,8 +435,8 @@ function DemoPaymentModal({
 }
 
 const paymentCss = `
-.demo-payment-overlay{position:fixed;inset:0;z-index:4000;display:grid;place-items:center;background:rgba(15,23,42,.56);padding:18px;backdrop-filter:blur(7px);overflow:auto}
-.demo-payment-modal{width:min(720px,100%);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:24px;box-shadow:0 34px 90px rgba(0,0,0,.28);color:#102033;font-family:Inter,system-ui,Arial,sans-serif}
+.payment-overlay{position:fixed;inset:0;z-index:4000;display:grid;place-items:center;background:rgba(15,23,42,.56);padding:18px;backdrop-filter:blur(7px);overflow:auto}
+.payment-modal{width:min(720px,100%);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:24px;box-shadow:0 34px 90px rgba(0,0,0,.28);color:#102033;font-family:Inter,system-ui,Arial,sans-serif}
 .payment-modal-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.payment-modal-head span{display:inline-flex;align-items:center;gap:6px;color:#0f766e;font-size:12px;font-weight:1000;text-transform:uppercase;letter-spacing:.08em}.payment-modal-head h2{margin:8px 0 7px;color:#0f172a;font-size:28px;letter-spacing:0}.payment-modal-head p{margin:0;color:#64748b;font-weight:750;line-height:1.55}.payment-modal-head button{width:38px;height:38px;border:none;border-radius:8px;background:#f1f5f9;color:#0f172a;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
 .payment-summary-box{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}.payment-summary-box div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:13px}.payment-summary-box span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase}.payment-summary-box strong{display:block;margin-top:6px;color:#0f172a;font-size:17px;word-break:break-word}
 .payment-section-label{display:block;margin-bottom:14px;color:#94a3b8;font-size:14px;font-weight:1000;text-transform:uppercase;letter-spacing:0}.payment-method-picker{border-top:1px solid #eef2f7;border-bottom:1px solid #eef2f7;padding:18px 0;margin-bottom:16px}.payment-method-group{margin-top:0}.payment-method-group+.payment-method-group{margin-top:18px}.payment-method-group h3{margin:0 0 10px;color:#1f2937;font-size:15px;font-weight:850;letter-spacing:0}.payment-brand-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:11px}.payment-brand-tile{height:76px;border:none;border-radius:8px;background:#f1f5f9;color:#0f172a;display:grid;place-items:center;position:relative;cursor:pointer;box-shadow:inset 0 0 0 1px #e5e7eb;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}.payment-brand-tile:hover{transform:translateY(-1px);background:#fff}.payment-brand-tile.selected{background:#fff;box-shadow:inset 0 0 0 2px var(--brand-color),0 10px 22px rgba(15,23,42,.12)}.payment-brand-tile svg{position:absolute;right:7px;top:7px;color:#16a34a;background:#fff;border-radius:999px}
@@ -447,7 +447,7 @@ const paymentCss = `
 .payment-field{display:grid;gap:7px;margin-bottom:13px}.payment-field span{color:#334155;font-size:12px;font-weight:1000;text-transform:uppercase;letter-spacing:.06em}.payment-field input{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:13px 14px;font-weight:850;color:#102033;background:#fff;outline:none}.payment-field input:focus{border-color:#0f766e;box-shadow:0 0 0 4px rgba(15,118,110,.11)}
 .card-input-wrap{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px}.card-input-wrap:focus-within{border-color:#0f766e;box-shadow:0 0 0 4px rgba(15,118,110,.11)}.card-input-wrap input{border:none;box-shadow:none;padding-left:0;min-width:0}.card-input-wrap input:focus{box-shadow:none}.card-input-wrap svg{color:#0f766e}.card-input-wrap b{color:#2563eb;font-size:11px;text-transform:uppercase;white-space:nowrap}
 .payment-two-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.payment-help-box{display:flex;align-items:flex-start;gap:10px;background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:12px 13px;font-size:13px;font-weight:850;line-height:1.45}.payment-error{background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:12px 13px;font-weight:900;margin-bottom:13px}.payment-submit-btn{width:100%;border:none;border-radius:8px;background:#0f766e;color:#fff;padding:15px 18px;font-weight:1000;font-size:15px;cursor:pointer}.payment-submit-btn:disabled{opacity:.68;cursor:not-allowed}.payment-footnote{margin:12px 0 0;color:#64748b;font-size:12px;font-weight:750;line-height:1.5;text-align:center}
-@media(max-width:560px){.demo-payment-overlay{padding:10px}.demo-payment-modal{padding:18px;max-height:calc(100vh - 20px)}.payment-summary-box,.payment-two-cols,.payment-accordion-head{grid-template-columns:1fr}.payment-modal-head h2{font-size:24px}.selected-method-chip{width:max-content}.payment-brand-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card-input-wrap{grid-template-columns:auto 1fr}.card-input-wrap b{grid-column:2}}
+@media(max-width:560px){.payment-overlay{padding:10px}.payment-modal{padding:18px;max-height:calc(100vh - 20px)}.payment-summary-box,.payment-two-cols,.payment-accordion-head{grid-template-columns:1fr}.payment-modal-head h2{font-size:24px}.selected-method-chip{width:max-content}.payment-brand-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card-input-wrap{grid-template-columns:auto 1fr}.card-input-wrap b{grid-column:2}}
 `;
 
-export default DemoPaymentModal;
+export default PaymentModal;

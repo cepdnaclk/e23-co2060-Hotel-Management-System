@@ -10,7 +10,6 @@ import RegistrationFeesPage from "./pages/RegistrationFeesPage";
 import MonthlyFeesPage from "./pages/MonthlyFeesPage";
 import PaymentVersionsPage from "./pages/PaymentVersionsPage";
 import RevenuePage from "./pages/RevenuePage";
-import SystemVulnerabilityPage from "./pages/SystemVulnerabilityPage";
 import ExploreManagerPage from "./pages/ExploreManagerPage";
 import EventApprovalsPage from "./pages/EventApprovalsPage";
 import GuideApprovalsPage from "./pages/GuideApprovalsPage";
@@ -101,14 +100,6 @@ function App() {
         }
       />
 
-      <Route
-        path="/system-risk"
-        element={
-          <ProtectedAdminRoute>
-            <SystemVulnerabilityPage />
-          </ProtectedAdminRoute>
-        }
-      />
 
       <Route
         path="/explore-manager"

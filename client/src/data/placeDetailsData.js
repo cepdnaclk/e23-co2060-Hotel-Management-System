@@ -286,7 +286,7 @@ export const placeDetailsById = {
     whyVisit: [
       "Give tourists a soft first-day city experience.",
       "Show Sri Lankan food culture before hotel or route planning.",
-      "Connect future dining/table reservation features with tourism discovery.",
+      "Help travellers include local dining experiences in their itinerary.",
     ],
     experiences: [
       { title: "Kottu and hoppers trail", description: "Try popular local dishes in Colombo food areas.", time: "2 hours", cost: "Low" },
@@ -365,7 +365,7 @@ export const placeDetailsById = {
     tips: [
       "Use this as a travel day, not a packed sightseeing day.",
       "Connect the trip planner with hotel suggestions at destination city.",
-      "Seat availability can vary, so this can be mocked for demo.",
+      "Seat availability can change quickly, so confirm schedules and reserve seats early when possible.",
     ],
     photoGallery: [
       "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1200&q=80",

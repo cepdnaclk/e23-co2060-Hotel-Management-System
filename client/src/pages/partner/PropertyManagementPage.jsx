@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
-import DemoPaymentModal from "../../components/DemoPaymentModal";
+import PaymentModal from "../../components/PaymentModal";
 
 const fallbackPlans = [
   {
@@ -584,7 +584,7 @@ function PropertyManagementPage() {
       }}
     >
       <style>{propertyManagementFormCss}</style>
-      <DemoPaymentModal
+      <PaymentModal
         open={Boolean(paymentRequest)}
         title={paymentRequest?.title}
         description={paymentRequest?.description}

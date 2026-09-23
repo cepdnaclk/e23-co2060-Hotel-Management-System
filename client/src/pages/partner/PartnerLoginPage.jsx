@@ -106,11 +106,6 @@ function PartnerLoginPage() {
             </button>
           </form>
 
-          <div style={styles.demoBox}>
-            <strong>Demo Partner Login</strong>
-            <p>Email: partner@demo.lk</p>
-            <p>Password: Admin@123</p>
-          </div>
 
           <p style={styles.bottomText}>
             New partner?{" "}
@@ -212,14 +207,6 @@ const styles = {
   link: {
     color: "#16a34a",
     fontWeight: "900",
-  },
-  demoBox: {
-    background: "#f5f8fc",
-    padding: "14px",
-    borderRadius: "14px",
-    marginTop: "18px",
-    color: "#374151",
-    fontSize: "14px",
   },
 };
 

@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
 import { usePreferences } from "../../context/PreferencesContext";
-import DemoPaymentModal from "../../components/DemoPaymentModal";
+import PaymentModal from "../../components/PaymentModal";
 
 const guideTypes = [
   "Heritage",
@@ -354,7 +354,7 @@ function PartnerGuideRegistrationPage() {
   return (
     <main className="partner-guide-page">
       <style>{guideFormCss}</style>
-      <DemoPaymentModal
+      <PaymentModal
         open={Boolean(paymentRequest)}
         title={paymentRequest?.title}
         description={paymentRequest?.description}

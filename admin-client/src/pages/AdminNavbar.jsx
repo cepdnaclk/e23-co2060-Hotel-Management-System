@@ -9,7 +9,6 @@ const navItems = [
   { to: "/guide-approvals", label: "Guides" },
   { to: "/explore-manager", label: "Explore" },
   { to: "/revenue", label: "Revenue" },
-  { to: "/system-risk", label: "Risk" },
 ];
 
 function AdminNavbar() {

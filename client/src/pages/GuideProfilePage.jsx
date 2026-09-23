@@ -519,7 +519,7 @@ function GuideProfilePage() {
 
             {bookingMessage && <div className="guide-payment-success">{bookingMessage}</div>}
             <button className="booking-primary" type="button" onClick={submitGuideBooking} disabled={bookingSending || guideBookingAmount <= 0}>
-              {bookingSending ? "Sending request..." : `Send booking request · ${formatLkr(guideBookingAmount)}`}
+              {bookingSending ? "Sending request..." : `Send booking request`}
             </button>
             <Link className="booking-secondary" to="/my-guide-bookings">My guide bookings</Link>
             {whatsappHref && (

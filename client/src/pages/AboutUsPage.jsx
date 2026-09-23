@@ -236,7 +236,7 @@ function AboutUsPage() {
             <p>
               The project is developed using a React frontend, Node.js and Express backend,
               and a MySQL database. The system is structured to support API integration,
-              partner dashboards, admin approvals, and future deployment.
+              partner dashboards, admin approvals, and responsive use across devices.
             </p>
           </div>
 
@@ -256,7 +256,7 @@ function AboutUsPage() {
       <section className="about-section about-team-section">
         <div className="about-section-heading centered-heading">
           <span>Project team</span>
-          <h2>Developed as a university semester project</h2>
+          <h2>Meet the TourismHub LK project team</h2>
           <p>
             Each team member contributed across different areas of the system, including
             full-stack development, database design, integration, testing and documentation.

@@ -305,7 +305,7 @@ export default function ExplorePage() {
     const featuredCount = (places || []).filter((place) => place.featured).length;
 
     return [
-      { value: places.length || heroPlaces.length || 0, label: "places ready" },
+      { value: places.length || heroPlaces.length || 0, label: "places to explore" },
       { value: destinationCount || "Sri Lanka", label: "destinations" },
       { value: featuredCount || topPlaces.length || 0, label: "featured picks" },
       { value: seasonal.length || 0, label: `good in ${String(seasonalMonthName || currentMonthInfo.name).toLowerCase()}` },
@@ -371,7 +371,6 @@ export default function ExplorePage() {
               />
             </label>
 
-            <small className="hero-photo-note">Showing {selectedCategoryLabel} photos · changes every 4 seconds</small>
 
             <div className="hero-categories">
               {categories.map((item) => (
@@ -399,7 +398,7 @@ export default function ExplorePage() {
             <div className="explore-hero-card-content clear-preview-content">
               <span>Changing every 4 seconds</span>
               <h2>{heroSpotlight?.name || selectedCategoryLabel}</h2>
-              <p>{heroSpotlight ? `${heroSpotlight.city || "Sri Lanka"} • ${heroSpotlight.region || selectedCategoryLabel}` : "Live destination photos from Explore places"}</p>
+              <p>{heroSpotlight ? `${heroSpotlight.city || "Sri Lanka"} • ${heroSpotlight.region || selectedCategoryLabel}` : "Destination highlights from across Sri Lanka"}</p>
               <div className="explore-hero-card-tags clear-preview-tags">
                 <b>{heroSpotlight?.categoryLabel || heroSpotlight?.category || selectedCategoryLabel}</b>
                 <b>{heroSpotlight?.budget || "Explore"}</b>

@@ -28,7 +28,7 @@ import PropertyManagementPage from "./pages/partner/PropertyManagementPage";
 import RegisterPropertyPage from "./pages/partner/RegisterPropertyPage";
 
 import PartnerBookingsPage from "./pages/partner/PartnerBookingsPage";
-import OnlinePaymentFuturePage from "./pages/OnlinePaymentFuturePage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
@@ -42,7 +42,7 @@ function SimplePage({ title, message }) {
     <div className="page">
       <div className="card" style={{ padding: "30px" }}>
         <h1>{title}</h1>
-        <p>{message || "This page will be built in the next steps."}</p>
+        <p>{message || "Explore TourismHub LK travel information and services."}</p>
       </div>
     </div>
   );
@@ -66,10 +66,8 @@ function App() {
           <Route path="/my-bookings" element={<MyBookingsPage />} />
           <Route path="/my-reports" element={<MyReportsPage />} />
 
-          <Route
-            path="/online-payment-future"
-            element={<OnlinePaymentFuturePage />}
-          />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/online-payment-future" element={<Navigate to="/my-bookings" replace />} />
 
           {/* Navbar pages */}
           <Route path="/explore" element={<ExplorePage />} />
@@ -82,7 +80,7 @@ function App() {
             element={
               <SimplePage
                 title="Travel Essentials"
-                message="This page will include travel tips, emergency contacts, transport guidance, and tourist support information."
+                message="Travel tips, emergency contacts, transport guidance, and tourist support information for your journey."
               />
             }
           />
@@ -96,7 +94,7 @@ function App() {
 
           <Route
             path="/transport"
-            element={<SimplePage title="Transport Page" />}
+            element={<SimplePage title="Transport" message="Practical transport information for travelling between destinations across Sri Lanka." />}
           />
 
           {/* Partner pages */}

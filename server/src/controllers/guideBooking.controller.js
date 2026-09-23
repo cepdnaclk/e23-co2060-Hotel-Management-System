@@ -215,7 +215,7 @@ const payBooking = async (req, res) => {
       return res.status(400).json({ success: false, message: "This booking is already paid." });
     }
 
-    const gateway = String(req.body.payment_gateway || req.body.gateway || "demo-card").slice(0, 60);
+    const gateway = String(req.body.payment_gateway || req.body.gateway || "card").slice(0, 60);
     const cardLast4 = String(req.body.card_last4 || "").replace(/\D/g, "").slice(-4) || null;
 
     await connection.query(
