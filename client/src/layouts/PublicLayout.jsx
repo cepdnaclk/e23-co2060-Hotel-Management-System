@@ -71,6 +71,7 @@ function SiteFooter({ onNavigateTop }) {
             <h3>Support</h3>
             <Link to="/about" onClick={onNavigateTop}>About us</Link>
             <Link to="/my-bookings" onClick={onNavigateTop}>My bookings</Link>
+            <Link to="/my-reports" onClick={onNavigateTop}>My Reports</Link>
             <Link to="/login" onClick={onNavigateTop}>Login</Link>
             <Link to="/register" onClick={onNavigateTop}>Create account</Link>
           </div>
@@ -318,6 +319,7 @@ function PublicLayout() {
                 >
                   🛒
                 </Link>
+                {user?.role === "tourist" && <Link to="/my-reports" className="booking-link">My Reports</Link>}
                 <span className="user-greeting notranslate" data-no-translate>Hi, {username}</span>
                 <button
                   type="button"

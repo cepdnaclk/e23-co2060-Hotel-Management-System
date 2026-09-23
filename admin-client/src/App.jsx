@@ -15,6 +15,7 @@ import ExploreManagerPage from "./pages/ExploreManagerPage";
 import EventApprovalsPage from "./pages/EventApprovalsPage";
 import GuideApprovalsPage from "./pages/GuideApprovalsPage";
 import AdminNavbar from "./pages/AdminNavbar";
+import ReportsPage from "./pages/ReportsPage";
 
 function ProtectedAdminRoute({ children }) {
   const { isAdminLoggedIn, checkingAuth, admin } = useAdminAuth();
@@ -136,6 +137,7 @@ function App() {
         }
       />
 
+      <Route path="/reports" element={<ProtectedAdminRoute><ReportsPage /></ProtectedAdminRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

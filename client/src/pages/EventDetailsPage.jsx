@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { buildEventDirectionsUrl, buildEventMapEmbedUrl, normaliseEvent, tourismEvents } from "../data/eventData";
-import { assetUrl, getTouristEvents } from "../services/exploreService";
+import { buildEventDirectionsUrl, buildEventMapEmbedUrl, normaliseEvent } from "../data/eventData";
+import { assetUrl, getTouristEvent, getTouristEvents } from "../services/exploreService";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
+
+import EventReportForm from "../components/EventReportForm";
 
 const getImage = (event) => event.imageUrl || event.image_url || event.image;
 const getDirectionsUrl = (event) => event.mapUrl || event.map_url || buildEventDirectionsUrl(event);
@@ -30,22 +32,23 @@ const buildEventTripItem = (event) => ({
 
 function EventDetailsPage() {
   const { id } = useParams();
-  const [events, setEvents] = useState(tourismEvents);
+  const [events, setEvents] = useState([]);
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   const [savedTripItems, setSavedTripItems] = useState(readTripItems);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    getTouristEvents()
-      .then((rows) => {
-        if (rows.length) setEvents(rows.map(normaliseEvent));
-      })
-      .catch(() => setEvents(tourismEvents));
-  }, []);
-
-  const event = useMemo(
-    () => events.map(normaliseEvent).find((item) => item.slug === id || item.id === id),
-    [events, id]
-  );
+    let active = true;
+    setLoading(true); setError(""); setEvent(null); setEvents([]);
+    getTouristEvent(id).then(row => { if (active) setEvent(normaliseEvent(row)); })
+      .catch(err => { if (active) setError(err.response?.status === 404 ? "This event is no longer available." : "Could not load this event. Please try again."); })
+      .finally(() => { if (active) setLoading(false); });
+    getTouristEvents().then(rows => { if (active) setEvents(rows.map(normaliseEvent)); }).catch(() => {});
+    return () => { active = false; };
+  }, [id, retry]);
 
   const similar = useMemo(() => {
     if (!event) return [];
@@ -88,14 +91,15 @@ function EventDetailsPage() {
     );
   };
 
-  if (!event) {
+  if (loading || error || !event || event.slug !== id) {
     return (
       <main className="event-detail-page">
         <style>{css}</style>
         <section className="not-found-card">
           <span>🌴</span>
-          <h1>Event not found</h1>
-          <p>This event may be unavailable. Please return to the Events page.</p>
+          <h1>{loading ? "Loading event…" : "Event unavailable"}</h1>
+          <p role={error ? "alert" : "status"}>{error || "Getting the latest approved event information."}</p>
+          {error && <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button>}
           <Link to="/events">Back to Events</Link>
         </section>
       </main>
@@ -107,7 +111,7 @@ function EventDetailsPage() {
       <style>{css}</style>
       {notice ? <div className="event-detail-trip-toast">{notice}</div> : null}
       <section className="event-hero">
-        <img src={getImage(event)} alt={event.title} />
+        <img src={assetUrl(getImage(event))} alt={event.title} />
         <div className="event-hero-shade" />
         <div className="event-hero-copy">
           <Link to="/events" className="back-link">← Back to Events</Link>
@@ -179,13 +183,15 @@ function EventDetailsPage() {
             </div>
           </section>
 
+          <EventReportForm key={event.event_id} event={event} />
+
           {similar.length ? (
             <section className="white-card">
               <h2>Similar events</h2>
               <div className="similar-grid">
                 {similar.map((item) => (
                   <Link to={`/events/${item.slug}`} key={item.slug}>
-                    <img src={getImage(item)} alt={item.title} />
+                    <img src={assetUrl(getImage(item))} alt={item.title} />
                     <strong>{item.title}</strong>
                     <span>{item.city} · {item.priceLabel}</span>
                   </Link>

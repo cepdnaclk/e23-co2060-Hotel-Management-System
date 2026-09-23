@@ -22,6 +22,8 @@ const assistantRoutes = require("./routes/assistant.routes");
 const translationRoutes = require("./routes/translation.routes");
 const receptionRoutes = require("./routes/reception.routes");
 
+const { touristReports, adminReports } = require("./routes/eventReport.routes");
+
 const app = express();
 
 const allowedOrigins = [
@@ -89,6 +91,8 @@ app.use("/api/partner/guides", partnerGuideRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/admin/events", adminEventRoutes);
 app.use("/api/admin/guides", adminGuideRoutes);
+app.use("/api/admin/reports", adminReports);
+app.use("/api/reports", touristReports);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/explore", adminExploreRoutes);
 app.use("/api/explore", exploreRoutes);

@@ -6,33 +6,27 @@ import {
   eventMonths,
   eventPriceFilters,
   normaliseEvent,
-  tourismEvents,
 } from "../data/eventData";
 import { assetUrl, getTouristEvents } from "../services/exploreService";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
-const getEventImage = (event) => event.imageUrl || event.image_url || event.image || "";
+const getEventImage = (event) => event?.imageUrl || event?.image_url || event?.image || "";
 const getEventKey = (event) => event.slug || event.id || event.event_id || event.title;
 const monthOrder = eventMonths.slice(1);
 
-const getEventLink = (event) => {
-  if (event.explorePlaceId) {
-    return `/explore/${event.explorePlaceId}?focusEvent=${event.slug}#things-to-do`;
-  }
-
-  return event.slug ? `/events/${event.slug}` : "/events";
-};
+const getEventLink = (event) => event.slug ? `/events/${event.slug}` : "/events";
 
 const uniqueClean = (items) =>
   [...new Set(items.filter(Boolean).map((item) => String(item).trim()).filter(Boolean))];
 
 function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [events, setEvents] = useState(tourismEvents.map(normaliseEvent));
+  const [events, setEvents] = useState([]);
   const [savedTripItems, setSavedTripItems] = useState(readTripItems);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   const [search, setSearch] = useState(searchParams.get("search") || searchParams.get("city") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "All");
   const [city, setCity] = useState(searchParams.get("city") || "All Destinations");
@@ -44,24 +38,13 @@ function EventsPage() {
   const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
-    const loadEvents = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const rows = await getTouristEvents();
-        const approvedRows = rows.map(normaliseEvent);
-        setEvents(approvedRows.length ? approvedRows : tourismEvents.map(normaliseEvent));
-      } catch (err) {
-        console.warn("Using fallback event data:", err.message);
-        setEvents(tourismEvents.map(normaliseEvent));
-        setError("Database events are not reachable right now. Showing saved demo events until the API starts.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadEvents();
-  }, []);
+    let active = true;
+    setLoading(true); setError(""); setEvents([]);
+    getTouristEvents().then(rows => { if (active) setEvents(rows.map(normaliseEvent)); })
+      .catch(() => { if (active) setError("Events could not be loaded. Please try again."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [retry]);
 
   useEffect(() => {
     const refreshSavedItems = () => setSavedTripItems(readTripItems());
@@ -295,7 +278,7 @@ function EventsPage() {
             ) : null}
             <div className="hero-feature-shade" />
             <div className="hero-feature-content">
-              <span className="live-pill">Changing every 4 seconds</span>
+              <span className="live-pill">{heroSlides.length > 1 ? "Event highlights" : "Discover Sri Lanka"}</span>
               <h2>{currentHeroEvent?.title || "Approved Events"}</h2>
               <p>{currentHeroEvent?.city || "Sri Lanka"} · {currentHeroEvent?.dateLabel || "Tourist friendly"}</p>
               <div className="hero-feature-footer">
@@ -466,7 +449,7 @@ function EventsPage() {
               </div>
             ) : null}
 
-            {error ? <div className="soft-alert">{error}</div> : loading ? <div className="soft-alert">Loading approved events...</div> : null}
+            {error ? <div role="alert" className="soft-alert">{error} <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button></div> : loading ? <div role="status" className="soft-alert">Loading approved events...</div> : null}
 
             {filteredEvents.length ? (
               <div className="event-results-grid">
@@ -519,14 +502,14 @@ function EventsPage() {
                   </article>
                 ))}
               </div>
-            ) : (
+            ) : !loading && !error ? (
               <div className="empty-results">
                 <span>🔎</span>
-                <h3>No events found for these filters.</h3>
-                <p>Try another city, category, month, or budget level.</p>
+                <h3>{events.length ? "No events found for these filters." : "No approved events available yet."}</h3>
+                <p>{events.length ? "Try another city, category, month, or budget level." : "Please check back soon for upcoming events."}</p>
                 <button type="button" onClick={clearFilters}>Show all events</button>
               </div>
-            )}
+            ) : null}
           </div>
         </section>
       </section>

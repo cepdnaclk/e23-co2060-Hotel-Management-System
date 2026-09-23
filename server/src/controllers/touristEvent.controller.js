@@ -58,7 +58,8 @@ const mapEvent = (row) => ({
   status: normalizeStatus(row.status),
 });
 
-const publicEventWhere = "e.status IN ('approved', 'published')";
+const publicEventWhere = `e.status IN ('approved', 'published')
+  AND NOT EXISTS (SELECT 1 FROM event_moderation m WHERE m.event_id = e.id AND m.is_hidden = 1)`;
 
 const buildEventFilters = (query = {}) => {
   const conditions = [publicEventWhere];

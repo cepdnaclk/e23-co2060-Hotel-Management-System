@@ -15,6 +15,7 @@ import TouristLoginPage from "./pages/TouristLoginPage";
 
 import BookingPage from "./pages/BookingPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import MyReportsPage from "./pages/MyReportsPage";
 import TripPlannerPage from "./pages/TripPlannerPage";
 
 import ListYourPropertyPage from "./pages/partner/ListYourPropertyPage";
@@ -61,6 +62,7 @@ function App() {
 
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/my-bookings" element={<MyBookingsPage />} />
+          <Route path="/my-reports" element={<MyReportsPage />} />
 
           <Route
             path="/online-payment-future"
