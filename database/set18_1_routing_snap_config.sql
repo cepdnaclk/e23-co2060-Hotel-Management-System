@@ -1,4 +1,4 @@
--- TourismHub LK
+-- TripLanka
 -- SET 18.1 — Routable-road snap fallback
 --
 -- SAFE CONFIG UPDATE ONLY.

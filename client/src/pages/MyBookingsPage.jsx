@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -543,7 +544,7 @@ function MyBookingsPage() {
                   <div style={styles.cardTop}>
                     <div style={styles.hotelInfo}>
                       {booking.property_logo ? (
-                        <img
+                        <ContentImage
                           src={booking.property_logo}
                           alt={booking.property_name}
                           style={styles.logo}

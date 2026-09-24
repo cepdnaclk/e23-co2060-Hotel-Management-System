@@ -38,7 +38,7 @@ const createLocalAssistantResponse = (message) => {
   });
 
   let reply =
-    "I can help you use TourismHub LK. You can search hotels, explore destinations, plan trips, find events, check transport, view tourist guides, and manage bookings.";
+    "I can help you use TripLanka. You can search hotels, explore destinations, plan trips, find events, check transport, view tourist guides, and manage bookings.";
   let externalLinks = [];
 
   if (lowerMessage.includes("book") || lowerMessage.includes("hotel")) {
@@ -134,15 +134,15 @@ const askAssistant = async (req, res) => {
     }
 
     const prompt = `
-You are the AI assistant for TourismHub LK.
+You are the AI assistant for TripLanka.
 
-TourismHub LK is a Sri Lankan travel and tourism web platform.
+TripLanka is a Sri Lankan travel and tourism web platform.
 It helps users explore destinations, book hotels, find events, find transport, plan trips, find tourist guides, and learn about Sri Lanka.
 
 Your main duties:
-1. Help users find the correct page or tab in TourismHub LK.
+1. Help users find the correct page or tab in TripLanka.
 2. Explain Sri Lankan history, culture, religions, food, festivals, etiquette, wildlife, heritage, and travel tips.
-3. Suggest useful TourismHub LK pages.
+3. Suggest useful TripLanka pages.
 4. If useful, provide trusted external links from the trustedExternalSources list only.
 5. Do not pretend to complete hotel bookings, payments, cancellations, partner registrations, or admin approvals.
 6. If the user asks for real-time information such as weather, train times, current availability, or live prices, tell them to check the relevant official source or TourismHub page.
@@ -215,7 +215,7 @@ Return only this JSON format:
       success: true,
       reply:
         parsedResponse.reply ||
-        "I can help you use TourismHub LK and learn about Sri Lanka.",
+        "I can help you use TripLanka and learn about Sri Lanka.",
       suggestedActions: parsedResponse.suggestedActions || [],
       quickQuestions: parsedResponse.quickQuestions || [],
       externalLinks: parsedResponse.externalLinks || [],

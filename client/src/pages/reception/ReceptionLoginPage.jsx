@@ -52,7 +52,7 @@ function ReceptionLoginPage() {
       <style>{styles}</style>
       <section className="reception-login-shell">
         <div className="reception-login-brand">
-          <span>TourismHub LK</span>
+          <span>TripLanka</span>
           <h1>Hotel Reception Desk</h1>
           <p>
             A focused console for walk-in guests. Sign in with the partner email

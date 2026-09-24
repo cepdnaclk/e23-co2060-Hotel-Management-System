@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import api from "../../api/api";
@@ -279,7 +280,7 @@ function ReceptionDashboardPage() {
       <style>{styles}</style>
 
       <header className="reception-topbar">
-        <Link to="/" className="reception-logo">TourismHub LK</Link>
+        <Link to="/" className="reception-logo">TripLanka</Link>
         <nav>
           <button type="button" onClick={() => window.location.reload()}>Refresh</button>
           <button type="button" onClick={handleLogout} className="danger">Logout</button>
@@ -450,7 +451,7 @@ function ReceptionDashboardPage() {
 
           <aside className="booking-summary-card">
             <div className="summary-photo">
-              {selectedRoom.main_image ? <img src={selectedRoom.main_image} alt={selectedRoom.room_type} /> : null}
+              {selectedRoom.main_image ? <ContentImage src={selectedRoom.main_image} alt={selectedRoom.room_type} /> : null}
             </div>
             <h2>{selectedRoom.room_type}</h2>
             <p>{property?.name}</p>
@@ -537,7 +538,7 @@ function ReceptionDashboardPage() {
             return (
               <article className="reception-room-card" key={room.id}>
                 <div className="room-photo">
-                  {room.main_image ? <img src={room.main_image} alt={room.room_type} /> : <span>No photo</span>}
+                  {room.main_image ? <ContentImage src={room.main_image} alt={room.room_type} /> : <span>No photo</span>}
                   <strong>{available > 0 ? "Available" : "Full"}</strong>
                 </div>
 

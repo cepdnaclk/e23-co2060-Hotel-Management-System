@@ -1,3 +1,4 @@
+import ContentImage from "./ContentImage";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -45,12 +46,16 @@ export default function PlaceDetailModal({
 
   if (!isOpen || !place) return null;
 
+  const images = (Array.isArray(place.images) && place.images.length
+    ? place.images
+    : [place.image || place.image_url]).filter((image) => typeof image === "string" && image.trim());
+
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % place.images.length);
+    setCurrentImageIndex((prev) => (prev + 1) % Math.max(1, images.length));
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + place.images.length) % place.images.length);
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % Math.max(1, images.length));
   };
 
   return (
@@ -62,12 +67,12 @@ export default function PlaceDetailModal({
 
         {/* Image Gallery */}
         <div className="modal-gallery">
-          <img
-            src={place.images[currentImageIndex]}
+          <ContentImage
+            src={images[currentImageIndex]}
             alt={`${place.name} - Image ${currentImageIndex + 1}`}
             className="gallery-main-image"
           />
-          {place.images.length > 1 && (
+          {images.length > 1 && (
             <>
               <button className="gallery-nav gallery-prev" onClick={prevImage}>
                 <ChevronLeft size={28} strokeWidth={2.4} />
@@ -76,7 +81,7 @@ export default function PlaceDetailModal({
                 <ChevronRight size={28} strokeWidth={2.4} />
               </button>
               <div className="gallery-dots">
-                {place.images.map((_, index) => (
+                {images.map((_, index) => (
                   <button
                     key={index}
                     className={`gallery-dot ${index === currentImageIndex ? "active" : ""}`}
@@ -88,19 +93,19 @@ export default function PlaceDetailModal({
           )}
           <div className="gallery-region-badge">{place.region}</div>
           <div className="gallery-counter">
-            {currentImageIndex + 1} / {place.images.length}
+            {images.length ? currentImageIndex + 1 : 0} / {images.length}
           </div>
         </div>
 
         {/* Thumbnail Strip */}
         <div className="thumbnail-strip">
-          {place.images.map((img, index) => (
+          {images.map((img, index) => (
             <button
               key={index}
               className={`thumbnail ${index === currentImageIndex ? "active" : ""}`}
               onClick={() => setCurrentImageIndex(index)}
             >
-              <img src={img} alt={`Thumbnail ${index + 1}`} />
+              <ContentImage src={img} alt={`Thumbnail ${index + 1}`} />
             </button>
           ))}
         </div>

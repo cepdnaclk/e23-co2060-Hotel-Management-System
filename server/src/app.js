@@ -1,31 +1,82 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const localImages = require("./middleware/localImages");
+
 require("dotenv").config();
 
-const healthRoutes = require("./routes/health.routes");
-const dbTestRoutes = require("./routes/dbTest.routes");
-const authRoutes = require("./routes/auth.routes");
-const propertyRoutes = require("./routes/property.routes");
-const partnerRoutes = require("./routes/partner.routes");
-const adminRoutes = require("./routes/admin.routes");
-const exploreRoutes = require("./routes/explore.routes");
-const adminExploreRoutes = require("./routes/adminExplore.routes");
-const bookingRoutes = require("./routes/booking.routes");
-const touristEventRoutes = require("./routes/touristEvent.routes");
-const partnerEventRoutes = require("./routes/partnerEvent.routes");
-const adminEventRoutes = require("./routes/adminEvent.routes");
-const adminGuideRoutes = require("./routes/adminGuide.routes");
-const partnerGuideRoutes = require("./routes/partnerGuide.routes");
-const publicGuideRoutes = require("./routes/publicGuide.routes");
-const guideBookingRoutes = require("./routes/guideBooking.routes");
-const partnerGuideBookingRoutes = require("./routes/partnerGuideBooking.routes");
-const assistantRoutes = require("./routes/assistant.routes");
-const translationRoutes = require("./routes/translation.routes");
-const receptionRoutes = require("./routes/reception.routes");
-const tripPlannerRoutes = require("./routes/tripPlanner.routes");
+const healthRoutes =
+  require("./routes/health.routes");
 
-const { touristReports, adminReports } = require("./routes/eventReport.routes");
+const dbTestRoutes =
+  require("./routes/dbTest.routes");
+
+const authRoutes =
+  require("./routes/auth.routes");
+
+const propertyRoutes =
+  require("./routes/property.routes");
+
+const partnerRoutes =
+  require("./routes/partner.routes");
+
+const adminRoutes =
+  require("./routes/admin.routes");
+
+const exploreRoutes =
+  require("./routes/explore.routes");
+
+const adminExploreRoutes =
+  require("./routes/adminExplore.routes");
+
+const bookingRoutes =
+  require("./routes/booking.routes");
+
+const touristEventRoutes =
+  require("./routes/touristEvent.routes");
+
+const partnerEventRoutes =
+  require("./routes/partnerEvent.routes");
+
+const adminEventRoutes =
+  require("./routes/adminEvent.routes");
+
+const adminGuideRoutes =
+  require("./routes/adminGuide.routes");
+
+const partnerGuideRoutes =
+  require("./routes/partnerGuide.routes");
+
+const publicGuideRoutes =
+  require("./routes/publicGuide.routes");
+
+const guideBookingRoutes =
+  require("./routes/guideBooking.routes");
+
+const partnerGuideBookingRoutes =
+  require("./routes/partnerGuideBooking.routes");
+
+const assistantRoutes =
+  require("./routes/assistant.routes");
+
+const translationRoutes =
+  require("./routes/translation.routes");
+
+const receptionRoutes =
+  require("./routes/reception.routes");
+
+const tripPlannerRoutes =
+  require("./routes/tripPlanner.routes");
+
+const homeRoutes =
+  require("./routes/home.routes");
+
+const {
+  touristReports,
+  adminReports,
+} = require(
+  "./routes/eventReport.routes"
+);
 
 const app = express();
 
@@ -34,111 +85,338 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:5175",
   "http://localhost:5176",
+
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
   "http://127.0.0.1:5175",
   "http://127.0.0.1:5176",
+
   "https://e23-co2060-hotel-management-system.vercel.app",
+
   process.env.CLIENT_URL,
   process.env.ADMIN_CLIENT_URL,
   process.env.RECEPTION_CLIENT_URL,
 ].filter(Boolean);
 
-const isLocalDevelopmentOrigin = (origin) => {
-  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin || "");
+const isLocalDevelopmentOrigin = (
+  origin
+) => {
+  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(
+    origin || ""
+  );
 };
 
 const corsOptions = {
-  origin: function (origin, callback) {
+  origin(
+    origin,
+    callback
+  ) {
     if (!origin) {
-      return callback(null, true);
+      return callback(
+        null,
+        true
+      );
     }
 
-    if (allowedOrigins.includes(origin) || isLocalDevelopmentOrigin(origin)) {
-      return callback(null, true);
+    if (
+      allowedOrigins.includes(
+        origin
+      ) ||
+      isLocalDevelopmentOrigin(
+        origin
+      )
+    ) {
+      return callback(
+        null,
+        true
+      );
     }
 
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
+    return callback(
+      new Error(
+        `Not allowed by CORS: ${origin}`
+      )
+    );
   },
+
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+  ],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
 };
 
-app.use(cors(corsOptions));
+app.use(
+  cors(corsOptions)
+);
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+  })
+);
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "10mb",
+  })
+);
 
-app.get("/", (req, res) => {
-  res.send("TourismHub LK Backend API");
-});
+app.use(
+  "/uploads",
+  express.static(
+    path.join(
+      __dirname,
+      "../uploads"
+    )
+  )
+);
 
-app.get("/api/cors-test", (req, res) => {
-  res.json({
-    success: true,
-    message: "CORS is working",
-    origin: req.headers.origin || "No origin header",
-    allowedOrigins,
-  });
-});
+app.use("/images", localImages);
 
-app.use("/api", healthRoutes);
-app.use("/api", dbTestRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/properties", propertyRoutes);
-app.use("/api/partner/events", partnerEventRoutes);
-app.use("/api/partner/guides", partnerGuideRoutes);
-app.use("/api/partner/guide-bookings", partnerGuideBookingRoutes);
-app.use("/api/partner", partnerRoutes);
-app.use("/api/admin/events", adminEventRoutes);
-app.use("/api/admin/guides", adminGuideRoutes);
-app.use("/api/admin/reports", adminReports);
-app.use("/api/reports", touristReports);
-app.use("/api/admin", adminRoutes);
-app.use("/api/admin/explore", adminExploreRoutes);
-app.use("/api/explore", exploreRoutes);
-app.use("/api/bookings", bookingRoutes);
-app.use("/api/tourist", touristEventRoutes);
-app.use("/api/guides", publicGuideRoutes);
-app.use("/api/guide-bookings", guideBookingRoutes);
-app.use("/api/assistant", assistantRoutes);
-app.use("/api/translate", translationRoutes);
-app.use("/api/reception", receptionRoutes);
-app.use("/api/trip-planner",tripPlannerRoutes);
+app.get(
+  "/",
+  (req, res) => {
+    res.send(
+      "TripLanka Backend API"
+    );
+  }
+);
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "API route not found",
-    path: req.originalUrl,
-  });
-});
+app.get(
+  "/api/cors-test",
+  (req, res) => {
+    res.json({
+      success: true,
 
-app.use((err, req, res, next) => {
-  console.error("Server error:", err.message);
+      message:
+        "CORS is working",
 
-  if (err.message && err.message.startsWith("Not allowed by CORS")) {
-    return res.status(403).json({
-      success: false,
-      message: err.message,
+      origin:
+        req.headers.origin ||
+        "No origin header",
+
+      allowedOrigins,
     });
   }
+);
 
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-    error: process.env.NODE_ENV === "production" ? undefined : err.message,
-  });
-});
+/* HOME */
 
-const PORT = process.env.PORT || 5000;
+app.use(
+  "/api/home",
+  homeRoutes
+);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log("Allowed CORS origins:", allowedOrigins);
-  console.log("Local Vite development origins are allowed on any port.");
-});
+/* CORE */
 
+app.use(
+  "/api",
+  healthRoutes
+);
+
+app.use(
+  "/api",
+  dbTestRoutes
+);
+
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+app.use(
+  "/api/properties",
+  propertyRoutes
+);
+
+app.use(
+  "/api/partner/events",
+  partnerEventRoutes
+);
+
+app.use(
+  "/api/partner/guides",
+  partnerGuideRoutes
+);
+
+app.use(
+  "/api/partner/guide-bookings",
+  partnerGuideBookingRoutes
+);
+
+app.use(
+  "/api/partner",
+  partnerRoutes
+);
+
+app.use(
+  "/api/admin/events",
+  adminEventRoutes
+);
+
+app.use(
+  "/api/admin/guides",
+  adminGuideRoutes
+);
+
+app.use(
+  "/api/admin/reports",
+  adminReports
+);
+
+app.use(
+  "/api/reports",
+  touristReports
+);
+
+app.use(
+  "/api/admin",
+  adminRoutes
+);
+
+app.use(
+  "/api/admin/explore",
+  adminExploreRoutes
+);
+
+app.use(
+  "/api/explore",
+  exploreRoutes
+);
+
+app.use(
+  "/api/bookings",
+  bookingRoutes
+);
+
+app.use(
+  "/api/tourist",
+  touristEventRoutes
+);
+
+app.use(
+  "/api/guides",
+  publicGuideRoutes
+);
+
+app.use(
+  "/api/guide-bookings",
+  guideBookingRoutes
+);
+
+app.use(
+  "/api/assistant",
+  assistantRoutes
+);
+
+app.use(
+  "/api/translate",
+  translationRoutes
+);
+
+app.use(
+  "/api/reception",
+  receptionRoutes
+);
+
+app.use(
+  "/api/trip-planner",
+  tripPlannerRoutes
+);
+
+/* 404 */
+
+app.use(
+  (req, res) => {
+    res.status(404).json({
+      success: false,
+      message:
+        "API route not found",
+      path:
+        req.originalUrl,
+    });
+  }
+);
+
+/* ERRORS */
+
+app.use(
+  (
+    err,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      "Server error:",
+      err.message
+    );
+
+    if (
+      err.message &&
+      err.message.startsWith(
+        "Not allowed by CORS"
+      )
+    ) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message:
+            err.message,
+        });
+    }
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          "Internal server error",
+
+        error:
+          process.env
+            .NODE_ENV ===
+          "production"
+            ? undefined
+            : err.message,
+      });
+  }
+);
+
+const PORT =
+  process.env.PORT ||
+  5000;
+
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `Server running on port ${PORT}`
+    );
+
+    console.log(
+      "Allowed CORS origins:",
+      allowedOrigins
+    );
+
+    console.log(
+      "Local Vite development origins are allowed on any port."
+    );
+  }
+);
+
+module.exports = app;

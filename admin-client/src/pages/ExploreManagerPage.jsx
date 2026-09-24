@@ -1,5 +1,7 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
+import { assetUrl } from "../utils/assetUrl";
 
 const emptyPlace = {
   id: null,
@@ -36,15 +38,6 @@ const emptyPlace = {
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const regionOptions = ["Cultural Triangle", "Hill Country", "South Coast", "West Coast", "East Coast", "Northern Region"];
 const budgetOptions = ["Low", "Medium", "High"];
-const rawBaseUrl = api.defaults.baseURL || "http://localhost:5000/api";
-const serverBaseUrl = rawBaseUrl.replace(/\/api\/?$/, "");
-
-const assetUrl = (url) => {
-  if (!url) return "";
-  if (String(url).startsWith("http")) return url;
-  return `${serverBaseUrl}${url}`;
-};
-
 const toCoordinateNumber = (value) => {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
@@ -756,7 +749,7 @@ function TravelGalleryModal({ place, files, saving, onClose, onFilesChange, onUp
               <div className="existing-photo-grid">
                 {photos.map((photo, index) => (
                   <article className="existing-photo-card" key={photo.id || `${photo.image_url}-${index}`}>
-                    <img src={assetUrl(photo.image_url)} alt={photo.alt_text || `${place.name} photo`} />
+                    <ContentImage src={assetUrl(photo.image_url)} alt={photo.alt_text || `${place.name} photo`} />
                     <div>
                       <strong>{photo.is_main ? "Main photo" : `Photo ${index + 1}`}</strong>
                       <small>{photo.image_url?.startsWith("http") ? "Online image" : "Uploaded image"}</small>
@@ -1219,7 +1212,7 @@ export default function ExploreManagerPage() {
             <div className="admin-place-list">
               {filteredPlaces.map((place) => (
                 <article key={place.id} className="admin-place-item">
-                  <img src={assetUrl(place.image)} alt={place.name} />
+                  <ContentImage src={assetUrl(place.image)} alt={place.name} />
                   <div>
                     <strong>{place.name}</strong>
                     <span>{place.city} · {place.categoryLabel || place.category} · {place.status}</span>

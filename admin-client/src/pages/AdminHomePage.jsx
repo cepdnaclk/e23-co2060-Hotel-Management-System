@@ -9,7 +9,7 @@ function AdminHomePage() {
         <div className="admin-home-logo">TH</div>
 
         <p className="admin-home-eyebrow">Admin Portal</p>
-        <h1>TourismHub LK</h1>
+        <h1>TripLanka</h1>
         <p className="admin-home-subtitle">
           Manage property approvals, payments, revenue, and system records from
           one clean admin platform.

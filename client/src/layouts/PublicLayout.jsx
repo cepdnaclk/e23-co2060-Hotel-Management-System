@@ -5,6 +5,7 @@ import { usePreferences } from "../context/PreferencesContext";
 import TripBasketWidget from "../components/TripBasketWidget";
 
 const shouldHideTripBasket = (pathname) =>
+  pathname === "/" ||
   pathname.startsWith("/partner") ||
   pathname.startsWith("/admin") ||
   pathname === "/list-your-property" ||

@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -348,7 +349,7 @@ function EventDetailsPage() {
       ) : null}
 
       <section className="event-hero">
-        <img
+        <ContentImage
           src={assetUrl(
             getImage(event)
           )}
@@ -462,7 +463,7 @@ function EventDetailsPage() {
               <div className="similar-grid">
                 {similar.map((item) => (
                   <Link to={`/events/${encodeURIComponent(item.slug)}`} key={item.slug}>
-                    <img src={assetUrl(getImage(item))} alt={item.title} />
+                    <ContentImage src={assetUrl(getImage(item))} alt={item.title} />
                     <strong>{item.title}</strong>
                     <span>{item.city} · {item.priceLabel}</span>
                   </Link>

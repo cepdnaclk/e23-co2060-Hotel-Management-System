@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/api";
@@ -441,7 +442,7 @@ function ReceptionDashboardPage() {
         <Link to="/dashboard" className="reception-brand">TourismHub <b>LK</b></Link>
         <div className="property-mini">
           <div className="property-avatar">
-            {property?.logo_url ? <img src={property.logo_url} alt="" /> : String(property?.name || "H").slice(0, 1)}
+            {property?.logo_url ? <ContentImage src={property.logo_url} alt="" /> : String(property?.name || "H").slice(0, 1)}
           </div>
           <div><strong>{property?.name || "Hotel Reception"}</strong><span>{property?.city || "Sri Lanka"}</span></div>
         </div>
@@ -487,7 +488,7 @@ function ReceptionDashboardPage() {
             <section className="overview-grid">
               <article className="panel property-panel">
                 <div className="property-cover">
-                  {property?.main_image ? <img src={property.main_image} alt={property.name} /> : null}
+                  {property?.main_image ? <ContentImage src={property.main_image} alt={property.name} /> : null}
                   <div className="cover-overlay"><span>{property?.property_type || "Property"}</span><h2>{property?.name}</h2></div>
                 </div>
                 <div className="property-details">
@@ -536,7 +537,7 @@ function ReceptionDashboardPage() {
               return (
                 <article className="room-card" key={room.id}>
                   <div className="room-image">
-                    {room.main_image ? <img src={room.main_image} alt={room.room_type} /> : <span>No room image</span>}
+                    {room.main_image ? <ContentImage src={room.main_image} alt={room.room_type} /> : <span>No room image</span>}
                     <span className={`availability-tag ${room.available_rooms > 0 ? "available" : "full"}`}>{room.available_rooms > 0 ? `${room.available_rooms} available` : "Full"}</span>
                   </div>
                   <div className="room-content">
@@ -586,7 +587,7 @@ function ReceptionDashboardPage() {
               <span className="eyebrow">Booking summary</span>
               <h2>{selectedRoom?.room_type || "Select a room"}</h2>
               <p>{property?.name}</p>
-              {selectedRoom?.main_image ? <img className="summary-image" src={selectedRoom.main_image} alt={selectedRoom.room_type} /> : null}
+              {selectedRoom?.main_image ? <ContentImage className="summary-image" src={selectedRoom.main_image} alt={selectedRoom.room_type} /> : null}
               <div className="summary-list">
                 <div><span>Guests</span><strong>{preview.guests || 0}</strong></div>
                 <div><span>Day units</span><strong>{preview.dayUnits}</strong></div>

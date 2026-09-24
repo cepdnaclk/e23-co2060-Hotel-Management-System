@@ -1,4 +1,4 @@
-import { explorePlaces } from "./exploreData";
+import { getExplorePlace, getExplorePlaces } from "../services/exploreService";
 
 export const placeDetailsById = {
   1: {
@@ -26,11 +26,6 @@ export const placeDetailsById = {
       "Carry water because the climb can be hot.",
       "Combine Sigiriya with Dambulla Cave Temple or Minneriya Safari.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1586611292717-f828b167408c?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
   2: {
     overview:
@@ -56,11 +51,6 @@ export const placeDetailsById = {
       "Check train times if you want a photo with a passing train.",
       "Use Ella as a base for waterfalls and viewpoints.",
       "Avoid standing dangerously close to railway tracks.",
-    ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1200&q=80",
     ],
   },
   3: {
@@ -88,11 +78,6 @@ export const placeDetailsById = {
       "Use Mirissa as a beach base before Galle or Yala.",
       "Check sea conditions before water activities.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
   4: {
     overview:
@@ -118,11 +103,6 @@ export const placeDetailsById = {
       "Use Galle as a comfortable south-coast stop.",
       "Evening is cooler and better for photography.",
       "Great location for heritage plus beach combination trips.",
-    ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80",
     ],
   },
   5: {
@@ -150,11 +130,6 @@ export const placeDetailsById = {
       "Keep footwear storage and ticket timing in mind.",
       "Kandy is a strong midpoint between Colombo and Hill Country.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1566296314736-6eaac1ca0cb9?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
   6: {
     overview:
@@ -180,11 +155,6 @@ export const placeDetailsById = {
       "Safari sightings are not guaranteed, so present it as nature experience.",
       "Morning safaris are usually more comfortable.",
       "Carry water and protect cameras from dust.",
-    ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1549366021-9f761d450615?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80",
     ],
   },
   7: {
@@ -212,11 +182,6 @@ export const placeDetailsById = {
       "Good overnight stop between Kandy and Ella.",
       "Tea factory visits make the trip educational for tourists.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
   8: {
     overview:
@@ -242,11 +207,6 @@ export const placeDetailsById = {
       "Avoid slippery edges and unsafe bathing areas.",
       "Check weather because heavy rain can make waterfalls dangerous.",
       "Best as part of a hill-country day plan.",
-    ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1575994532957-773da2f935fb?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=1200&q=80",
     ],
   },
   9: {
@@ -274,11 +234,6 @@ export const placeDetailsById = {
       "Use as a seasonal beach alternative to the south coast.",
       "Book surf lessons with safe, beginner-friendly instructors.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
   10: {
     overview:
@@ -304,11 +259,6 @@ export const placeDetailsById = {
       "Recommend popular and hygienic places for tourists.",
       "Good first-night experience after airport arrival.",
       "Can later connect with partner dining module.",
-    ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1604152135912-04a022e23696?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
     ],
   },
   11: {
@@ -336,11 +286,6 @@ export const placeDetailsById = {
       "This is a perfect example for your event-to-hotel booking flow.",
       "Add clear crowd and transport guidance for tourists.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1566296314736-6eaac1ca0cb9?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
   12: {
     overview:
@@ -367,51 +312,27 @@ export const placeDetailsById = {
       "Connect the trip planner with hotel suggestions at destination city.",
       "Seat availability can change quickly, so confirm schedules and reserve seats early when possible.",
     ],
-    photoGallery: [
-      "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1200&q=80",
-    ],
   },
 };
 
-export const getDetailedPlaceById = (placeId) => {
-  const place = explorePlaces.find((item) => String(item.id) === String(placeId));
-
-  if (!place) {
-    return null;
-  }
-
-  const details = placeDetailsById[place.id] || {};
-
+// Compatibility helpers: catalogue data and galleries remain database-driven.
+export const getDetailedPlaceById = async (placeId) => {
+  const place = await getExplorePlace(placeId);
+  if (!place) return null;
   return {
     ...place,
-    overview: details.overview || place.description,
-    whyVisit: details.whyVisit || [place.shortDescription],
-    experiences: details.experiences || [],
-    practicalInfo: details.practicalInfo || {},
-    tips: details.tips || [],
-    photoGallery: details.photoGallery || [place.image],
+    overview: place.fullDescription || place.description || place.shortDescription,
+    photoGallery: place.images?.length ? place.images : [place.image].filter(Boolean),
   };
 };
 
-export const getRelatedPlaces = (placeId, limit = 3) => {
-  const selectedPlace = getDetailedPlaceById(placeId);
-
-  if (!selectedPlace) {
-    return [];
-  }
-
-  return explorePlaces
-    .filter((place) => place.id !== selectedPlace.id)
-    .map((place) => {
-      let score = 0;
-      if (place.region === selectedPlace.region) score += 4;
-      if (place.category === selectedPlace.category) score += 3;
-      if (place.vibe === selectedPlace.vibe) score += 2;
-      if (place.budget === selectedPlace.budget) score += 1;
-      return { ...place, score };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+export const getRelatedPlaces = async (placeId, limit = 3) => {
+  const [selectedPlace, places] = await Promise.all([
+    getExplorePlace(placeId), getExplorePlaces(),
+  ]);
+  return places.filter((place) => String(place.id) !== String(placeId))
+    .map((place) => ({ ...place, score:
+      (place.region === selectedPlace?.region ? 4 : 0) +
+      (place.category === selectedPlace?.category ? 3 : 0) }))
+    .sort((a, b) => b.score - a.score).slice(0, limit);
 };

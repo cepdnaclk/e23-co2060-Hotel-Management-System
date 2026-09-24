@@ -63,7 +63,7 @@ function PartnerLoginPage() {
         <div style={styles.formSide}>
           <h1 style={styles.title}>Partner Login</h1>
           <p style={styles.subtitle}>
-            Access your TourismHub LK partner account.
+            Access your TripLanka partner account.
           </p>
 
           {redirectTo !== "/partner/dashboard" && (
@@ -136,7 +136,7 @@ const styles = {
   imageSide: {
     minHeight: "520px",
     backgroundImage:
-      "url('https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1000&q=80')",
+      "url('/images/hotels/colombo-city-stay/property-01.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "center",
     position: "relative",

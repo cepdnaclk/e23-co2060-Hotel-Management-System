@@ -43,7 +43,7 @@ function ListYourPropertyPage() {
       <section style={styles.hero}>
         <div style={styles.overlay}>
           <div style={styles.heroContent}>
-            <h1 style={styles.title}>Partner With TourismHub LK</h1>
+            <h1 style={styles.title}>Partner With TripLanka</h1>
             <p style={styles.subtitle}>
               Register your hotel, resort, villa, or guesthouse, list a tourism event, or
               offer your services as a tourist guide — and reach travellers exploring Sri Lanka.
@@ -121,7 +121,7 @@ const styles = {
   hero: {
     minHeight: "520px",
     backgroundImage:
-      "url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80')",
+      "url('/images/hotels/kandy-lake-hotel/property-01.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "center",
   },

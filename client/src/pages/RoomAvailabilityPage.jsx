@@ -1,12 +1,14 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api/api";
+import { assetUrl, IMAGE_PLACEHOLDER } from "../utils/assetUrl";
 
 const fallbackRoomImage =
-  "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80";
+  IMAGE_PLACEHOLDER;
 
 const fallbackHotelImage =
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1400&q=80";
+  IMAGE_PLACEHOLDER;
 
 function RoomAvailabilityPage() {
   const { id } = useParams();
@@ -50,9 +52,11 @@ function RoomAvailabilityPage() {
   };
 
   const getPropertyImage = () => {
-    return (
+    return assetUrl(
       property?.main_photo ||
       property?.main_image ||
+      property?.photos?.find((photo) => photo.is_main)?.image_url ||
+      property?.photos?.[0]?.image_url ||
       property?.image_url ||
       property?.photo_url ||
       fallbackHotelImage
@@ -168,7 +172,7 @@ function RoomAvailabilityPage() {
           <div style={styles.heroContent}>
             <div style={styles.logoWrap}>
               {property.logo_url ? (
-                <img
+                <ContentImage
                   src={property.logo_url}
                   alt={`${property.name} logo`}
                   style={styles.logo}
@@ -258,7 +262,7 @@ function RoomAvailabilityPage() {
                   }}
                 >
                   <div style={styles.imageColumn}>
-                    <img
+                    <ContentImage
                       src={getRoomImage(room)}
                       alt={room.room_type}
                       style={styles.roomImage}

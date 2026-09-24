@@ -1,3 +1,5 @@
+import ContentImage from "./ContentImage";
+import { assetUrl as resolveAssetUrl } from "../utils/assetUrl";
 import {
   useEffect,
   useMemo,
@@ -93,7 +95,7 @@ const formatCost = (value) => {
 
 
 function TripBasketWidget({
-  assetUrl = (value) => value,
+  assetUrl = resolveAssetUrl,
   sourceLabel = "Trip basket",
   embedded = false,
   days = [],
@@ -381,7 +383,7 @@ function TripBasketWidget({
         >
           <div className="trip-basket-item-media">
             {image ? (
-              <img
+              <ContentImage
                 src={
                   image
                 }

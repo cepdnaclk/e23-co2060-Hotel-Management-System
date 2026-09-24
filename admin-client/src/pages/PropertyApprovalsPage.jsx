@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
 
@@ -247,7 +248,7 @@ function PropertyApprovalsPage() {
                     <td>
                       <div className="event-title-cell">
                         {property.main_image || property.logo_url ? (
-                          <img src={property.main_image || property.logo_url} alt={property.name} />
+                          <ContentImage src={property.main_image || property.logo_url} alt={property.name} />
                         ) : (
                           <span className="event-thumb-fallback">HT</span>
                         )}

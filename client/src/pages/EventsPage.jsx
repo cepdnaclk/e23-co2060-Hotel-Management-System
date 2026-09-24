@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -1103,7 +1104,7 @@ function EventsPage() {
 
           <aside className="hero-feature-card">
             {heroImage ? (
-              <img
+              <ContentImage
                 className="hero-feature-photo"
                 src={heroImage}
                 alt={currentHeroEvent?.title || "Event highlight"}
@@ -1253,7 +1254,7 @@ function EventsPage() {
             <div className="featured-events-grid">
               {featuredEvents.map((event) => (
                 <article className="feature-card" key={getEventKey(event)}>
-                  <img src={assetUrl(getEventImage(event))} alt={event.title} />
+                  <ContentImage src={assetUrl(getEventImage(event))} alt={event.title} />
                   <div className="feature-gradient" />
                   <div className="feature-body">
                     <span>{event.category}</span>
@@ -1294,7 +1295,7 @@ function EventsPage() {
                     </div>
 
                     <div className="event-image-box">
-                      <img src={assetUrl(getEventImage(event))} alt={event.title} />
+                      <ContentImage src={assetUrl(getEventImage(event))} alt={event.title} />
                       <span>{event.category}</span>
                     </div>
 

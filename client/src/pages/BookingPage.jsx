@@ -1,6 +1,8 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/api";
+import { IMAGE_PLACEHOLDER } from "../utils/assetUrl";
 import { useAuth } from "../context/AuthContext";
 import {
   countries,
@@ -185,8 +187,7 @@ function BookingPage() {
       roomItem?.main_image ||
       roomItem?.image_url ||
       roomItem?.photo_url ||
-      property?.main_photo ||
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80"
+      IMAGE_PLACEHOLDER
     );
   };
 
@@ -545,14 +546,14 @@ function BookingPage() {
 
   const logo =
     property?.logo_url ||
-    "https://dummyimage.com/160x160/ffffff/111827.png&text=LOGO";
+    IMAGE_PLACEHOLDER;
 
   return (
     <main style={styles.page}>
       <div style={styles.container}>
         <div style={styles.headerCard}>
           <div style={styles.titleRow}>
-            <img src={logo} alt={`${property?.name} logo`} style={styles.logo} />
+            <ContentImage src={logo} alt={`${property?.name} logo`} style={styles.logo} />
 
             <div>
               <Link
@@ -864,7 +865,7 @@ function BookingPage() {
 
           <aside style={styles.summaryCard}>
             <div style={styles.summaryImageBox}>
-              <img
+              <ContentImage
                 src={getRoomImage(room)}
                 alt={room?.room_type}
                 style={styles.summaryImage}

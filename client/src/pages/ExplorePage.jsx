@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -46,10 +47,10 @@ const getSriLankaMonthInfo = () => {
 const getPlaceImage = (place) => place?.image || place?.imageUrl || place?.image_url || place?.images?.[0] || "";
 
 const defaultHeroImages = [
-  "https://images.pexels.com/photos/16508265/pexels-photo-16508265.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  "https://images.pexels.com/photos/2403209/pexels-photo-2403209.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  "https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  "https://images.pexels.com/photos/3225528/pexels-photo-3225528.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  "/images/destinations/sigiriya-rock-fortress/main.jpg",
+  "/images/destinations/nine-arch-bridge/main.jpg",
+  "/images/destinations/mirissa-beach-and-whale-watching/main.jpg",
+  "/images/destinations/galle-fort/main.jpg",
 ];
 
 const cleanUniqueImages = (images = []) => {
@@ -89,7 +90,7 @@ function PlaceCard({ place, onToggleSave, saved }) {
   return (
     <article className="exp-card">
       <Link to={`/explore/${place.id}`} className="exp-photo">
-        <img src={assetUrl(place.image)} alt={place.name} />
+        <ContentImage src={assetUrl(place.image)} alt={place.name} />
         <span className="exp-region">{place.region}</span>
         {place.featured ? <span className="exp-featured">★ Featured</span> : null}
       </Link>
@@ -347,7 +348,7 @@ export default function ExplorePage() {
       {notice ? <div className="toast">{notice}</div> : null}
 
       <section className="hero-explore explore-showcase-hero" style={{ backgroundImage: `url(${currentHeroImage})` }}>
-        <img
+        <ContentImage
           key={`${currentHeroImage}-${heroImageIndex}`}
           className="hero-bg-image"
           src={currentHeroImage}
@@ -453,7 +454,7 @@ export default function ExplorePage() {
             <div className="season-grid">
               {seasonal.length ? seasonal.map((place) => (
                 <Link to={`/explore/${place.id}`} key={place.id} className="season-card">
-                  <img src={assetUrl(getPlaceImage(place))} alt={place.name} />
+                  <ContentImage src={assetUrl(getPlaceImage(place))} alt={place.name} />
                   <div>
                     <small>{place.bestTime}</small>
                     <strong>{place.name}</strong>

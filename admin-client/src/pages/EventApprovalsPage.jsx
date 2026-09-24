@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
 
@@ -216,7 +217,7 @@ function EventApprovalsPage() {
                     <td>
                       <div className="event-title-cell">
                         {event.image_url ? (
-                          <img src={event.image_url} alt={event.title} />
+                          <ContentImage src={event.image_url} alt={event.title} />
                         ) : (
                           <span className="event-thumb-fallback">EV</span>
                         )}
@@ -296,7 +297,7 @@ function EventApprovalsPage() {
 
             {error && <div role="alert" className="admin-error">{error}</div>}
             {selectedEvent.image_url && (
-              <img className="event-review-image" src={selectedEvent.image_url} alt={selectedEvent.title} />
+              <ContentImage className="event-review-image" src={selectedEvent.image_url} alt={selectedEvent.title} />
             )}
 
             <div className="review-grid">

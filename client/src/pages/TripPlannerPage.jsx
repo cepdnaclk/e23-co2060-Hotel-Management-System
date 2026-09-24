@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import {
   useCallback,
   useEffect,
@@ -1885,7 +1886,7 @@ const drawPdfFooter =
     );
 
     doc.text(
-      "TourismHub LK",
+      "TripLanka",
       15,
       height - 8
     );
@@ -4267,7 +4268,7 @@ function TripPlannerPage() {
         doc.setFontSize(10);
 
         doc.text(
-          "TOURISMHUB LK - TRIP ITINERARY",
+          "TRIPLANKA - TRIP ITINERARY",
           margin,
           17
         );
@@ -5432,7 +5433,7 @@ function TripPlannerPage() {
               doc.setFontSize(7.5);
 
               doc.textWithLink(
-                "View in TourismHub LK",
+                "View in TripLanka",
                 textX,
                 linkY,
                 {
@@ -5698,7 +5699,7 @@ function TripPlannerPage() {
 
         <div className="trip-hero-copy">
           <span className="trip-kicker">
-            TOURISMHUB LK · TRIP PLANNER
+            TRIPLANKA · TRIP PLANNER
           </span>
 
           <div className="trip-hero-title-wrap">
@@ -6814,7 +6815,7 @@ function TripPlannerPage() {
                               </span>
 
                               {destination.image && (
-                                <img
+                                <ContentImage
                                   src={
                                     destination.image
                                   }
@@ -7166,7 +7167,7 @@ function TripPlannerPage() {
                                               }
                                             >
                                               {itemImage ? (
-                                                <img
+                                                <ContentImage
                                                   src={
                                                     itemImage
                                                   }
@@ -7187,7 +7188,7 @@ function TripPlannerPage() {
                                           ) : (
                                             <div className="trip-extra-item-media">
                                               {itemImage ? (
-                                                <img
+                                                <ContentImage
                                                   src={
                                                     itemImage
                                                   }

@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../api/api";
@@ -406,7 +407,7 @@ function PartnerGuideRegistrationPage() {
             <>
               <div className="guide-photo-panel">
                 <div className="guide-photo-preview">
-                  {form.image_url ? <img src={form.image_url} alt="Guide preview" /> : <span>👤</span>}
+                  {form.image_url ? <ContentImage src={form.image_url} alt="Guide preview" /> : <span>👤</span>}
                 </div>
                 <div>
                   <h3>Profile Photo</h3>
@@ -584,7 +585,7 @@ function PartnerGuideRegistrationPage() {
               {guides.map((guide) => (
                 <article key={guide.id} className="my-guide-card">
                   <div className="mini-guide-img">
-                    {guide.image_url ? <img src={guide.image_url} alt={guide.display_name} /> : <span>🧭</span>}
+                    {guide.image_url ? <ContentImage src={guide.image_url} alt={guide.display_name} /> : <span>🧭</span>}
                   </div>
                   <div>
                     <div className="mini-guide-top">

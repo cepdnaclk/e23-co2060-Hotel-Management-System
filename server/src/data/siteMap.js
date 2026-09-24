@@ -2,7 +2,7 @@ const siteMap = [
   {
     name: "Home",
     path: "/",
-    description: "Main landing page of TourismHub LK",
+    description: "Main landing page of TripLanka",
     keywords: ["home", "main page", "start"],
   },
   {

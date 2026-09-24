@@ -41,7 +41,7 @@ const PAGE_ASSISTANT_CONFIG = [
     label: "Trip Planner",
 
     greeting:
-      "Hi! I’m Alby. I can help you build, organize, and understand your TourismHub LK trip plan.",
+      "Hi! I’m Alby. I can help you build, organize, and understand your TripLanka trip plan.",
 
     questions: [
       "How should I organize my trip days?",
@@ -92,7 +92,7 @@ const PAGE_ASSISTANT_CONFIG = [
     label: "Events",
 
     greeting:
-      "Hi! I’m Alby. I can help you discover TourismHub LK events and use them in your journey.",
+      "Hi! I’m Alby. I can help you discover TripLanka events and use them in your journey.",
 
     questions: [
       "How do I find events?",
@@ -123,15 +123,15 @@ const PAGE_ASSISTANT_CONFIG = [
   {
     match: () => true,
 
-    label: "TourismHub LK",
+    label: "TripLanka",
 
     greeting:
-      "Hi! I’m Alby, your TourismHub LK travel helper. Ask me anything about the website or travelling in Sri Lanka.",
+      "Hi! I’m Alby, your TripLanka travel helper. Ask me anything about the website or travelling in Sri Lanka.",
 
     questions: [
       "How can I plan a trip?",
       "How can I book a hotel?",
-      "What can I explore in TourismHub LK?",
+      "What can I explore in TripLanka?",
       "How can I find events and guides?",
     ],
   },
@@ -838,7 +838,7 @@ function AIAssistant() {
 
               text:
                 data.reply ||
-                "I can help you use TourismHub LK and plan your Sri Lanka journey.",
+                "I can help you use TripLanka and plan your Sri Lanka journey.",
             },
           ]
         );
@@ -877,7 +877,7 @@ function AIAssistant() {
         const assistantError =
           error?.code ===
           "ERR_NETWORK"
-            ? "I cannot reach the TourismHub LK server right now. Please try again in a moment."
+            ? "I cannot reach the TripLanka server right now. Please try again in a moment."
             : error?.response
                 ?.data
                 ?.reply ||
@@ -1166,7 +1166,7 @@ function AIAssistant() {
     pageConfig.label ===
     "Trip Planner"
       ? "Build your itinerary, organize trip days, understand routes, and get help using your saved trip items."
-      : `Ask me about ${pageConfig.label.toLowerCase()} or how to use TourismHub LK. I’ll help you find the next step quickly.`;
+      : `Ask me about ${pageConfig.label.toLowerCase()} or how to use TripLanka. I’ll help you find the next step quickly.`;
 
 
   return (
@@ -1187,7 +1187,7 @@ function AIAssistant() {
       {isOpen && (
         <section
           className="ai-chat-box"
-          aria-label="TourismHub LK AI Assistant"
+          aria-label="TripLanka AI Assistant"
         >
           <header className="ai-chat-header">
             <div className="ai-chat-title-wrap">
@@ -1543,7 +1543,7 @@ function AIAssistant() {
                 onKeyDown={
                   handleInputKeyDown
                 }
-                aria-label="Message TourismHub LK AI Assistant"
+                aria-label="Message TripLanka AI Assistant"
               />
 
               <button
@@ -1610,7 +1610,7 @@ function AIAssistant() {
           onPointerCancel={
             finishLauncherDrag
           }
-          aria-label="Open Alby, the TourismHub LK AI Assistant. Drag to move it."
+          aria-label="Open Alby, the TripLanka AI Assistant. Drag to move it."
           title="Ask Alby · Drag to move"
         >
           <span

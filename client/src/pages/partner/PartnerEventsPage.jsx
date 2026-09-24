@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import api from "../../api/api";
@@ -546,7 +547,7 @@ function PartnerEventsPage() {
             </div>
 
             {imagePreview ? (
-              <img src={imagePreview} alt="Event preview" style={styles.previewImage} />
+              <ContentImage src={imagePreview} alt="Event preview" style={styles.previewImage} />
             ) : (
               <div style={styles.previewPlaceholder}>No image selected</div>
             )}
@@ -612,7 +613,7 @@ function PartnerEventsPage() {
               <article key={event.id} className="partner-event-card">
                 <div style={styles.eventImageBox}>
                   {event.image_url ? (
-                    <img src={event.image_url} alt={event.title} style={styles.eventImage} />
+                    <ContentImage src={event.image_url} alt={event.title} style={styles.eventImage} />
                   ) : (
                     <div style={styles.eventImageEmpty}>No Image</div>
                   )}

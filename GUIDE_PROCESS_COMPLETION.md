@@ -1,6 +1,6 @@
 # Complete Guide Process
 
-This build completes the TourismHub LK guide workflow and organizes partner request management per guide profile.
+This build completes the TripLanka guide workflow and organizes partner request management per guide profile.
 
 ## Partner flow
 
