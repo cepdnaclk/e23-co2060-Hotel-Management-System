@@ -1,8 +1,35 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  Link,
+  useLocation,
+} from "react-router-dom";
+
+import {
+  CalendarDays,
+  Compass,
+  ExternalLink,
+  Hotel,
+  MapPin,
+  Plus,
+  ShoppingBag,
+  Ticket,
+  Trash2,
+  UserRound,
+  X,
+} from "lucide-react";
+
 import {
   clearTripItems,
+  getTripItemCategoryKey,
   getTripItemImage,
+  getTripItemKey,
+  getTripItemLink,
+  getTripItemLocation,
   getTripItemTypeLabel,
   groupTripItemsByType,
   readTripItems,
@@ -10,129 +37,1281 @@ import {
   SAVED_TRIP_EVENT,
 } from "../utils/tripBasket";
 
-function TripBasketWidget({ assetUrl = (value) => value, sourceLabel = "Trip basket" }) {
-  const [items, setItems] = useState(readTripItems);
-  const [open, setOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("destinations");
+
+const CATEGORY_ICONS = {
+  destinations: MapPin,
+  hotels: Hotel,
+  events: Ticket,
+  guides: UserRound,
+};
+
+
+const EXPLORE_LINKS = [
+  {
+    key: "destinations",
+    label: "Explore places",
+    to: "/explore",
+    icon: MapPin,
+  },
+  {
+    key: "hotels",
+    label: "Find hotels",
+    to: "/hotels",
+    icon: Hotel,
+  },
+  {
+    key: "events",
+    label: "Explore events",
+    to: "/events",
+    icon: CalendarDays,
+  },
+  {
+    key: "guides",
+    label: "Explore guides",
+    to: "/tourist-guides",
+    icon: Compass,
+  },
+];
+
+
+const formatCost = (value) => {
+  const amount = Number(value || 0);
+
+  if (!amount) {
+    return "";
+  }
+
+  return new Intl.NumberFormat(
+    "en-LK",
+    {
+      style: "currency",
+      currency: "LKR",
+      maximumFractionDigits: 0,
+    }
+  ).format(amount);
+};
+
+
+function TripBasketWidget({
+  assetUrl = (value) => value,
+  sourceLabel = "Trip basket",
+  embedded = false,
+  days = [],
+  onAddToDay,
+  onNavigateAway,
+}) {
+  const location =
+    useLocation();
+
+  const [
+    items,
+    setItems,
+  ] = useState(
+    readTripItems
+  );
+
+  const [
+    open,
+    setOpen,
+  ] = useState(false);
+
+  const [
+    activeCategory,
+    setActiveCategory,
+  ] = useState(
+    "destinations"
+  );
+
+  const [
+    selectedDayByItem,
+    setSelectedDayByItem,
+  ] = useState({});
+
 
   useEffect(() => {
-    const refreshItems = () => setItems(readTripItems());
-    window.addEventListener("storage", refreshItems);
-    window.addEventListener(SAVED_TRIP_EVENT, refreshItems);
+    const refreshItems =
+      () =>
+        setItems(
+          readTripItems()
+        );
+
+    window.addEventListener(
+      "storage",
+      refreshItems
+    );
+
+    window.addEventListener(
+      SAVED_TRIP_EVENT,
+      refreshItems
+    );
 
     return () => {
-      window.removeEventListener("storage", refreshItems);
-      window.removeEventListener(SAVED_TRIP_EVENT, refreshItems);
+      window.removeEventListener(
+        "storage",
+        refreshItems
+      );
+
+      window.removeEventListener(
+        SAVED_TRIP_EVENT,
+        refreshItems
+      );
     };
   }, []);
 
-  const handleRemove = (itemId) => {
-    setItems(removeTripItem(itemId));
-  };
 
-  const handleClear = () => {
-    if (!items.length) return;
-    if (!window.confirm("Remove all saved trip items?")) return;
-    clearTripItems();
-    setItems([]);
-  };
+  const groups =
+    useMemo(
+      () =>
+        groupTripItemsByType(
+          items,
+          {
+            includeEmpty: true,
+          }
+        ),
+      [
+        items,
+      ]
+    );
+
+
+  const activeGroup =
+    groups.find(
+      (group) =>
+        group.key ===
+        activeCategory
+    ) ||
+    groups[0];
+
+
+  const getUsageDays =
+    (item) => {
+      const category =
+        getTripItemCategoryKey(
+          item
+        );
+
+      const key =
+        getTripItemKey(
+          item
+        );
+
+      return days
+        .map(
+          (
+            day,
+            dayIndex
+          ) => {
+            const dayItems =
+              Array.isArray(
+                day?.[
+                  category
+                ]
+              )
+                ? day[
+                    category
+                  ]
+                : [];
+
+            const used =
+              dayItems.some(
+                (
+                  dayItem
+                ) =>
+                  getTripItemKey(
+                    dayItem
+                  ) === key
+              );
+
+            return used
+              ? dayIndex + 1
+              : null;
+          }
+        )
+        .filter(Boolean);
+    };
+
+
+  const handleRemove =
+    (item) => {
+      setItems(
+        removeTripItem(
+          item
+        )
+      );
+    };
+
+
+  const handleClear =
+    () => {
+      if (!items.length) {
+        return;
+      }
+
+      if (
+        !window.confirm(
+          "Remove all saved trip items?"
+        )
+      ) {
+        return;
+      }
+
+      clearTripItems();
+
+      setItems([]);
+    };
+
+
+  const handleAdd =
+    (item) => {
+      if (
+        typeof onAddToDay !==
+        "function"
+      ) {
+        return;
+      }
+
+      const itemKey =
+        getTripItemKey(
+          item
+        );
+
+      const selected =
+        selectedDayByItem[
+          itemKey
+        ];
+
+      const dayIndex =
+        selected ===
+          undefined ||
+        selected === ""
+          ? 0
+          : Number(selected);
+
+      onAddToDay(
+        dayIndex,
+        item
+      );
+    };
+
+
+  const handleNavigateAway =
+    () => {
+      if (
+        typeof onNavigateAway ===
+        "function"
+      ) {
+        onNavigateAway();
+      }
+
+      setOpen(
+        false
+      );
+    };
+
+
+  const renderItem =
+    (item) => {
+      const itemKey =
+        getTripItemKey(
+          item
+        );
+
+      const image =
+        assetUrl(
+          getTripItemImage(
+            item
+          )
+        );
+
+      const link =
+        getTripItemLink(
+          item
+        );
+
+      const usageDays =
+        getUsageDays(
+          item
+        );
+
+      const category =
+        getTripItemCategoryKey(
+          item
+        );
+
+      const firstSuitableDayIndex =
+        category ===
+        "destinations"
+          ? 0
+          : Math.max(
+              0,
+              days.findIndex(
+                (day) =>
+                  Array.isArray(
+                    day?.destinations
+                  ) &&
+                  day.destinations
+                    .length > 0
+              )
+            );
+
+      const selectedDay =
+        selectedDayByItem[
+          itemKey
+        ] ??
+        String(
+          firstSuitableDayIndex
+        );
+
+      const selectedDayNumber =
+        Number(
+          selectedDay
+        ) + 1;
+
+      const alreadyOnSelectedDay =
+        usageDays.includes(
+          selectedDayNumber
+        );
+
+      return (
+        <article
+          key={
+            itemKey
+          }
+          className="trip-basket-item"
+        >
+          <div className="trip-basket-item-media">
+            {image ? (
+              <img
+                src={
+                  image
+                }
+                alt={
+                  item.name ||
+                  getTripItemTypeLabel(
+                    item
+                  )
+                }
+              />
+            ) : (
+              <div className="trip-basket-item-placeholder">
+                {
+                  getTripItemTypeLabel(
+                    item
+                  )
+                }
+              </div>
+            )}
+          </div>
+
+
+          <div className="trip-basket-item-main">
+            <div className="trip-basket-item-topline">
+              <span>
+                {
+                  getTripItemTypeLabel(
+                    item
+                  )
+                }
+              </span>
+
+              {formatCost(
+                item.estimatedCost
+              ) && (
+                <b>
+                  {formatCost(
+                    item.estimatedCost
+                  )}
+                </b>
+              )}
+            </div>
+
+            <strong>
+              {item.name ||
+                "Saved trip item"}
+            </strong>
+
+            <p>
+              {
+                getTripItemLocation(
+                  item
+                )
+              }
+            </p>
+
+            {usageDays.length >
+              0 && (
+              <small>
+                Added to{" "}
+                {usageDays
+                  .map(
+                    (
+                      day
+                    ) =>
+                      `Day ${day}`
+                  )
+                  .join(", ")}
+              </small>
+            )}
+
+
+            <div className="trip-basket-item-actions">
+              {link && (
+                <Link
+                  to={
+                    link
+                  }
+                  className="trip-basket-view-link"
+                  onClick={
+                    handleNavigateAway
+                  }
+                >
+                  <ExternalLink
+                    size={14}
+                  />
+
+                  View
+                </Link>
+              )}
+
+              <button
+                type="button"
+                className="trip-basket-remove"
+                onClick={() =>
+                  handleRemove(
+                    item
+                  )
+                }
+              >
+                <Trash2
+                  size={14}
+                />
+
+                Remove
+              </button>
+            </div>
+
+
+            {embedded &&
+              typeof onAddToDay ===
+                "function" &&
+              days.length > 0 && (
+              <div className="trip-basket-day-action">
+                <select
+                  value={
+                    selectedDay
+                  }
+                  onChange={
+                    (
+                      event
+                    ) =>
+                      setSelectedDayByItem(
+                        (
+                          current
+                        ) => ({
+                          ...current,
+
+                          [itemKey]:
+                            event
+                              .target
+                              .value,
+                        })
+                      )
+                  }
+                  aria-label={`Choose day for ${item.name}`}
+                >
+                  {days.map(
+                    (
+                      day,
+                      dayIndex
+                    ) => (
+                      <option
+                        key={
+                          day.dayNumber ||
+                          dayIndex
+                        }
+                        value={
+                          String(
+                            dayIndex
+                          )
+                        }
+                      >
+                        Day{" "}
+                        {
+                          dayIndex +
+                          1
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <button
+                  type="button"
+                  className="trip-basket-add-day"
+                  disabled={
+                    alreadyOnSelectedDay
+                  }
+                  onClick={() =>
+                    handleAdd(
+                      item
+                    )
+                  }
+                >
+                  <Plus
+                    size={15}
+                  />
+
+                  {alreadyOnSelectedDay
+                    ? "Added"
+                    : "Add to day"}
+                </button>
+              </div>
+            )}
+          </div>
+        </article>
+      );
+    };
+
+
+  const basketContent = (
+    <>
+      <div className="trip-basket-tabs">
+        {groups.map(
+          (
+            group
+          ) => {
+            const Icon =
+              CATEGORY_ICONS[
+                group.key
+              ] ||
+              ShoppingBag;
+
+            return (
+              <button
+                key={
+                  group.key
+                }
+                type="button"
+                className={
+                  activeCategory ===
+                  group.key
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  setActiveCategory(
+                    group.key
+                  )
+                }
+              >
+                <Icon
+                  size={16}
+                />
+
+                <span>
+                  {
+                    group.label
+                  }
+                </span>
+
+                <b>
+                  {
+                    group.items
+                      .length
+                  }
+                </b>
+              </button>
+            );
+          }
+        )}
+      </div>
+
+
+      {activeGroup
+        ?.items?.length ? (
+        <div className="trip-basket-list">
+          {activeGroup.items.map(
+            renderItem
+          )}
+        </div>
+      ) : (
+        <div className="trip-basket-category-empty">
+          <strong>
+            No{" "}
+            {activeGroup?.label
+              ?.toLowerCase() ||
+              "items"}{" "}
+            saved yet
+          </strong>
+
+          <span>
+            Explore and save items to use them here.
+          </span>
+        </div>
+      )}
+
+
+      <div className="trip-basket-explore">
+        {EXPLORE_LINKS.map(
+          (
+            item
+          ) => {
+            const Icon =
+              item.icon;
+
+            return (
+              <Link
+                key={
+                  item.key
+                }
+                to={
+                  item.to
+                }
+                onClick={
+                  handleNavigateAway
+                }
+              >
+                <Icon
+                  size={15}
+                />
+
+                {
+                  item.label
+                }
+              </Link>
+            );
+          }
+        )}
+      </div>
+
+
+      {items.length > 0 && (
+        <div className="trip-basket-foot">
+          <span>
+            {items.length} saved{" "}
+            {items.length === 1
+              ? "item"
+              : "items"}
+          </span>
+
+          <button
+            type="button"
+            onClick={
+              handleClear
+            }
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+
+  if (embedded) {
+    return (
+      <>
+        <style>
+          {
+            basketCss
+          }
+        </style>
+
+        <div className="trip-basket-embedded">
+          <div className="trip-basket-embedded-head">
+            <div>
+              <span>
+                {
+                  sourceLabel
+                }
+              </span>
+
+              <h3>
+                Saved trip items
+              </h3>
+            </div>
+
+            <div className="trip-basket-count">
+              <ShoppingBag
+                size={16}
+              />
+
+              {
+                items.length
+              }
+            </div>
+          </div>
+
+          {
+            basketContent
+          }
+        </div>
+      </>
+    );
+  }
+
+
+  if (
+    location.pathname.startsWith(
+      "/trip-planner"
+    )
+  ) {
+    return null;
+  }
+
 
   return (
     <>
-      <style>{basketCss}</style>
+      <style>
+        {
+          basketCss
+        }
+      </style>
+
       <button
         type="button"
-        className={`trip-basket-fab ${items.length ? "has-items" : ""}`}
-        onClick={() => setOpen((current) => !current)}
-        aria-label={open ? "Close trip basket" : "Open trip basket"}
+        className={`trip-basket-fab ${
+          items.length
+            ? "has-items"
+            : ""
+        }`}
+        onClick={() =>
+          setOpen(
+            (
+              current
+            ) =>
+              !current
+          )
+        }
+        aria-label={
+          open
+            ? "Close trip basket"
+            : "Open trip basket"
+        }
       >
-        <span>+</span>
-        <strong>Trip Basket</strong>
-        <b>{items.length}</b>
+        <ShoppingBag
+          size={18}
+        />
+
+        <strong>
+          Trip Basket
+        </strong>
+
+        <b>
+          {
+            items.length
+          }
+        </b>
       </button>
 
-      {open ? (
-        <aside className="trip-basket-panel" aria-label="Saved trip basket">
+
+      {open && (
+        <aside
+          className="trip-basket-panel"
+          aria-label="Saved trip basket"
+        >
           <div className="trip-basket-head">
             <div>
-              <span>{sourceLabel}</span>
-              <h3>Saved for trip</h3>
+              <span>
+                {
+                  sourceLabel
+                }
+              </span>
+
+              <h3>
+                Saved for trip
+              </h3>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close trip basket">
-              x
+
+            <button
+              type="button"
+              onClick={() =>
+                setOpen(
+                  false
+                )
+              }
+              aria-label="Close trip basket"
+            >
+              <X
+                size={18}
+              />
             </button>
           </div>
 
-          {items.length ? (
-            <>
-              <div className="trip-basket-tabs">
-                {groupTripItemsByType(items, { includeEmpty: true }).map((group) => (
-                  <button
-                    key={group.key}
-                    type="button"
-                    className={activeCategory === group.key ? "active" : ""}
-                    onClick={() => setActiveCategory(group.key)}
-                  >
-                    <span>{group.icon} {group.label}</span>
-                    <b>{group.items.length}</b>
-                  </button>
-                ))}
-              </div>
+          {
+            basketContent
+          }
 
-              <div className="trip-basket-list">
-                {(() => {
-                  const activeGroup = groupTripItemsByType(items, { includeEmpty: true }).find(
-                    (group) => group.key === activeCategory
-                  );
-                  const activeItems = activeGroup?.items || [];
-
-                  if (!activeItems.length) {
-                    return (
-                      <div className="trip-basket-category-empty">
-                        No {activeGroup?.label.toLowerCase()} saved yet.
-                      </div>
-                    );
-                  }
-
-                  return activeItems.map((item) => {
-                    const image = assetUrl(getTripItemImage(item));
-
-                    return (
-                      <article key={item.id} className="trip-basket-item">
-                        {image ? <img src={image} alt={item.name} /> : <div>{getTripItemTypeLabel(item)}</div>}
-                        <section>
-                          <strong>{item.name}</strong>
-                          <p>
-                            {getTripItemTypeLabel(item)} - {item.city || item.region || "Sri Lanka"}
-                          </p>
-                        </section>
-                        <button type="button" onClick={() => handleRemove(item.id)}>
-                          Remove
-                        </button>
-                      </article>
-                    );
-                  });
-                })()}
-              </div>
-              <div className="trip-basket-foot">
-                <button type="button" onClick={handleClear}>Clear all</button>
-                <Link to="/trip-planner" onClick={() => setOpen(false)}>Open trip planner</Link>
-              </div>
-            </>
-          ) : (
-            <div className="trip-basket-empty">
-              <strong>No saved trip items yet</strong>
-              <p>Add hotels, events, guides, or places and they will appear in Plan Trip.</p>
-            </div>
-          )}
+          <div className="trip-basket-open-planner">
+            <Link
+              to="/trip-planner"
+              onClick={() =>
+                setOpen(
+                  false
+                )
+              }
+            >
+              Open trip planner
+            </Link>
+          </div>
         </aside>
-      ) : null}
+      )}
     </>
   );
 }
 
+
 const basketCss = `
-.trip-basket-fab{position:fixed;right:22px;bottom:24px;z-index:72;border:2px solid rgba(255,194,43,.82);border-radius:999px;background:linear-gradient(135deg,#064e45,#087768);color:#fff;box-shadow:0 18px 44px rgba(3,58,54,.28),0 0 0 6px rgba(255,194,43,.14);padding:12px 14px 12px 12px;display:flex;align-items:center;gap:10px;font-weight:900;cursor:pointer}.trip-basket-fab span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffc22b;color:#063c38;font-size:22px}.trip-basket-fab strong{font-size:13px;letter-spacing:.06em;text-transform:uppercase}.trip-basket-fab b{min-width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:#fff;color:#064e45;font-size:13px}.trip-basket-fab.has-items{animation:tripBasketPulse 2.8s ease-in-out infinite}.trip-basket-panel{position:fixed;right:22px;bottom:94px;width:min(440px,calc(100vw - 32px));max-height:min(650px,calc(100vh - 130px));z-index:76;background:#fff;border:1px solid #dbece4;border-radius:26px;box-shadow:0 24px 70px rgba(2,50,49,.24);overflow:hidden;display:flex;flex-direction:column}.trip-basket-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:20px;background:linear-gradient(135deg,#064e45,#08806f);color:#fff}.trip-basket-head span{display:block;color:#ffe183;font-weight:900;letter-spacing:.18em;font-size:11px;text-transform:uppercase}.trip-basket-head h3{margin:6px 0 0;font-size:26px}.trip-basket-head button{border:none;background:rgba(255,255,255,.14);color:#fff;border-radius:50%;width:38px;height:38px;font-size:20px;line-height:1;cursor:pointer}.trip-basket-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:14px 14px 0}.trip-basket-tabs button{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid #dbece4;background:#f9fdf9;border-radius:14px;padding:9px 6px;cursor:pointer}.trip-basket-tabs button span{color:#064e45;font-weight:900;font-size:11px;text-align:center;line-height:1.2}.trip-basket-tabs button b{background:#eef8f4;color:#07584e;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:950}.trip-basket-tabs button.active{background:#064e45;border-color:#064e45}.trip-basket-tabs button.active span{color:#fff}.trip-basket-tabs button.active b{background:#ffc22b;color:#063c38}.trip-basket-list{padding:14px;overflow:auto;display:grid;gap:12px}.trip-basket-category-empty{padding:24px 8px;text-align:center;color:#657285;font-weight:750}.trip-basket-item{display:grid;grid-template-columns:74px 1fr auto;gap:12px;align-items:center;padding:10px;border:1px solid #e3efe8;border-radius:18px;background:#f9fdf9}.trip-basket-item img,.trip-basket-item>div{width:74px;height:66px;object-fit:cover;border-radius:14px;background:#e5eee9;display:grid;place-items:center;color:#064e45;font-size:12px;font-weight:950}.trip-basket-item strong{display:block;color:#064e45;font-size:15px;line-height:1.2}.trip-basket-item p{margin:4px 0 0;color:#657285;font-weight:750;font-size:12px}.trip-basket-item button{border:none;background:#fee2e2;color:#991b1b;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}.trip-basket-foot{display:flex;gap:10px;justify-content:space-between;padding:14px;border-top:1px solid #e5efe9;background:#fbfcf7}.trip-basket-foot button,.trip-basket-foot a{border:none;text-decoration:none;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;text-align:center}.trip-basket-foot button{background:#fff0f0;color:#a31515}.trip-basket-foot a{background:#ffc22b;color:#063c38;flex:1}.trip-basket-empty{padding:28px;text-align:center}.trip-basket-empty strong{color:#064e45;font-size:20px}.trip-basket-empty p{color:#657285;font-weight:700;line-height:1.6}@keyframes tripBasketPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}@media(max-width:680px){.trip-basket-fab{right:14px;bottom:18px}.trip-basket-fab strong{display:none}.trip-basket-panel{right:12px;bottom:82px;width:calc(100vw - 24px)}.trip-basket-item{grid-template-columns:64px 1fr}.trip-basket-item button{grid-column:1/-1}.trip-basket-item img,.trip-basket-item>div{width:64px;height:58px}}
+.trip-basket-fab{
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  z-index:72;
+  min-height:48px;
+  padding:0 10px 0 15px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:1px solid #cbded8;
+  border-radius:999px;
+  background:#ffffff;
+  color:#173f3b;
+  box-shadow:0 12px 32px rgba(25,55,50,.15);
+  cursor:pointer;
+  font:inherit;
+}
+.trip-basket-fab:hover{
+  border-color:#94bdb4;
+  box-shadow:0 16px 36px rgba(25,55,50,.2);
+}
+.trip-basket-fab strong{
+  font-size:12px;
+  font-weight:750;
+}
+.trip-basket-fab b{
+  min-width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#0f766e;
+  color:#ffffff;
+  font-size:11px;
+}
+.trip-basket-fab.has-items b{
+  background:#0b625b;
+}
+
+.trip-basket-panel{
+  position:fixed;
+  right:24px;
+  bottom:84px;
+  width:min(430px,calc(100vw - 32px));
+  max-height:min(680px,calc(100vh - 118px));
+  z-index:76;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border:1px solid #d9e5e1;
+  border-radius:18px;
+  background:#ffffff;
+  box-shadow:0 24px 70px rgba(28,52,48,.2);
+}
+
+.trip-basket-head,
+.trip-basket-embedded-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.trip-basket-head{
+  padding:17px 18px;
+  border-bottom:1px solid #e4ebe8;
+  background:#ffffff;
+}
+.trip-basket-head span,
+.trip-basket-embedded-head span{
+  display:block;
+  margin-bottom:4px;
+  color:#0f766e;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.trip-basket-head h3,
+.trip-basket-embedded-head h3{
+  margin:0;
+  color:#17211f;
+  font-size:18px;
+  line-height:1.25;
+  letter-spacing:-.02em;
+}
+.trip-basket-head>button{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid #dce5e2;
+  border-radius:9px;
+  background:#ffffff;
+  color:#5f6d68;
+  cursor:pointer;
+}
+
+.trip-basket-tabs{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+  padding:12px;
+}
+.trip-basket-tabs button{
+  min-width:0;
+  min-height:58px;
+  padding:8px 5px;
+  display:grid;
+  place-items:center;
+  gap:3px;
+  border:1px solid #dfe8e5;
+  border-radius:10px;
+  background:#fafcfb;
+  color:#5e6d68;
+  cursor:pointer;
+  font:inherit;
+}
+.trip-basket-tabs button svg{
+  color:#0f766e;
+}
+.trip-basket-tabs button span{
+  overflow:hidden;
+  max-width:100%;
+  color:inherit;
+  font-size:10px;
+  font-weight:700;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.trip-basket-tabs button b{
+  min-width:20px;
+  height:20px;
+  padding:0 5px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#edf4f1;
+  color:#52615c;
+  font-size:9px;
+}
+.trip-basket-tabs button.active{
+  border-color:#9ccdc2;
+  background:#edf8f5;
+  color:#115f57;
+}
+.trip-basket-tabs button.active b{
+  background:#0f766e;
+  color:#ffffff;
+}
+
+.trip-basket-list{
+  min-height:0;
+  padding:0 12px 12px;
+  display:grid;
+  gap:9px;
+  overflow:auto;
+}
+
+.trip-basket-item{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr);
+  gap:11px;
+  padding:10px;
+  border:1px solid #e0e8e5;
+  border-radius:11px;
+  background:#ffffff;
+}
+.trip-basket-item-media img,
+.trip-basket-item-placeholder{
+  width:76px;
+  height:72px;
+  border-radius:8px;
+  object-fit:cover;
+  background:#edf2ef;
+}
+.trip-basket-item-placeholder{
+  display:grid;
+  place-items:center;
+  padding:6px;
+  color:#65726e;
+  font-size:10px;
+  font-weight:700;
+  text-align:center;
+}
+.trip-basket-item-main{
+  min-width:0;
+}
+.trip-basket-item-topline{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.trip-basket-item-topline span{
+  color:#0f766e;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.trip-basket-item-topline b{
+  color:#55635f;
+  font-size:10px;
+  font-weight:700;
+}
+.trip-basket-item-main>strong{
+  display:block;
+  margin-top:3px;
+  overflow:hidden;
+  color:#1d2926;
+  font-size:13px;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.trip-basket-item-main>p{
+  margin:3px 0 0;
+  overflow:hidden;
+  color:#75817d;
+  font-size:10px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.trip-basket-item-main>small{
+  display:block;
+  margin-top:5px;
+  color:#2b6e64;
+  font-size:9px;
+  font-weight:700;
+}
+
+.trip-basket-item-actions{
+  margin-top:7px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.trip-basket-view-link,
+.trip-basket-remove{
+  min-height:29px;
+  padding:0 9px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border-radius:7px;
+  font-size:10px;
+  font-weight:700;
+  text-decoration:none;
+}
+.trip-basket-view-link{
+  border:1px solid #d7e2de;
+  background:#ffffff;
+  color:#35534d;
+}
+.trip-basket-remove{
+  border:1px solid #efdad6;
+  background:#fff8f7;
+  color:#9b463c;
+  cursor:pointer;
+}
+
+.trip-basket-day-action{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns:minmax(95px,.8fr) minmax(110px,1.2fr);
+  gap:7px;
+}
+.trip-basket-day-action select,
+.trip-basket-add-day{
+  min-width:0;
+  height:34px;
+  border-radius:8px;
+  font:inherit;
+}
+.trip-basket-day-action select{
+  border:1px solid #d9e3df;
+  background:#ffffff;
+  color:#41504c;
+  padding:0 7px;
+  font-size:10px;
+}
+.trip-basket-add-day{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  border:1px solid #0f766e;
+  background:#0f766e;
+  color:#ffffff;
+  font-size:10px;
+  font-weight:750;
+  cursor:pointer;
+}
+.trip-basket-add-day:disabled{
+  border-color:#cfdad6;
+  background:#edf2ef;
+  color:#7c8984;
+  cursor:default;
+}
+
+.trip-basket-category-empty{
+  min-height:120px;
+  padding:24px 16px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  text-align:center;
+}
+.trip-basket-category-empty strong{
+  color:#394743;
+  font-size:13px;
+}
+.trip-basket-category-empty span{
+  margin-top:4px;
+  color:#86908d;
+  font-size:10px;
+}
+
+.trip-basket-explore{
+  padding:12px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  border-top:1px solid #e8eeeb;
+}
+.trip-basket-explore a{
+  min-height:38px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid #dce6e2;
+  border-radius:9px;
+  background:#fafcfb;
+  color:#31514a;
+  font-size:10px;
+  font-weight:700;
+  text-decoration:none;
+}
+.trip-basket-explore a:hover{
+  border-color:#add2c8;
+  background:#f1f9f6;
+}
+
+.trip-basket-foot{
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border-top:1px solid #e8eeeb;
+  background:#fafbf9;
+}
+.trip-basket-foot span{
+  color:#75807c;
+  font-size:10px;
+}
+.trip-basket-foot button{
+  border:0;
+  background:transparent;
+  color:#9a4037;
+  font-size:10px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.trip-basket-open-planner{
+  padding:0 12px 12px;
+}
+.trip-basket-open-planner a{
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+  background:#0f766e;
+  color:#ffffff;
+  font-size:11px;
+  font-weight:750;
+  text-decoration:none;
+}
+
+.trip-basket-embedded{
+  overflow:hidden;
+  border:1px solid #dce5e2;
+  border-radius:12px;
+  background:#ffffff;
+}
+.trip-basket-embedded-head{
+  padding:16px 17px 7px;
+}
+.trip-basket-count{
+  min-height:34px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid #d9e5e1;
+  border-radius:8px;
+  background:#f8fbfa;
+  color:#31534c;
+  font-size:11px;
+  font-weight:750;
+}
+.trip-basket-embedded .trip-basket-list{
+  max-height:390px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.trip-basket-embedded .trip-basket-item{
+  min-width:0;
+}
+
+@media(max-width:980px){
+  .trip-basket-embedded .trip-basket-list{
+    grid-template-columns:1fr;
+  }
+}
+@media(max-width:680px){
+  .trip-basket-fab{
+    right:14px;
+    bottom:16px;
+  }
+  .trip-basket-fab strong{
+    display:none;
+  }
+  .trip-basket-panel{
+    right:12px;
+    bottom:74px;
+    width:calc(100vw - 24px);
+  }
+  .trip-basket-tabs{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .trip-basket-explore{
+    grid-template-columns:1fr;
+  }
+  .trip-basket-day-action{
+    grid-template-columns:1fr;
+  }
+  .trip-basket-item{
+    grid-template-columns:64px minmax(0,1fr);
+  }
+  .trip-basket-item-media img,
+  .trip-basket-item-placeholder{
+    width:64px;
+    height:62px;
+  }
+}
 `;
+
 
 export default TripBasketWidget;

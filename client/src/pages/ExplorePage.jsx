@@ -8,8 +8,14 @@ import {
   getExplorePlaces,
   getSeasonalPlaces,
 } from "../services/exploreService";
+import {
+  getTripItemCategoryKey,
+  getTripItemSourceId,
+  readTripItems,
+  SAVED_TRIP_EVENT,
+  toggleTripItem,
+} from "../utils/tripBasket";
 
-const SAVED_PLACES_KEY = "tourismhub_trip_places";
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const regions = ["All Regions", "Cultural Triangle", "Hill Country", "South Coast", "West Coast", "East Coast", "Northern Region"];
 const budgets = ["All Budgets", "Low", "Medium", "High"];
@@ -36,20 +42,6 @@ const getSriLankaMonthInfo = () => {
   };
 };
 
-const readSavedPlaces = () => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(SAVED_PLACES_KEY) || "[]");
-    return Array.isArray(saved) ? saved.filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeSavedPlaces = (places) => {
-  const cleanPlaces = Array.isArray(places) ? places.filter(Boolean) : [];
-  localStorage.setItem(SAVED_PLACES_KEY, JSON.stringify(cleanPlaces));
-  window.dispatchEvent(new Event("tourismhub:saved-places"));
-};
 
 const getPlaceImage = (place) => place?.image || place?.imageUrl || place?.image_url || place?.images?.[0] || "";
 
@@ -150,7 +142,7 @@ export default function ExplorePage() {
   const [region, setRegion] = useState("All Regions");
   const [budget, setBudget] = useState("All Budgets");
   const [sort, setSort] = useState("recommended");
-  const [savedPlaces, setSavedPlaces] = useState(readSavedPlaces);
+  const [savedPlaces, setSavedPlaces] = useState(readTripItems);
   const [activeTab, setActiveTab] = useState("activities");
   const [heroSlideImages, setHeroSlideImages] = useState(defaultHeroImages);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
@@ -212,13 +204,13 @@ export default function ExplorePage() {
   }, [search, category, region, budget, sort]);
 
   useEffect(() => {
-    const refreshSavedPlaces = () => setSavedPlaces(readSavedPlaces());
+    const refreshSavedPlaces = () => setSavedPlaces(readTripItems());
     window.addEventListener("storage", refreshSavedPlaces);
-    window.addEventListener("tourismhub:saved-places", refreshSavedPlaces);
+    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedPlaces);
 
     return () => {
       window.removeEventListener("storage", refreshSavedPlaces);
-      window.removeEventListener("tourismhub:saved-places", refreshSavedPlaces);
+      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedPlaces);
     };
   }, []);
 
@@ -288,7 +280,15 @@ export default function ExplorePage() {
   }, [seasonalBackgroundImages.length]);
 
   const topPlaces = useMemo(() => places.filter((p) => p.featured).slice(0, 3), [places]);
-  const savedIds = useMemo(() => new Set(savedPlaces.map((p) => p.id)), [savedPlaces]);
+  const savedIds = useMemo(
+    () =>
+      new Set(
+        savedPlaces
+          .filter((item) => getTripItemCategoryKey(item) === "destinations")
+          .map((item) => String(getTripItemSourceId(item)))
+      ),
+    [savedPlaces]
+  );
 
   const heroSpotlight = useMemo(() => {
     const sourcePlaces = category === "all"
@@ -312,25 +312,24 @@ export default function ExplorePage() {
     ];
   }, [currentMonthInfo.name, heroPlaces.length, places, seasonal.length, seasonalMonthName, topPlaces.length]);
 
-  const persistSavedPlaces = (updatedPlaces) => {
-    writeSavedPlaces(updatedPlaces);
-    setSavedPlaces(updatedPlaces);
-  };
-
   const toggleSavePlace = (place) => {
-    const current = readSavedPlaces();
-    const isAlreadySaved = current.some((item) => String(item.id) === String(place.id));
+    const tripItem = {
+      ...place,
+      id: `place-${place.id}`,
+      sourceId: place.id,
+      tripItemType: "destination",
+      image: assetUrl(getPlaceImage(place)),
+      link: `/explore/${place.id}`,
+    };
 
-    if (isAlreadySaved) {
-      const updated = current.filter((item) => String(item.id) !== String(place.id));
-      persistSavedPlaces(updated);
-      setNotice(`Removed ${place.name} from saved places.`);
-      return;
-    }
+    const result = toggleTripItem(tripItem);
 
-    const updated = [...current, place];
-    persistSavedPlaces(updated);
-    setNotice(`✓ ${place.name} saved to your trip.`);
+    setSavedPlaces(result.items);
+    setNotice(
+      result.saved
+        ? `✓ ${place.name} saved to your trip basket.`
+        : `Removed ${place.name} from your trip basket.`
+    );
   };
 
   const clearFilters = () => {
@@ -437,7 +436,7 @@ export default function ExplorePage() {
               <span>{topPlaces.length} signature experiences</span>
             </div>
             <div className="top-grid">
-              {topPlaces.map((place) => <PlaceCard key={place.id} place={place} onToggleSave={toggleSavePlace} saved={savedIds.has(place.id)} />)}
+              {topPlaces.map((place) => <PlaceCard key={place.id} place={place} onToggleSave={toggleSavePlace} saved={savedIds.has(String(place.id))} />)}
             </div>
           </section>
 
@@ -491,7 +490,7 @@ export default function ExplorePage() {
               <span>{places.length} places found</span>
             </div>
             <div className="place-grid">
-              {places.map((place) => <PlaceCard key={place.id} place={place} onToggleSave={toggleSavePlace} saved={savedIds.has(place.id)} />)}
+              {places.map((place) => <PlaceCard key={place.id} place={place} onToggleSave={toggleSavePlace} saved={savedIds.has(String(place.id))} />)}
             </div>
             {!places.length && !loading ? <div className="state-card">No places found. Try another filter.</div> : null}
           </section>

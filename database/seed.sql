@@ -144,11 +144,65 @@ INSERT INTO explore_categories (id, slug, label, icon, sort_order, is_active) VA
 (5, 'spiritual', 'Spiritual', '🙏', 5, TRUE),
 (6, 'food', 'Food & Culture', '🍛', 6, TRUE);
 
-INSERT INTO explore_settings (setting_key, setting_value) VALUES
-('sri_lanka_regions', CAST('["All Regions","Cultural Triangle","Hill Country","South Coast","West Coast","East Coast","Northern Region"]' AS JSON)),
-('travel_styles', CAST('["Culture","Adventure","Relaxation","Wildlife","Photography","Food","Spiritual"]' AS JSON)),
-('budget_daily_targets', CAST('{"Low":8000,"Medium":18000,"High":45000}' AS JSON))
-ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+INSERT INTO explore_settings
+(
+    setting_key,
+    setting_value
+)
+VALUES
+
+-- =========================================================
+-- GENERAL EXPLORE SETTINGS
+-- Trip Planner-specific configuration is stored in
+-- trip_planner_migration.sql
+-- =========================================================
+
+(
+    'sri_lanka_regions',
+    CAST(
+        '[
+            "All Regions",
+            "Cultural Triangle",
+            "Hill Country",
+            "South Coast",
+            "West Coast",
+            "East Coast",
+            "Northern Region"
+        ]'
+        AS JSON
+    )
+),
+
+(
+    'travel_styles',
+    CAST(
+        '[
+            "Culture",
+            "Adventure",
+            "Relaxation",
+            "Wildlife",
+            "Photography",
+            "Food",
+            "Spiritual"
+        ]'
+        AS JSON
+    )
+),
+
+(
+    'budget_daily_targets',
+    CAST(
+        '{
+            "Low": 8000,
+            "Medium": 18000,
+            "High": 45000
+        }'
+        AS JSON
+    )
+)
+
+ON DUPLICATE KEY UPDATE
+    setting_value = VALUES(setting_value);
 
 INSERT INTO explore_places (id, slug, name, city, district, region, category_id, image_url, short_description, full_description, duration, best_time, best_months, budget, budget_score, estimated_cost, lat, lng, featured, vibe, tags, experiences, highlights, nearby_places, tips, opening_hours, entry_fee, facilities, status, sort_order) VALUES
 (1, 'sigiriya-rock-fortress', 'Sigiriya Rock Fortress', 'Sigiriya', 'Matale', 'Cultural Triangle', 1, 'https://images.pexels.com/photos/34128244/pexels-photo-34128244.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200', 'An ancient rock fortress rising 200m above the jungle, featuring stunning frescoes and the remains of a 5th-century palace.', 'Sigiriya, also known as Lion Rock, is a stunning ancient rock fortress and UNESCO World Heritage Site located in the heart of Sri Lanka''s Cultural Triangle. Rising nearly 200 meters above the surrounding jungle, this architectural marvel was built by King Kashyapa in the 5th century AD.
@@ -529,12 +583,22 @@ VALUES
   'Travelling with family and need a guide for Nine Arch Bridge.', NULL, 'Paid', 'Approved'
 );
 
-UPDATE rooms r
-JOIN properties p ON p.id = r.property_id
-SET r.available_rooms = r.available_rooms - 1
-WHERE ((p.name = 'Galle Fort Boutique Villa' AND r.room_type = 'Fort Family Suite')
-    OR (p.name = 'Ella Mountain View Resort' AND r.room_type = 'Family Mountain Villa'))
-  AND r.available_rooms > 0;
+UPDATE rooms
+SET available_rooms = available_rooms - 1
+WHERE id IN (
+  SELECT room_id
+  FROM (
+    SELECT r.id AS room_id
+    FROM rooms r
+    INNER JOIN properties p ON p.id = r.property_id
+    WHERE (
+      (p.name = 'Galle Fort Boutique Villa' AND r.room_type = 'Fort Family Suite')
+      OR
+      (p.name = 'Ella Mountain View Resort' AND r.room_type = 'Family Mountain Villa')
+    )
+    AND r.available_rooms > 0
+  ) AS rooms_to_update
+);
 
 INSERT INTO payment_transactions
 (property_id, partner_id, payment_type, plan_type, amount, status, paid_at, notes)

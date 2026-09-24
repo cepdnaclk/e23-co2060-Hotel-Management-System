@@ -1,2924 +1,7878 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { jsPDF } from "jspdf";
-import api from "../api/api";
 import {
-  budgetDailyTargets,
-  explorePlaces,
-  formatLkr,
-  getPlaceById,
-  getTravelTime,
-  travelStyles,
-} from "../data/exploreData";
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
-  getTripItemCategoryKey,
-  getTripItemTypeLabel,
-  groupTripItemsByType,
+  Link,
+} from "react-router-dom";
+
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Download,
+  Lock,
+  MapPin,
+  Plus,
+  RefreshCw,
+  Route,
+  Save,
+  Trash2,
+  Unlock,
+  Users,
+} from "lucide-react";
+
+import {
+  jsPDF,
+} from "jspdf";
+
+import {
   SAVED_TRIP_EVENT,
+  getTripItemCategoryKey,
+  getTripItemImage,
+  getTripItemKey,
+  getTripItemLink,
+  getTripItemTypeLabel,
+  readTripItems,
+  writeTripItems,
 } from "../utils/tripBasket";
 
-const SAVED_PLACES_KEY = "tourismhub_trip_places";
-const TRIP_PLAN_KEY = "tourismhub_trip_plan";
+import {
+  analyzeTripRoute,
+  applyTripRoute,
+  createTripPlan,
+  deleteTripPlan,
+  getMyTripPlans,
+  getTripPlanById,
+  getTripPlannerBootstrap,
+  updateTripPlan,
+} from "../api/tripPlanner.api";
+
+import TripPlannerMap from "../components/tripPlanner/TripPlannerMap";
+import TripBasketWidget from "../components/TripBasketWidget";
+import {
+  assetUrl,
+  getTouristEvents,
+} from "../services/exploreService";
+
+import "../styles/tripPlanner.css";
+
+
+
+
+const TRIP_PLANNER_DRAFT_KEY =
+  "tourismhub_trip_planner_draft_v2";
+
+const TRIP_PLANNER_RETURN_KEY =
+  "tourismhub_trip_planner_return_v1";
+
+
+const readPlannerDraft =
+  () => {
+    try {
+      const parsed =
+        JSON.parse(
+          localStorage.getItem(
+            TRIP_PLANNER_DRAFT_KEY
+          ) ||
+            "null"
+        );
+
+      if (
+        !parsed ||
+        typeof parsed !==
+          "object"
+      ) {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+
+const writePlannerDraft =
+  (
+    draft
+  ) => {
+    try {
+      localStorage.setItem(
+        TRIP_PLANNER_DRAFT_KEY,
+        JSON.stringify(
+          draft
+        )
+      );
+    } catch {
+      // Keep planning usable even if browser storage is unavailable.
+    }
+  };
+
+
+const rememberPlannerReturn =
+  () => {
+    try {
+      sessionStorage.setItem(
+        TRIP_PLANNER_RETURN_KEY,
+        JSON.stringify({
+          restore: true,
+          scrollY:
+            window.scrollY ||
+            0,
+        })
+      );
+    } catch {
+      // Navigation still works without scroll restoration.
+    }
+  };
+
+
+const getDatabaseEventId =
+  (
+    event
+  ) => {
+    const candidates = [
+      event?.touristEventId,
+      event?.tourist_event_id,
+      event?.databaseId,
+      event?.event_id,
+      event?.eventId,
+      event?.sourceId,
+      event?.source_id,
+      event?.id,
+    ];
+
+    for (
+      const value of
+      candidates
+    ) {
+      const numeric =
+        Number(
+          value
+        );
+
+      if (
+        Number.isInteger(
+          numeric
+        ) &&
+        numeric > 0
+      ) {
+        return numeric;
+      }
+    }
+
+    return null;
+  };
+
+
+const cleanEventMatchText =
+  (
+    value
+  ) =>
+    String(
+      value || ""
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /\s+/g,
+        " "
+      );
+
+
+const reconcileSavedEventsWithDatabase =
+  (
+    savedItems,
+    databaseEvents
+  ) => {
+    const rows =
+      Array.isArray(
+        databaseEvents
+      )
+        ? databaseEvents
+        : [];
+
+    const validEvents =
+      rows
+        .map(
+          (
+            event
+          ) => ({
+            raw:
+              event,
+            id:
+              getDatabaseEventId(
+                event
+              ),
+            name:
+              cleanEventMatchText(
+                event?.title ||
+                  event?.name
+              ),
+            city:
+              cleanEventMatchText(
+                event?.city
+              ),
+            district:
+              cleanEventMatchText(
+                event?.district
+              ),
+            slug:
+              cleanEventMatchText(
+                event?.slug
+              ),
+          })
+        )
+        .filter(
+          (
+            event
+          ) =>
+            Boolean(
+              event.id
+            )
+        );
+
+    const validIds =
+      new Set(
+        validEvents.map(
+          (
+            event
+          ) =>
+            event.id
+        )
+      );
+
+    let changed =
+      false;
+
+    const nextItems =
+      (
+        Array.isArray(
+          savedItems
+        )
+          ? savedItems
+          : []
+      ).flatMap(
+        (
+          item
+        ) => {
+          if (
+            getTripItemCategoryKey(
+              item
+            ) !==
+            "events"
+          ) {
+            return [item];
+          }
+
+          const existingId =
+            getDatabaseEventId(
+              item
+            );
+
+          if (
+            existingId &&
+            validIds.has(
+              existingId
+            )
+          ) {
+            if (
+              item.touristEventId ===
+                existingId &&
+              item.sourceId ===
+                existingId
+            ) {
+              return [item];
+            }
+
+            changed =
+              true;
+
+            return [{
+              ...item,
+              sourceId:
+                existingId,
+              touristEventId:
+                existingId,
+            }];
+          }
+
+          const itemName =
+            cleanEventMatchText(
+              item?.name
+            );
+
+          const itemCity =
+            cleanEventMatchText(
+              item?.city
+            );
+
+          const itemDistrict =
+            cleanEventMatchText(
+              item?.district
+            );
+
+          const itemLink =
+            cleanEventMatchText(
+              item?.link
+            );
+
+          const match =
+            validEvents.find(
+              (
+                event
+              ) => {
+                const linkMatches =
+                  event.slug &&
+                  itemLink.includes(
+                    event.slug
+                  );
+
+                const nameMatches =
+                  itemName &&
+                  event.name &&
+                  itemName ===
+                    event.name;
+
+                const cityMatches =
+                  !itemCity ||
+                  !event.city ||
+                  itemCity ===
+                    event.city;
+
+                const districtMatches =
+                  !itemDistrict ||
+                  !event.district ||
+                  itemDistrict ===
+                    event.district;
+
+                return (
+                  linkMatches ||
+                  (
+                    nameMatches &&
+                    cityMatches &&
+                    districtMatches
+                  )
+                );
+              }
+            );
+
+          if (
+            match
+          ) {
+            changed =
+              true;
+
+            return [{
+              ...item,
+              sourceId:
+                match.id,
+              touristEventId:
+                match.id,
+            }];
+          }
+
+          // Remove old/demo basket events that no longer exist
+          // in the approved database event list.
+          changed =
+            true;
+
+          return [];
+        }
+      );
+
+    return {
+      items:
+        nextItems,
+      changed,
+    };
+  };
+
 
 const CATEGORY_CONFIG = [
-  { key: "destinations", label: "Destinations", browseTo: "/explore", browseLabel: "Explore places" },
-  { key: "events", label: "Events", browseTo: "/events", browseLabel: "Browse events" },
-  { key: "hotels", label: "Hotels", browseTo: "/hotels", browseLabel: "Find hotels" },
-  { key: "guides", label: "Guides", browseTo: "/tourist-guides", browseLabel: "Tourist guides" },
+  {
+    key: "hotels",
+    label: "Hotels",
+  },
+  {
+    key: "events",
+    label: "Events",
+  },
+  {
+    key: "guides",
+    label: "Guides",
+  },
 ];
 
-const getDayItems = (day) =>
-  CATEGORY_CONFIG.flatMap((category) => day[category.key] || []);
 
-const getDayDestinationDistrict = (day) =>
-  String(day.destinations?.[0]?.district || "").trim();
+const normalizeLocationValue =
+  (value) =>
+    String(
+      value || ""
+    )
+      .trim()
+      .toLowerCase();
 
-const monthNameFromDate = (dateString) => {
-  if (!dateString) return "";
-  const date = new Date(`${dateString}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", { month: "long" });
-};
 
-const validateItemForDay = (item, day, category) => {
-  if (category === "destinations") return { ok: true };
+const getDayLocationContext =
+  (day) => {
+    const destinations =
+      Array.isArray(
+        day?.destinations
+      )
+        ? day.destinations
+        : [];
 
-  const dayDistrict = getDayDestinationDistrict(day);
-  if (!dayDistrict) {
+    const cities =
+      destinations
+        .map(
+          (
+            destination
+          ) =>
+            normalizeLocationValue(
+              destination.city
+            )
+        )
+        .filter(Boolean);
+
+    const districts =
+      destinations
+        .map(
+          (
+            destination
+          ) =>
+            normalizeLocationValue(
+              destination.district
+            )
+        )
+        .filter(Boolean);
+
+    const labels =
+      destinations
+        .map(
+          (
+            destination
+          ) =>
+            destination.city ||
+            destination.district ||
+            destination.name
+        )
+        .filter(Boolean);
+
     return {
-      ok: false,
-      reason: `Add a destination to this day before adding a ${getTripItemTypeLabel(item).toLowerCase()}.`,
+      cities:
+        new Set(cities),
+
+      districts:
+        new Set(
+          districts
+        ),
+
+      labels: [
+        ...new Set(
+          labels
+        ),
+      ],
+
+      primaryLocation:
+        destinations.find(
+          (
+            destination
+          ) =>
+            destination.city ||
+            destination.district
+        ) ||
+        destinations[0] ||
+        null,
     };
-  }
-
-  const itemDistrict = String(item.district || "").trim();
-  if (!itemDistrict || itemDistrict.toLowerCase() !== dayDistrict.toLowerCase()) {
-    return {
-      ok: false,
-      reason: `${item.name} is not in ${dayDistrict} district, so it can't be added to this day.`,
-    };
-  }
-
-  if (category === "events") {
-    const dayMonth = monthNameFromDate(day.date);
-    const eventMonth = String(item.eventMonth || "").trim();
-    if (dayMonth && eventMonth && eventMonth.toLowerCase() !== dayMonth.toLowerCase()) {
-      return {
-        ok: false,
-        reason: `${item.name} happens in ${eventMonth}, but this day falls in ${dayMonth}.`,
-      };
-    }
-  }
-
-  return { ok: true };
-};
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-const ASSET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
-
-const toDbImageUrl = (imageUrl) => {
-  const value = String(imageUrl || "").trim();
-  if (!value) return "";
-  if (value.startsWith("http://") || value.startsWith("https://")) return value;
-  return `${ASSET_BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
-};
-
-const firstDbImage = (...candidates) => {
-  for (const candidate of candidates.flat()) {
-    const image = toDbImageUrl(candidate?.image_url || candidate?.url || candidate?.image || candidate);
-    if (image) return image;
-  }
-  return "";
-};
-
-const getTripItemDetailsLink = (item) => {
-  const type = String(item?.tripItemType || "place").toLowerCase();
-  if (item?.link) return item.link;
-  if (type === "hotel") return `/hotels/${item.sourceId || String(item.id || "").replace(/^hotel-/, "")}`;
-  if (type === "event") return "/events";
-  if (type === "guide") return "/tourist-guides";
-  return `/explore?place=${item.id}`;
-};
-
-const getTripItemMeta = (item) =>
-  [getTripItemTypeLabel(item), item?.city || item?.district || "Sri Lanka", item?.region]
-    .filter(Boolean)
-    .join(" • ");
-
-const getTripItemImage = (item) =>
-  item?.image || item?.imageUrl || item?.image_url || item?.main_image || "";
-
-
-const todayInputValue = () => {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 10);
-};
-
-const addDays = (dateString, daysToAdd) => {
-  const date = dateString ? new Date(dateString) : new Date();
-  date.setDate(date.getDate() + daysToAdd);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 10);
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return "Date not set";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-const loadJson = (key, fallback) => {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const createDays = (startDate, daysCount) =>
-  Array.from({ length: Number(daysCount) || 1 }, (_, index) => ({
-    dayNumber: index + 1,
-    date: addDays(startDate, index),
-    destinations: [],
-    hotels: [],
-    guides: [],
-    events: [],
-    notes: "",
-  }));
-
-const migrateDayGroups = (existingDay) => {
-  if (Array.isArray(existingDay?.places)) {
-    const grouped = { destinations: [], hotels: [], guides: [], events: [] };
-    existingDay.places.forEach((item) => {
-      grouped[getTripItemCategoryKey(item)].push(item);
-    });
-    return grouped;
-  }
-
-  return {
-    destinations: Array.isArray(existingDay?.destinations) ? existingDay.destinations : [],
-    hotels: Array.isArray(existingDay?.hotels) ? existingDay.hotels : [],
-    guides: Array.isArray(existingDay?.guides) ? existingDay.guides : [],
-    events: Array.isArray(existingDay?.events) ? existingDay.events : [],
   };
-};
 
-const normalizeDays = (days, startDate, daysCount) => {
-  const requiredDays = Number(daysCount) || 1;
-  const current = Array.isArray(days) ? days : [];
 
-  return Array.from({ length: requiredDays }, (_, index) => {
-    const existing = current[index];
-    return {
-      dayNumber: index + 1,
-      date: addDays(startDate, index),
-      ...migrateDayGroups(existing),
-      notes: existing?.notes || "",
-    };
-  });
-};
+const getLocationMatchRank =
+  (
+    item,
+    day
+  ) => {
+    const context =
+      getDayLocationContext(
+        day
+      );
 
-const calculateDayCost = (day) =>
-  getDayItems(day).reduce((total, item) => total + Number(item.estimatedCost || 0), 0);
+    const city =
+      normalizeLocationValue(
+        item?.city
+      );
 
-const calculateTransitMinutes = (day) => {
-  const destinations = day.destinations || [];
-  return destinations.reduce((total, place, index) => {
-    if (index === 0) return total;
-    const previous = destinations[index - 1];
-    if (!previous.city || !place.city) return total;
-    const estimate = getTravelTime(previous.city, place.city);
-    return total + Number(estimate?.minutes || 0);
-  }, 0);
-};
+    const district =
+      normalizeLocationValue(
+        item?.district
+      );
 
-const formatDuration = (minutes) => {
-  if (!minutes) return "0m";
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  if (hours && remaining) return `${hours}h ${remaining}m`;
-  if (hours) return `${hours}h`;
-  return `${remaining}m`;
-};
-
-const starterRoutes = [
-  {
-    id: "island-highlights",
-    title: "Island Highlights",
-    label: "5-day classic",
-    description: "A first-time route through culture, hill country, coast, and heritage stays.",
-    placeIds: [1, 2, 3, 5, 4],
-  },
-  {
-    id: "heritage-sri-lanka",
-    title: "Heritage Sri Lanka",
-    label: "Culture route",
-    description: "Ancient kingdoms, sacred temples, and walkable old towns for culture lovers.",
-    placeIds: [1, 8, 2, 5],
-  },
-  {
-    id: "hill-country-slow",
-    title: "Hill Country Slow Route",
-    label: "Scenic route",
-    description: "Tea country, train views, mountain air, and relaxed evenings around Kandy and Ella.",
-    placeIds: [2, 3, 7, 10],
-  },
-  {
-    id: "south-coast-wildlife",
-    title: "South Coast + Wildlife",
-    label: "Beach + safari",
-    description: "Galle streets, Mirissa coast, and Yala safari days with hotel checks built in.",
-    placeIds: [5, 4, 6],
-  },
-];
-
-const guideSteps = [
-  {
-    title: "Save items to your basket",
-    text: "Save destinations, hotels, guides, and events from Explore, Hotels, Guides, and Events pages, or pick a ready-made route template. Everything lands in your basket first.",
-  },
-  {
-    title: "Add a destination to each day",
-    text: "Every day starts with a destination — that sets the day's district. Use the floating Saved Items button once you scroll down, or drag a saved card onto a day.",
-  },
-  {
-    title: "Then add hotels, guides, and events",
-    text: "Each day has its own Hotels, Guides, and Events sections. Only saved items that match that day's district (and, for events, the day's month) can be added — anything else is rejected with a clear reason.",
-  },
-  {
-    title: "Save and download",
-    text: "Save the plan in the browser and export a detailed PDF itinerary with places, costs, notes, and hotel status, grouped the same way as your day cards.",
-  },
-];
-
-const visitServices = [
-  { title: "Explore places", text: "Open destination stories, photos, tips, and experiences.", to: "/explore", icon: "🧭" },
-  { title: "Find hotels", text: "Search approved stays near each planned city.", to: "/hotels", icon: "🏨" },
-  { title: "Events", text: "Add cultural events and seasonal experiences to the route.", to: "/events", icon: "🎉" },
-  { title: "Tourist guides", text: "Connect with local guide support for key destinations.", to: "/tourist-guides", icon: "🧑‍✈️" },
-];
-
-const beforeYouGo = [
-  "Check local weather and seasonal travel conditions.",
-  "Keep passport, booking reference, and emergency contacts ready.",
-  "Confirm hotel check-in time before long-distance travel.",
-  "Keep enough buffer time between cities and attractions.",
-];
-
-const daySlotLabels = ["Morning", "Midday", "Afternoon", "Evening", "Night"];
-
-const pdfTheme = {
-  paper: [250, 244, 231],
-  soft: [255, 252, 244],
-  green: [6, 65, 61],
-  teal: [5, 124, 111],
-  gold: [226, 162, 26],
-  red: [162, 49, 40],
-  ink: [18, 48, 45],
-  muted: [82, 98, 94],
-  border: [211, 185, 124],
-};
-
-const loadImageAsDataUrl = (url) =>
-  new Promise((resolve, reject) => {
-    if (!url) {
-      reject(new Error("Missing image URL"));
-      return;
+    if (
+      city &&
+      context.cities.has(
+        city
+      )
+    ) {
+      return 0;
     }
 
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.referrerPolicy = "no-referrer";
-    image.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = image.naturalWidth || image.width;
-        canvas.height = image.naturalHeight || image.height;
-        const context = canvas.getContext("2d");
-        context.drawImage(image, 0, 0);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
-      } catch (error) {
-        reject(error);
+    if (
+      district &&
+      context.districts.has(
+        district
+      )
+    ) {
+      return 1;
+    }
+
+    return 2;
+  };
+
+
+const itemMatchesDayLocation =
+  (
+    item,
+    day
+  ) =>
+    getLocationMatchRank(
+      item,
+      day
+    ) < 2;
+
+
+const getBrowseLinkForCategory =
+  (
+    categoryKey,
+    day
+  ) => {
+    const context =
+      getDayLocationContext(
+        day
+      );
+
+    const location =
+      context.primaryLocation;
+
+    const city =
+      String(
+        location?.city ||
+        ""
+      ).trim();
+
+    const district =
+      String(
+        location?.district ||
+        ""
+      ).trim();
+
+    if (
+      categoryKey ===
+      "hotels"
+    ) {
+      if (city) {
+        return `/hotels?city=${encodeURIComponent(
+          city
+        )}`;
       }
-    };
-    image.onerror = () => reject(new Error("Image failed to load"));
-    image.src = url;
-  });
 
-const addPdfPageBackground = (doc) => {
-  const width = doc.internal.pageSize.getWidth();
-  const height = doc.internal.pageSize.getHeight();
-  doc.setFillColor(...pdfTheme.paper);
-  doc.rect(0, 0, width, height, "F");
-  doc.setDrawColor(...pdfTheme.border);
-  doc.setLineWidth(0.4);
-  doc.rect(8, 8, width - 16, height - 16);
-};
+      if (district) {
+        return `/hotels?search=${encodeURIComponent(
+          district
+        )}`;
+      }
 
-const ensurePdfSpace = (doc, y, requiredHeight) => {
-  const height = doc.internal.pageSize.getHeight();
-  if (y + requiredHeight > height - 22) {
-    doc.addPage();
-    addPdfPageBackground(doc);
-    return 20;
-  }
-  return y;
-};
+      return "/hotels";
+    }
 
-const drawWrappedPdfText = (doc, text, x, y, maxWidth, lineHeight = 4.5) => {
-  const lines = doc.splitTextToSize(text || "", maxWidth);
-  doc.text(lines, x, y);
-  return y + lines.length * lineHeight;
-};
+    if (
+      categoryKey ===
+      "events"
+    ) {
+      if (city) {
+        return `/events?city=${encodeURIComponent(
+          city
+        )}`;
+      }
 
-const drawPdfItemCard = async (doc, item, indexInGroup, startY) => {
-  let y = ensurePdfSpace(doc, startY, 72);
+      if (district) {
+        return `/events?search=${encodeURIComponent(
+          district
+        )}`;
+      }
 
-  doc.setFillColor(255, 252, 244);
-  doc.setDrawColor(...pdfTheme.border);
-  doc.roundedRect(14, y, 182, 66, 2, 2, "FD");
+      return "/events";
+    }
 
-  let imageAdded = false;
-  try {
-    const imageData = await loadImageAsDataUrl(item.image);
-    doc.addImage(imageData, "JPEG", 18, y + 5, 42, 30);
-    imageAdded = true;
-  } catch {
-    // no-op: fall through to placeholder image below
-  }
-
-  if (!imageAdded) {
-    doc.setFillColor(238, 231, 214);
-    doc.rect(18, y + 5, 42, 30, "F");
-    doc.setTextColor(...pdfTheme.muted);
-    doc.setFontSize(8);
-    doc.text("Image", 33, y + 22);
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(...pdfTheme.green);
-  doc.text(`${indexInGroup + 1}. ${item.name}`, 66, y + 9, { maxWidth: 126 });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...pdfTheme.ink);
-  doc.text(`${item.city || "Sri Lanka"}, ${item.district || ""} • ${item.duration || ""}`, 66, y + 17, {
-    maxWidth: 126,
-  });
-  doc.text(`Best: ${item.bestTime || "Check local season"}`, 66, y + 23, {
-    maxWidth: 126,
-  });
-  doc.text(`Estimated cost: ${formatLkr(Number(item.estimatedCost || 0))}`, 66, y + 29);
-
-  doc.setFontSize(8.5);
-  doc.setTextColor(...pdfTheme.muted);
-  drawWrappedPdfText(
-    doc,
-    item.shortDescription || item.fullDescription || "",
-    18,
-    y + 43,
-    172,
-    4
-  );
-
-  const things = Array.isArray(item.experiences)
-    ? item.experiences.slice(0, 2).map((experience) => experience.title).join(" • ")
-    : "";
-  if (things) {
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...pdfTheme.red);
-    doc.text(`Things to do: ${things}`, 18, y + 60, { maxWidth: 172 });
-  }
-
-  y += 73;
-  return y;
-};
-
-function TripPlannerPage() {
-  const savedPlan = useMemo(() => loadJson(TRIP_PLAN_KEY, null), []);
-  const today = useMemo(() => todayInputValue(), []);
-
-  const [tripName, setTripName] = useState(savedPlan?.tripName || "Sri Lanka Holiday Plan");
-  const [startDate, setStartDate] = useState(savedPlan?.startDate || today);
-  const [daysCount, setDaysCount] = useState(String(savedPlan?.daysCount || 5));
-  const [travelStyle, setTravelStyle] = useState(savedPlan?.travelStyle || "Culture");
-  const [budgetLevel, setBudgetLevel] = useState(savedPlan?.budgetLevel || "Medium");
-  const [travelPace, setTravelPace] = useState(savedPlan?.travelPace || "Balanced");
-  const [days, setDays] = useState(() =>
-    normalizeDays(savedPlan?.days, savedPlan?.startDate || today, savedPlan?.daysCount || 5)
-  );
-  const [savedPlaces, setSavedPlaces] = useState(() => loadJson(SAVED_PLACES_KEY, []));
-  const [activeGuideStep, setActiveGuideStep] = useState(0);
-  const [showGuide, setShowGuide] = useState(!savedPlan);
-  const [draggedPlace, setDraggedPlace] = useState(null);
-  const [quickAddDayByItem, setQuickAddDayByItem] = useState({});
-  const [activeSavedCategory, setActiveSavedCategory] = useState("destinations");
-  const [showSavedButton, setShowSavedButton] = useState(false);
-  const [showSavedPanel, setShowSavedPanel] = useState(false);
-  const tripPlanSectionRef = useRef(null);
-  const [notice, setNotice] = useState("");
-  const [noticeIsError, setNoticeIsError] = useState(false);
-
-  const showRejection = (reason) => {
-    setNoticeIsError(true);
-    setNotice(reason);
+    return "/tourist-guides";
   };
 
-  const showSuccess = (text) => {
-    setNoticeIsError(false);
-    setNotice(text);
+
+const getBrowseLabelForCategory =
+  (
+    categoryKey,
+    day
+  ) => {
+    const context =
+      getDayLocationContext(
+        day
+      );
+
+    const locationLabel =
+      context.primaryLocation
+        ?.city ||
+      context.primaryLocation
+        ?.district ||
+      "";
+
+    if (
+      categoryKey ===
+      "hotels"
+    ) {
+      return locationLabel
+        ? `More hotels near ${locationLabel}`
+        : "Explore hotels";
+    }
+
+    if (
+      categoryKey ===
+      "events"
+    ) {
+      return locationLabel
+        ? `More events near ${locationLabel}`
+        : "Explore events";
+    }
+
+    return "Explore all guides";
   };
-  const [heroSlides, setHeroSlides] = useState([]);
-  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
-  useEffect(() => {
-    const refreshSavedPlaces = () => {
-      setSavedPlaces(loadJson(SAVED_PLACES_KEY, []));
-    };
 
-    refreshSavedPlaces();
-    window.addEventListener("storage", refreshSavedPlaces);
-    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedPlaces);
-    return () => {
-      window.removeEventListener("storage", refreshSavedPlaces);
-      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedPlaces);
-    };
-  }, []);
+const getItemLocationLabel =
+  (item) =>
+    [
+      item?.city,
+      item?.district,
+    ]
+      .filter(Boolean)
+      .filter(
+        (
+          value,
+          index,
+          array
+        ) =>
+          array.indexOf(
+            value
+          ) === index
+      )
+      .join(" • ") ||
+    item?.region ||
+    "Sri Lanka";
 
-  useEffect(() => {
-    const target = tripPlanSectionRef.current;
-    if (!target) return undefined;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShowSavedButton(true);
-        }
-      },
-      { threshold: 0 }
+const todayInputValue =
+  () => {
+    const now =
+      new Date();
+
+    const local =
+      new Date(
+        now.getTime() -
+          now.getTimezoneOffset() *
+            60000
+      );
+
+    return local
+      .toISOString()
+      .slice(0, 10);
+  };
+
+
+const addDays = (
+  dateString,
+  amount
+) => {
+  if (!dateString) {
+    return "";
+  }
+
+  const date =
+    new Date(
+      `${dateString}T00:00:00`
     );
 
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
+  }
 
-  useEffect(() => {
-    let stillMounted = true;
+  date.setDate(
+    date.getDate() +
+      Number(amount || 0)
+  );
 
-    const loadHeroSlides = async () => {
-      try {
-        const [placesResult, hotelsResult] = await Promise.allSettled([
-          api.get("/explore/places"),
-          api.get("/properties"),
-        ]);
+  const year =
+    date.getFullYear();
 
-        const dbPlaces = placesResult.status === "fulfilled"
-          ? placesResult.value.data.places || []
-          : [];
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
 
-        const approvedHotels = hotelsResult.status === "fulfilled"
-          ? (hotelsResult.value.data.data || []).filter(
-              (property) => !property.status || String(property.status).toLowerCase() === "approved"
+  const day =
+    String(
+      date.getDate()
+    ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+
+const formatDate = (
+  value
+) => {
+  if (!value) {
+    return "Date not set";
+  }
+
+  const date =
+    new Date(
+      `${value}T00:00:00`
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return date.toLocaleDateString(
+    "en-US",
+    {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }
+  );
+};
+
+
+const formatMoney = (
+  value
+) =>
+  new Intl.NumberFormat(
+    "en-LK",
+    {
+      style: "currency",
+      currency: "LKR",
+      maximumFractionDigits: 0,
+    }
+  ).format(
+    Number(value || 0)
+  );
+
+
+const formatDistance = (
+  meters
+) => {
+  const value =
+    Number(meters || 0);
+
+  if (value < 1000) {
+    return `${Math.round(
+      value
+    )} m`;
+  }
+
+  return `${(
+    value / 1000
+  ).toFixed(1)} km`;
+};
+
+
+const formatDurationSeconds =
+  (seconds) => {
+    const value =
+      Math.max(
+        0,
+        Number(seconds || 0)
+      );
+
+    const totalMinutes =
+      Math.round(
+        value / 60
+      );
+
+    const hours =
+      Math.floor(
+        totalMinutes / 60
+      );
+
+    const minutes =
+      totalMinutes % 60;
+
+    if (
+      hours &&
+      minutes
+    ) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (hours) {
+      return `${hours}h`;
+    }
+
+    return `${minutes}m`;
+  };
+
+
+const createDays = (
+  startDate,
+  count
+) =>
+  Array.from(
+    {
+      length:
+        Math.max(
+          1,
+          Number(count) || 1
+        ),
+    },
+    (_, index) => ({
+      dayNumber:
+        index + 1,
+
+      date:
+        addDays(
+          startDate,
+          index
+        ),
+
+      destinations: [],
+      hotels: [],
+      events: [],
+      guides: [],
+
+      notes: "",
+
+      isLocked: false,
+      lockReason: "",
+    })
+  );
+
+
+
+const numericId = (
+  value
+) => {
+    if (
+      Number.isInteger(
+        Number(value)
+      )
+    ) {
+      return Number(value);
+    }
+
+    const match =
+      String(value || "")
+        .match(
+          /(\d+)$/
+        );
+
+    if (!match) {
+      return null;
+    }
+
+    return Number(
+      match[1]
+    );
+  };
+
+
+const getCanonicalType = (
+  item
+) => {
+    const explicit =
+      String(
+        item?.item_type ||
+        item?.itemType ||
+        item?.tripItemType ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+    if (
+      explicit ===
+        "destination" ||
+      explicit === "place"
+    ) {
+      return "destination";
+    }
+
+    if (
+      explicit ===
+        "hotel" ||
+      explicit === "property"
+    ) {
+      return "hotel";
+    }
+
+    if (
+      explicit === "event"
+    ) {
+      return "event";
+    }
+
+    if (
+      explicit === "guide"
+    ) {
+      return "guide";
+    }
+
+    const category =
+      getTripItemCategoryKey(
+        item
+      );
+
+    if (
+      category ===
+      "destinations"
+    ) {
+      return "destination";
+    }
+
+    if (
+      category ===
+      "hotels"
+    ) {
+      return "hotel";
+    }
+
+    if (
+      category ===
+      "events"
+    ) {
+      return "event";
+    }
+
+    if (
+      category ===
+      "guides"
+    ) {
+      return "guide";
+    }
+
+    return null;
+  };
+
+
+const getSourceId = (
+  item,
+  type
+) => {
+    if (!item) {
+      return null;
+    }
+
+    if (
+      type ===
+      "destination"
+    ) {
+      return numericId(
+        item.explorePlaceId ??
+        item.explore_place_id ??
+        item.sourceId ??
+        item.id
+      );
+    }
+
+    if (type === "hotel") {
+      return numericId(
+        item.propertyId ??
+        item.property_id ??
+        item.sourceId ??
+        item.id
+      );
+    }
+
+    if (type === "event") {
+      return numericId(
+        item.touristEventId ??
+        item.tourist_event_id ??
+        item.sourceId ??
+        item.id
+      );
+    }
+
+    if (type === "guide") {
+      return numericId(
+        item.partnerGuideId ??
+        item.partner_guide_id ??
+        item.sourceId ??
+        item.id
+      );
+    }
+
+    return null;
+  };
+
+
+const destinationFromBootstrap =
+  (place) => ({
+    ...place,
+
+    id:
+      Number(place.id),
+
+    sourceId:
+      Number(place.id),
+
+    tripItemType:
+      "destination",
+
+    image:
+      place.imageUrl ||
+      place.image_url ||
+      "",
+
+    estimatedCost:
+      Number(
+        place.estimatedCost ||
+        place.estimated_cost ||
+        0
+      ),
+
+    lat:
+      place.lat === null
+        ? null
+        : Number(
+            place.lat
+          ),
+
+    lng:
+      place.lng === null
+        ? null
+        : Number(
+            place.lng
+          ),
+  });
+
+
+const toApiItem = (
+  item
+) => {
+    const type =
+      getCanonicalType(
+        item
+      );
+
+    const sourceId =
+      getSourceId(
+        item,
+        type
+      );
+
+
+    if (
+      !type ||
+      !sourceId
+    ) {
+      throw new Error(
+        `Cannot save ${
+          item?.name ||
+          "trip item"
+        } because its database ID is missing.`
+      );
+    }
+
+
+    const common = {
+      itemType:
+        type,
+
+      isFixed:
+        Boolean(
+          item.isFixed ??
+          item.is_fixed
+        ),
+
+      fixedStartAt:
+        item.fixedStartAt ??
+        item.fixed_start_at ??
+        null,
+
+      fixedEndAt:
+        item.fixedEndAt ??
+        item.fixed_end_at ??
+        null,
+
+      notes:
+        item.notes ||
+        null,
+    };
+
+
+    if (
+      type ===
+      "destination"
+    ) {
+      return {
+        ...common,
+
+        explorePlaceId:
+          sourceId,
+      };
+    }
+
+
+    if (
+      type ===
+      "hotel"
+    ) {
+      return {
+        ...common,
+
+        propertyId:
+          sourceId,
+      };
+    }
+
+
+    if (
+      type ===
+      "event"
+    ) {
+      return {
+        ...common,
+
+        touristEventId:
+          sourceId,
+      };
+    }
+
+
+    return {
+      ...common,
+
+      partnerGuideId:
+        sourceId,
+    };
+  };
+
+
+const serverItemToLocal = (
+  item,
+  destinationMap,
+  savedItems
+) => {
+    const type =
+      getCanonicalType(
+        item
+      );
+
+    const sourceId =
+      getSourceId(
+        item,
+        type
+      );
+
+
+    if (
+      type ===
+        "destination" &&
+      destinationMap.has(
+        sourceId
+      )
+    ) {
+      return {
+        ...destinationMap.get(
+          sourceId
+        ),
+
+        serverItemId:
+          item.id,
+      };
+    }
+
+
+    const existing =
+      savedItems.find(
+        (savedItem) =>
+          getCanonicalType(
+            savedItem
+          ) === type &&
+          getSourceId(
+            savedItem,
+            type
+          ) === sourceId
+      );
+
+
+    if (existing) {
+      return {
+        ...existing,
+
+        serverItemId:
+          item.id,
+      };
+    }
+
+
+    return {
+      id:
+        `${type}-${sourceId}`,
+
+      sourceId,
+
+      tripItemType:
+        type,
+
+      name:
+        item.source_name_snapshot ||
+        `${type} ${sourceId}`,
+
+      city:
+        item.source_city_snapshot ||
+        "",
+
+      district:
+        item.source_district_snapshot ||
+        "",
+
+      estimatedCost:
+        Number(
+          item.estimated_cost_snapshot ||
+          0
+        ),
+
+      isFixed:
+        Boolean(
+          item.is_fixed
+        ),
+
+      fixedStartAt:
+        item.fixed_start_at,
+
+      fixedEndAt:
+        item.fixed_end_at,
+
+      notes:
+        item.notes ||
+        "",
+    };
+  };
+
+
+const routeText = (
+  route
+) => {
+    if (
+      !Array.isArray(route)
+    ) {
+      return "";
+    }
+
+    return route
+      .flatMap(
+        (day) =>
+          (
+            day.destinations ||
+            []
+          ).map(
+            (destination) =>
+              destination.city ||
+              destination.name
+          )
+      )
+      .filter(Boolean)
+      .join(" → ");
+  };
+
+
+const PDF_THEME = {
+  ink: [24, 38, 35],
+  muted: [101, 116, 111],
+  teal: [15, 118, 110],
+  tealDark: [15, 78, 70],
+  tealSoft: [237, 248, 245],
+  amber: [245, 181, 49],
+  line: [220, 230, 226],
+  soft: [248, 251, 250],
+  white: [255, 255, 255],
+  danger: [158, 69, 59],
+};
+
+
+const PDF_IMAGE_CACHE =
+  new Map();
+
+
+const cleanPdfText =
+  (value) =>
+    String(
+      value ?? ""
+    )
+      .replace(
+        /[•·]/g,
+        "-"
+      )
+      .replace(
+        /[→➜]/g,
+        "->"
+      )
+      .replace(
+        /[–—]/g,
+        "-"
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+
+const getPdfAbsoluteLink =
+  (item) => {
+    const link =
+      getTripItemLink(
+        item
+      );
+
+    if (!link) {
+      return "";
+    }
+
+    if (
+      /^https?:\/\//i.test(
+        link
+      )
+    ) {
+      return link;
+    }
+
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return link;
+    }
+
+    try {
+      return new URL(
+        link,
+        window.location.origin
+      ).toString();
+    } catch {
+      return "";
+    }
+  };
+
+
+const getPdfItemLocation =
+  (item) =>
+    [
+      item?.city,
+      item?.district,
+      item?.region,
+    ]
+      .map(
+        cleanPdfText
+      )
+      .filter(Boolean)
+      .filter(
+        (
+          value,
+          index,
+          array
+        ) =>
+          array.indexOf(
+            value
+          ) === index
+      )
+      .join(" - ");
+
+
+const getPdfItemCost =
+  (item) =>
+    Number(
+      item?.estimatedCost ??
+        item?.estimated_cost ??
+        0
+    ) || 0;
+
+
+const getPdfItemDescription =
+  (item) =>
+    cleanPdfText(
+      item?.description ||
+        item?.shortDescription ||
+        item?.short_description ||
+        item?.summary ||
+        item?.bio ||
+        item?.specialty ||
+        item?.speciality ||
+        ""
+    );
+
+
+const getPdfItemExtraLines =
+  (item) => {
+    const lines = [];
+
+    const rating =
+      Number(
+        item?.rating
+      );
+
+    if (
+      Number.isFinite(
+        rating
+      ) &&
+      rating > 0
+    ) {
+      lines.push(
+        `Rating: ${rating.toFixed(
+          1
+        )}`
+      );
+    }
+
+    const languages =
+      Array.isArray(
+        item?.languages
+      )
+        ? item.languages
+        : [];
+
+    if (
+      languages.length
+    ) {
+      lines.push(
+        `Languages: ${languages
+          .map(
+            cleanPdfText
+          )
+          .filter(Boolean)
+          .slice(0, 4)
+          .join(", ")}`
+      );
+    }
+
+    const dateText =
+      cleanPdfText(
+        item?.eventDate ||
+          item?.event_date ||
+          item?.startDate ||
+          item?.start_date ||
+          ""
+      );
+
+    if (dateText) {
+      lines.push(
+        `Date: ${dateText}`
+      );
+    }
+
+    const timeText =
+      cleanPdfText(
+        item?.startTime ||
+          item?.start_time ||
+          item?.fixedStartAt ||
+          item?.fixed_start_at ||
+          ""
+      );
+
+    if (timeText) {
+      lines.push(
+        `Time: ${timeText}`
+      );
+    }
+
+    return lines.slice(
+      0,
+      2
+    );
+  };
+
+
+const loadPdfImage =
+  async (
+    item
+  ) => {
+    const rawValue =
+      getTripItemImage(
+        item
+      );
+
+    const raw =
+      String(
+        rawValue || ""
+      ).trim();
+
+    if (!raw) {
+      return null;
+    }
+
+    let sourceUrl = "";
+
+    try {
+      sourceUrl =
+        raw.startsWith(
+          "data:"
+        ) ||
+        raw.startsWith(
+          "blob:"
+        )
+          ? raw
+          : assetUrl(
+              raw
+            );
+    } catch {
+      return null;
+    }
+
+    if (!sourceUrl) {
+      return null;
+    }
+
+    if (
+      PDF_IMAGE_CACHE.has(
+        sourceUrl
+      )
+    ) {
+      return PDF_IMAGE_CACHE.get(
+        sourceUrl
+      );
+    }
+
+    const imagePromise =
+      (async () => {
+        let objectUrl = "";
+
+        const loadImage =
+          (
+            imageSource,
+            useCors = false
+          ) =>
+            new Promise(
+              (
+                resolve,
+                reject
+              ) => {
+                const img =
+                  new Image();
+
+                if (useCors) {
+                  img.crossOrigin =
+                    "anonymous";
+                }
+
+                const timeout =
+                  window.setTimeout(
+                    () =>
+                      reject(
+                        new Error(
+                          "Image timeout"
+                        )
+                      ),
+                    8000
+                  );
+
+                img.onload =
+                  () => {
+                    window.clearTimeout(
+                      timeout
+                    );
+
+                    resolve(
+                      img
+                    );
+                  };
+
+                img.onerror =
+                  () => {
+                    window.clearTimeout(
+                      timeout
+                    );
+
+                    reject(
+                      new Error(
+                        "Image failed"
+                      )
+                    );
+                  };
+
+                img.src =
+                  imageSource;
+              }
+            );
+
+        try {
+          let image = null;
+
+          if (
+            sourceUrl.startsWith(
+              "data:"
+            ) ||
+            sourceUrl.startsWith(
+              "blob:"
             )
-          : [];
+          ) {
+            image =
+              await loadImage(
+                sourceUrl
+              );
+          } else {
+            try {
+              const controller =
+                new AbortController();
 
-        const destinationSlides = dbPlaces
-          .map((place) => ({
-            id: `place-${place.id}`,
-            type: "Destination",
-            title: place.name,
-            subtitle: [place.city, place.region].filter(Boolean).join(" • ") || "Explore Sri Lanka",
-            image: firstDbImage(
-              place.image,
-              place.image_url,
-              place.images,
-              Array.isArray(place.photos) ? place.photos : []
-            ),
-          }))
-          .filter((slide) => slide.image)
-          .slice(0, 4);
+              const timer =
+                window.setTimeout(
+                  () =>
+                    controller.abort(),
+                  8000
+                );
 
-        const hotelSlides = approvedHotels
-          .map((hotel) => ({
-            id: `hotel-${hotel.id}`,
-            type: "Hotel",
-            title: hotel.name,
-            subtitle: [hotel.city, hotel.district].filter(Boolean).join(" • ") || "Approved stay",
-            image: firstDbImage(
-              hotel.main_image,
-              hotel.hero_image,
-              hotel.logo_url,
-              hotel.image_url,
-              Array.isArray(hotel.images) ? hotel.images : []
-            ),
-          }))
-          .filter((slide) => slide.image)
-          .slice(0, 4);
+              const response =
+                await fetch(
+                  sourceUrl,
+                  {
+                    mode:
+                      "cors",
+                    credentials:
+                      "omit",
+                    cache:
+                      "force-cache",
+                    signal:
+                      controller.signal,
+                  }
+                );
 
-        const mixedSlides = [];
-        const maxLength = Math.max(destinationSlides.length, hotelSlides.length);
+              window.clearTimeout(
+                timer
+              );
 
-        for (let index = 0; index < maxLength; index += 1) {
-          if (destinationSlides[index]) mixedSlides.push(destinationSlides[index]);
-          if (hotelSlides[index]) mixedSlides.push(hotelSlides[index]);
+              if (
+                !response.ok
+              ) {
+                throw new Error(
+                  `Image request failed: ${response.status}`
+                );
+              }
+
+              const blob =
+                await response.blob();
+
+              objectUrl =
+                URL.createObjectURL(
+                  blob
+                );
+
+              image =
+                await loadImage(
+                  objectUrl
+                );
+            } catch {
+              image =
+                await loadImage(
+                  sourceUrl,
+                  true
+                );
+            }
+          }
+
+          if (
+            !image ||
+            !image.width ||
+            !image.height
+          ) {
+            return null;
+          }
+
+          const canvas =
+            document.createElement(
+              "canvas"
+            );
+
+          const targetWidth =
+            900;
+
+          const targetHeight =
+            600;
+
+          canvas.width =
+            targetWidth;
+
+          canvas.height =
+            targetHeight;
+
+          const context =
+            canvas.getContext(
+              "2d"
+            );
+
+          if (!context) {
+            return null;
+          }
+
+          const sourceRatio =
+            image.width /
+            image.height;
+
+          const targetRatio =
+            targetWidth /
+            targetHeight;
+
+          let sx = 0;
+          let sy = 0;
+          let sw =
+            image.width;
+          let sh =
+            image.height;
+
+          if (
+            sourceRatio >
+            targetRatio
+          ) {
+            sw =
+              image.height *
+              targetRatio;
+
+            sx =
+              (
+                image.width -
+                sw
+              ) /
+              2;
+          } else {
+            sh =
+              image.width /
+              targetRatio;
+
+            sy =
+              (
+                image.height -
+                sh
+              ) /
+              2;
+          }
+
+          context.drawImage(
+            image,
+            sx,
+            sy,
+            sw,
+            sh,
+            0,
+            0,
+            targetWidth,
+            targetHeight
+          );
+
+          return canvas.toDataURL(
+            "image/jpeg",
+            0.82
+          );
+        } catch {
+          return null;
+        } finally {
+          if (objectUrl) {
+            URL.revokeObjectURL(
+              objectUrl
+            );
+          }
         }
+      })();
 
-        if (stillMounted) {
-          setHeroSlides(mixedSlides);
-          setHeroSlideIndex(0);
-        }
-      } catch (error) {
-        console.error("Failed to load trip planner hero slideshow", error);
+    PDF_IMAGE_CACHE.set(
+      sourceUrl,
+      imagePromise
+    );
+
+    return imagePromise;
+  };
+
+
+const drawPdfSectionTitle =
+  (
+    doc,
+    title,
+    subtitle,
+    x,
+    y
+  ) => {
+    doc.setTextColor(
+      ...PDF_THEME.teal
+    );
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+    doc.setFontSize(9);
+
+    doc.text(
+      cleanPdfText(
+        subtitle
+      ).toUpperCase(),
+      x,
+      y
+    );
+
+    doc.setTextColor(
+      ...PDF_THEME.ink
+    );
+
+    doc.setFontSize(17);
+
+    doc.text(
+      cleanPdfText(
+        title
+      ),
+      x,
+      y + 7
+    );
+
+    return y + 13;
+  };
+
+
+const drawPdfFooter =
+  (
+    doc,
+    pageNumber,
+    pageCount
+  ) => {
+    const width =
+      doc.internal.pageSize.getWidth();
+
+    const height =
+      doc.internal.pageSize.getHeight();
+
+    doc.setDrawColor(
+      ...PDF_THEME.line
+    );
+
+    doc.line(
+      15,
+      height - 13,
+      width - 15,
+      height - 13
+    );
+
+    doc.setFont(
+      "helvetica",
+      "normal"
+    );
+
+    doc.setFontSize(8);
+
+    doc.setTextColor(
+      ...PDF_THEME.muted
+    );
+
+    doc.text(
+      "TourismHub LK",
+      15,
+      height - 8
+    );
+
+    doc.text(
+      `${pageNumber} / ${pageCount}`,
+      width - 15,
+      height - 8,
+      {
+        align:
+          "right",
       }
-    };
+    );
+  };
 
-    loadHeroSlides();
-    return () => {
-      stillMounted = false;
-    };
-  }, []);
 
-  useEffect(() => {
-    if (heroSlides.length <= 1) return undefined;
+function TripPlannerPage() {
+  const today =
+    useMemo(
+      () =>
+        todayInputValue(),
+      []
+    );
 
-    const timer = window.setInterval(() => {
-      setHeroSlideIndex((currentIndex) => (currentIndex + 1) % heroSlides.length);
-    }, 4000);
 
-    return () => window.clearInterval(timer);
-  }, [heroSlides.length]);
+  const initialDraft =
+    useMemo(
+      () =>
+        readPlannerDraft(),
+      []
+    );
 
-  const totalPlaces = days.reduce((total, day) => total + getDayItems(day).length, 0);
-  const totalCost = days.reduce((total, day) => total + calculateDayCost(day), 0);
-  const totalTransit = days.reduce((total, day) => total + calculateTransitMinutes(day), 0);
-  const hotelCoveredDays = days.filter((day) => !getDayItems(day).length || day.hotels.length > 0).length;
-  const readiness = Math.min(
-    100,
-    Math.round(
-      (tripName ? 15 : 0) +
-        (startDate ? 15 : 0) +
-        (totalPlaces > 0 ? 30 : 0) +
-        (hotelCoveredDays / Math.max(days.length, 1)) * 25 +
-        (totalPlaces >= Math.min(Number(daysCount) || 1, 3) ? 15 : 0)
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+
+  const [
+    actionLoading,
+    setActionLoading,
+  ] = useState(false);
+
+
+  const [
+    pdfLoading,
+    setPdfLoading,
+  ] = useState(false);
+
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+
+  const [
+    notice,
+    setNotice,
+  ] = useState("");
+
+
+  const [
+    settings,
+    setSettings,
+  ] = useState({});
+
+
+  const [
+    destinations,
+    setDestinations,
+  ] = useState([]);
+
+
+  const [
+    starterItineraries,
+    setStarterItineraries,
+  ] = useState([]);
+
+
+  const [
+    savedTrips,
+    setSavedTrips,
+  ] = useState([]);
+
+
+  const [
+    savedPlansOpen,
+    setSavedPlansOpen,
+  ] = useState(false);
+
+
+  const [
+    savedItems,
+    setSavedItems,
+  ] = useState(
+    readTripItems
+  );
+
+
+  const [
+    savedPlanId,
+    setSavedPlanId,
+  ] = useState(
+    initialDraft
+      ?.savedPlanId ??
+      null
+  );
+
+
+  const [
+    tripName,
+    setTripName,
+  ] = useState(
+    initialDraft
+      ?.tripName ||
+      "Sri Lanka Trip"
+  );
+
+
+  const [
+    startDate,
+    setStartDate,
+  ] = useState(
+    initialDraft
+      ?.startDate ||
+      today
+  );
+
+
+  const [
+    daysCount,
+    setDaysCount,
+  ] = useState(
+    initialDraft
+      ?.daysCount ||
+      String(
+        initialDraft
+          ?.days
+          ?.length ||
+          3
+      )
+  );
+
+
+  const [
+    travellerCount,
+    setTravellerCount,
+  ] = useState(
+    initialDraft
+      ?.travellerCount ||
+      "2"
+  );
+
+
+  const [
+    travelStyle,
+    setTravelStyle,
+  ] = useState(
+    initialDraft
+      ?.travelStyle ||
+      ""
+  );
+
+
+  const [
+    budgetLevel,
+    setBudgetLevel,
+  ] = useState(
+    initialDraft
+      ?.budgetLevel ||
+      ""
+  );
+
+
+  const [
+    transportProfile,
+    setTransportProfile,
+  ] = useState(
+    initialDraft
+      ?.transportProfile ||
+      ""
+  );
+
+
+  const [
+    optimizationMode,
+    setOptimizationMode,
+  ] = useState(
+    initialDraft
+      ?.optimizationMode ||
+      ""
+  );
+
+
+  const [
+    days,
+    setDays,
+  ] = useState(
+    () =>
+      Array.isArray(
+        initialDraft
+          ?.days
+      ) &&
+      initialDraft.days.length >
+        0
+        ? initialDraft.days
+        : createDays(
+            initialDraft
+              ?.startDate ||
+              today,
+            Number(
+              initialDraft
+                ?.daysCount ||
+                3
+            )
+          )
+  );
+
+
+  const [
+    routeAnalysis,
+    setRouteAnalysis,
+  ] = useState(
+    () =>
+      initialDraft
+        ?.routeAnalysis ||
+      null
+  );
+
+
+  const [
+    routeError,
+    setRouteError,
+  ] = useState("");
+
+
+  const [
+    dirty,
+    setDirty,
+  ] = useState(
+    Boolean(
+      initialDraft
+        ?.dirty
     )
   );
 
-  const dailyBudgetTarget = budgetDailyTargets[budgetLevel] || budgetDailyTargets.Medium;
-  const unusedSavedPlaces = savedPlaces.filter(
-    (savedPlace) => !days.some((day) => getDayItems(day).some((item) => item.id === savedPlace.id))
-  );
-  const savedPlaceGroups = groupTripItemsByType(unusedSavedPlaces, { includeEmpty: true });
-  const activeSavedGroup = savedPlaceGroups.find((group) => group.key === activeSavedCategory);
-  const popularPlaces = explorePlaces.slice(0, 6);
 
-  const routeCities = days
-    .flatMap((day) => (day.destinations || []).map((place) => place.city))
-    .filter((city, index, array) => city && array.indexOf(city) === index);
-
-  const currentHeroSlide = heroSlides[heroSlideIndex % Math.max(heroSlides.length, 1)] || null;
-  const tripHeroStats = [
-    { value: days.length, label: "travel days" },
-    { value: savedPlaces.length, label: "saved items" },
-    { value: totalPlaces, label: "planned items" },
-    { value: heroSlides.length || "DB", label: "live photos" },
-  ];
-
-  const applyTripSettings = () => {
-    const safeDaysCount = Math.min(Math.max(Number(daysCount) || 1, 1), 14);
-    setDaysCount(String(safeDaysCount));
-    setDays((currentDays) => normalizeDays(currentDays, startDate || today, safeDaysCount));
-    showSuccess("Trip dates and day cards updated.");
-  };
-
-  const saveTripPlan = () => {
-    const plan = {
-      tripName,
-      startDate,
-      daysCount: Number(daysCount) || 1,
-      travelStyle,
-      budgetLevel,
-      travelPace,
-      days,
-      savedAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(TRIP_PLAN_KEY, JSON.stringify(plan));
-    showSuccess("Trip plan saved on this browser.");
-  };
-
-  const clearPlan = () => {
-    if (!window.confirm("Clear current trip plan? Saved trip basket items will stay.")) return;
-    const freshDays = createDays(startDate || today, Number(daysCount) || 1);
-    setDays(freshDays);
-    localStorage.removeItem(TRIP_PLAN_KEY);
-    showSuccess("Trip plan cleared.");
-  };
-
-  const addItemToDay = (item, dayIndex) => {
-    if (!item) return;
-    const category = getTripItemCategoryKey(item);
-    const day = days[dayIndex];
-    if (!day) return;
-
-    const validation = validateItemForDay(item, day, category);
-    if (!validation.ok) {
-      showRejection(validation.reason);
-      return;
-    }
-
-    setDays((currentDays) =>
-      currentDays.map((currentDay, index) => {
-        if (index !== dayIndex) return currentDay;
-        if (currentDay[category].some((existing) => existing.id === item.id)) return currentDay;
-        return { ...currentDay, [category]: [...currentDay[category], item] };
-      })
+  const destinationMap =
+    useMemo(
+      () =>
+        new Map(
+          destinations.map(
+            (destination) => [
+              Number(
+                destination.id
+              ),
+              destination,
+            ]
+          )
+        ),
+      [destinations]
     );
-    showSuccess(`${item.name} added to Day ${dayIndex + 1} (${getTripItemTypeLabel(item)}).`);
-  };
 
-  const removeItemFromDay = (dayIndex, category, itemId) => {
-    setDays((currentDays) =>
-      currentDays.map((day, index) =>
-        index === dayIndex
-          ? { ...day, [category]: day[category].filter((item) => item.id !== itemId) }
-          : day
+
+  const travelStyles =
+    Array.isArray(
+      settings.travel_styles
+    )
+      ? settings.travel_styles
+      : [];
+
+
+  const budgetTargets =
+    settings
+      .budget_daily_targets &&
+    typeof settings
+      .budget_daily_targets ===
+      "object"
+      ? settings
+          .budget_daily_targets
+      : {};
+
+
+  const transportProfiles =
+    Array.isArray(
+      settings
+        .trip_planner_transport_profiles
+    )
+      ? settings
+          .trip_planner_transport_profiles
+      : [];
+
+
+  const optimizationModes =
+    Array.isArray(
+      settings
+        .trip_planner_optimization_modes
+    )
+      ? settings
+          .trip_planner_optimization_modes
+      : [];
+
+
+  const plannerConfig =
+    settings
+      .trip_planner_config ||
+    {};
+
+
+  const mapConfig =
+    settings
+      .trip_planner_map ||
+    null;
+
+
+  const endDate =
+    addDays(
+      startDate,
+      Math.max(
+        0,
+        days.length - 1
       )
     );
-  };
 
-  const moveItemWithinDay = (dayIndex, category, itemIndex, direction) => {
-    setDays((currentDays) =>
-      currentDays.map((day, index) => {
-        if (index !== dayIndex) return day;
-        const nextIndex = itemIndex + direction;
-        if (nextIndex < 0 || nextIndex >= day[category].length) return day;
-        const updatedItems = [...day[category]];
-        [updatedItems[itemIndex], updatedItems[nextIndex]] = [
-          updatedItems[nextIndex],
-          updatedItems[itemIndex],
-        ];
-        return { ...day, [category]: updatedItems };
-      })
+
+  const totalDestinations =
+    days.reduce(
+      (
+        total,
+        day
+      ) =>
+        total +
+        day.destinations
+          .length,
+      0
     );
-  };
 
-  const moveItemToDay = (fromDayIndex, category, itemId, toDayIndex) => {
-    if (fromDayIndex === toDayIndex) return;
 
-    const itemToMove = days[fromDayIndex]?.[category]?.find((item) => item.id === itemId);
-    if (!itemToMove) return;
+  const routableDayCount =
+    days.filter(
+      (day) =>
+        Array.isArray(
+          day.destinations
+        ) &&
+        day.destinations.some(
+          (destination) =>
+            Number.isFinite(
+              Number(
+                destination?.lat
+              )
+            ) &&
+            Number.isFinite(
+              Number(
+                destination?.lng
+              )
+            )
+        )
+    ).length;
 
-    const targetDay = days[toDayIndex];
-    if (!targetDay) return;
 
-    const validation = validateItemForDay(itemToMove, targetDay, category);
-    if (!validation.ok) {
-      showRejection(validation.reason);
-      return;
-    }
-
-    setDays((currentDays) =>
-      currentDays.map((day, index) => {
-        if (index === fromDayIndex) {
-          return { ...day, [category]: day[category].filter((item) => item.id !== itemId) };
-        }
-        if (index === toDayIndex) {
-          if (day[category].some((item) => item.id === itemId)) return day;
-          return { ...day, [category]: [...day[category], itemToMove] };
-        }
-        return day;
-      })
+  const totalItems =
+    days.reduce(
+      (
+        total,
+        day
+      ) =>
+        total +
+        day.destinations
+          .length +
+        day.hotels.length +
+        day.events.length +
+        day.guides.length,
+      0
     );
-  };
 
-  const updateDayNotes = (dayIndex, notes) => {
-    setDays((currentDays) =>
-      currentDays.map((day, index) => (index === dayIndex ? { ...day, notes } : day))
-    );
-  };
 
-  const buildStarterPlan = (placeIds = starterRoutes[0].placeIds) => {
-    const selectedPlaces = placeIds.map(getPlaceById).filter(Boolean);
-    const safeDays = Math.max(Number(daysCount) || 1, 1);
-    const nextDays = createDays(startDate || today, safeDays);
-
-    selectedPlaces.forEach((place, index) => {
-      const targetIndex = index % safeDays;
-      const category = getTripItemCategoryKey(place);
-      nextDays[targetIndex][category].push(place);
-    });
-
-    setDays(nextDays);
-    showSuccess("Starter route created. You can edit every day.");
-  };
-
-  const addPopularToSaved = (place) => {
-    const currentSaved = loadJson(SAVED_PLACES_KEY, []);
-    if (currentSaved.some((item) => item.id === place.id)) {
-      showRejection(`${place.name} is already saved.`);
-      return;
-    }
-
-    const updated = [...currentSaved, place];
-    localStorage.setItem(SAVED_PLACES_KEY, JSON.stringify(updated));
-    setSavedPlaces(updated);
-    window.dispatchEvent(new Event(SAVED_TRIP_EVENT));
-    showSuccess(`${place.name} added to saved trip items.`);
-  };
-
-  const handleDragStart = (payload) => {
-    setDraggedPlace(payload);
-  };
-
-  const handleDropOnDay = (dayIndex) => {
-    if (!draggedPlace) return;
-
-    if (draggedPlace.source === "saved") {
-      addItemToDay(draggedPlace.place, dayIndex);
-    }
-
-    if (draggedPlace.source === "day") {
-      moveItemToDay(draggedPlace.dayIndex, draggedPlace.category, draggedPlace.place.id, dayIndex);
-    }
-
-    setDraggedPlace(null);
-  };
-
-  const getHotelSearchLink = (day) => {
-    const city = day.destinations[0]?.city || "";
-    const params = new URLSearchParams();
-    if (city) params.set("city", city);
-    if (day.date) params.set("check_in", day.date);
-    if (day.date) params.set("check_out", addDays(day.date, 1));
-    params.set("guests", "2");
-    return `/hotels?${params.toString()}`;
-  };
-
-  const drawPdfCover = (doc) => {
-    addPdfPageBackground(doc);
-
-    doc.setFillColor(...pdfTheme.green);
-    doc.rect(12, 12, 186, 38, "F");
-    doc.setTextColor(255, 252, 244);
-    doc.setFont("times", "bold");
-    doc.setFontSize(25);
-    doc.text("TourismHub LK", 18, 28);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text("Smart Sri Lanka Trip Itinerary", 18, 40);
-
-    doc.setTextColor(...pdfTheme.green);
-    doc.setFont("times", "bold");
-    doc.setFontSize(30);
-    doc.text(tripName || "Sri Lanka Holiday Plan", 16, 70, { maxWidth: 178 });
-
-    doc.setDrawColor(...pdfTheme.gold);
-    doc.setLineWidth(1.1);
-    doc.line(16, 82, 194, 82);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(...pdfTheme.ink);
-    doc.text(`Start date: ${startDate || "Not set"}`, 16, 96);
-    doc.text(`Travel style: ${travelStyle}`, 16, 104);
-    doc.text(`Budget level: ${budgetLevel}`, 16, 112);
-    doc.text(`Travel pace: ${travelPace}`, 16, 120);
-
-    const summaryCards = [
-      ["Days", String(days.length)],
-      ["Places", String(totalPlaces)],
-      ["Activity cost", formatLkr(totalCost)],
-      ["Transit", formatDuration(totalTransit)],
-    ];
-
-    summaryCards.forEach(([label, value], index) => {
-      const x = 16 + index * 45;
-      doc.setFillColor(...pdfTheme.soft);
-      doc.setDrawColor(...pdfTheme.border);
-      doc.roundedRect(x, 136, 39, 23, 2, 2, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(...pdfTheme.muted);
-      doc.text(label.toUpperCase(), x + 3, 145);
-      doc.setFont("times", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(...pdfTheme.green);
-      doc.text(value, x + 3, 153, { maxWidth: 33 });
-    });
-
-    if (routeCities.length) {
-      doc.setFillColor(...pdfTheme.soft);
-      doc.setDrawColor(...pdfTheme.border);
-      doc.roundedRect(16, 174, 178, 34, 2, 2, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...pdfTheme.green);
-      doc.setFontSize(12);
-      doc.text("Route overview", 20, 184);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...pdfTheme.ink);
-      doc.text(routeCities.join("  →  "), 20, 194, { maxWidth: 170 });
-    }
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...pdfTheme.muted);
-    doc.setFontSize(10);
-    doc.text(
-      "This itinerary was generated from your TourismHub LK trip planner. Check local weather, entry fees, and transport availability before travelling.",
-      16,
-      230,
-      { maxWidth: 178 }
-    );
-  };
-
-  const downloadPdf = async () => {
-    try {
-      const doc = new jsPDF("p", "mm", "a4");
-      drawPdfCover(doc);
-      doc.addPage();
-      addPdfPageBackground(doc);
-
-      let y = 20;
-      doc.setFont("times", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(...pdfTheme.green);
-      doc.text("Day-by-day itinerary", 16, y);
-      y += 12;
-
-      for (let dayIndex = 0; dayIndex < days.length; dayIndex += 1) {
-        const day = days[dayIndex];
-        y = ensurePdfSpace(doc, y, 52);
-
-        doc.setFillColor(...pdfTheme.green);
-        doc.rect(14, y, 182, 13, "F");
-        doc.setTextColor(255, 252, 244);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text(`Day ${day.dayNumber} • ${formatDate(day.date)}`, 18, y + 8.5);
-        doc.text(day.hotels.length > 0 ? "Hotel selected" : "Hotel not selected", 145, y + 8.5);
-        y += 18;
-
-        const dayCost = calculateDayCost(day);
-        const dayTransit = calculateTransitMinutes(day);
-        const dayItems = getDayItems(day);
-        doc.setFillColor(...pdfTheme.soft);
-        doc.setDrawColor(...pdfTheme.border);
-        doc.roundedRect(14, y, 182, 15, 2, 2, "FD");
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(...pdfTheme.ink);
-        doc.text(`Activity cost: ${formatLkr(dayCost)}`, 18, y + 6);
-        doc.text(`Transit time: ${formatDuration(dayTransit)}`, 76, y + 6);
-        doc.text(`Places: ${dayItems.length}`, 132, y + 6);
-        y += 22;
-
-        if (!dayItems.length) {
-          doc.setFont("helvetica", "italic");
-          doc.setTextColor(...pdfTheme.muted);
-          doc.text("No destinations added for this day.", 18, y);
-          y += 10;
-          continue;
-        }
-
-        const categoryGroups = [
-          { label: "Destinations", items: day.destinations },
-          { label: "Events", items: day.events },
-          { label: "Hotels", items: day.hotels },
-          { label: "Guides", items: day.guides },
+  const estimatedItemCost =
+    days.reduce(
+      (
+        total,
+        day
+      ) => {
+        const items = [
+          ...day.destinations,
+          ...day.hotels,
+          ...day.events,
+          ...day.guides,
         ];
 
-        for (const group of categoryGroups) {
-          if (!group.items.length) continue;
+        return (
+          total +
+          items.reduce(
+            (
+              subtotal,
+              item
+            ) =>
+              subtotal +
+              Number(
+                item.estimatedCost ||
+                0
+              ),
+            0
+          )
+        );
+      },
+      0
+    );
 
-          y = ensurePdfSpace(doc, y, 14);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10.5);
-          doc.setTextColor(...pdfTheme.teal);
-          doc.text(group.label, 18, y);
-          y += 8;
 
-          for (let itemIndex = 0; itemIndex < group.items.length; itemIndex += 1) {
-            const item = group.items[itemIndex];
-            y = await drawPdfItemCard(doc, item, itemIndex, y);
+  const showMessage =
+    (
+      message,
+      isError = false
+    ) => {
+      if (isError) {
+        setError(
+          message
+        );
 
-            if (group.label === "Destinations" && itemIndex > 0) {
-              const previous = group.items[itemIndex - 1];
-              const travel = getTravelTime(previous.city, item.city);
-              y = ensurePdfSpace(doc, y, 12);
-              doc.setFont("helvetica", "bold");
-              doc.setFontSize(9);
-              doc.setTextColor(...pdfTheme.teal);
-              doc.text(
-                `Transit from ${previous.city} to ${item.city}: ${travel.label} by ${travel.mode}`,
-                18,
-                y
+        setNotice("");
+      } else {
+        setNotice(
+          message
+        );
+
+        setError("");
+      }
+    };
+
+
+  const markChanged =
+    (
+      affectsRoute = false
+    ) => {
+      setDirty(true);
+
+      if (affectsRoute) {
+        setRouteAnalysis(
+          null
+        );
+
+        setRouteError(
+          ""
+        );
+      }
+    };
+
+
+  const refreshSavedTrips =
+    useCallback(
+      async () => {
+        try {
+          const response =
+            await getMyTripPlans();
+
+          setSavedTrips(
+            response.data ||
+            []
+          );
+        } catch (loadError) {
+          console.error(
+            "Failed to load saved trips",
+            loadError
+          );
+        }
+      },
+      []
+    );
+
+
+  useEffect(() => {
+    let active = true;
+
+
+    const load =
+      async () => {
+        try {
+          setLoading(true);
+
+
+          const [
+            bootstrapResponse,
+            plansResponse,
+            databaseEvents,
+          ] =
+            await Promise.all([
+              getTripPlannerBootstrap(),
+              getMyTripPlans(),
+              getTouristEvents(),
+            ]);
+
+
+          if (!active) {
+            return;
+          }
+
+
+          const data =
+            bootstrapResponse.data ||
+            {};
+
+
+          const loadedSettings =
+            data.settings ||
+            {};
+
+
+          const loadedDestinations =
+            (
+              data.destinations ||
+              []
+            ).map(
+              destinationFromBootstrap
+            );
+
+
+          setSettings(
+            loadedSettings
+          );
+
+
+          setDestinations(
+            loadedDestinations
+          );
+
+
+          setStarterItineraries(
+            data.starterItineraries ||
+            []
+          );
+
+
+          setSavedTrips(
+            plansResponse.data ||
+            []
+          );
+
+
+          const reconciledEvents =
+            reconcileSavedEventsWithDatabase(
+              readTripItems(),
+              databaseEvents
+            );
+
+
+          if (
+            reconciledEvents.changed
+          ) {
+            const updatedItems =
+              writeTripItems(
+                reconciledEvents.items
               );
-              y += 8;
+
+            setSavedItems(
+              updatedItems
+            );
+          } else {
+            setSavedItems(
+              reconciledEvents.items
+            );
+          }
+
+
+          const styles =
+            loadedSettings
+              .travel_styles ||
+            [];
+
+
+          const budgets =
+            Object.keys(
+              loadedSettings
+                .budget_daily_targets ||
+              {}
+            );
+
+
+          const profiles =
+            loadedSettings
+              .trip_planner_transport_profiles ||
+            [];
+
+
+          const modes =
+            loadedSettings
+              .trip_planner_optimization_modes ||
+            [];
+
+
+          setTravelStyle(
+            (
+              current
+            ) =>
+              current ||
+              styles[0] ||
+              ""
+          );
+
+
+          setBudgetLevel(
+            (
+              current
+            ) =>
+              current ||
+              budgets[0] ||
+              ""
+          );
+
+
+          setTransportProfile(
+            (
+              current
+            ) =>
+              current ||
+              profiles[0]
+                ?.key ||
+              ""
+          );
+
+
+          setOptimizationMode(
+            (
+              current
+            ) =>
+              current ||
+              modes[0]
+                ?.key ||
+              ""
+          );
+        } catch (loadError) {
+          console.error(
+            loadError
+          );
+
+          setError(
+            loadError
+              ?.response
+              ?.data
+              ?.message ||
+            "Failed to load the Trip Planner."
+          );
+        } finally {
+          if (active) {
+            setLoading(false);
+          }
+        }
+      };
+
+
+    load();
+
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    const refresh =
+      () => {
+        setSavedItems(
+          readTripItems()
+        );
+      };
+
+
+    window.addEventListener(
+      "storage",
+      refresh
+    );
+
+
+    window.addEventListener(
+      SAVED_TRIP_EVENT,
+      refresh
+    );
+
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        refresh
+      );
+
+      window.removeEventListener(
+        SAVED_TRIP_EVENT,
+        refresh
+      );
+    };
+  }, []);
+
+
+  useEffect(() => {
+    if (
+      loading
+    ) {
+      return;
+    }
+
+    writePlannerDraft({
+      savedPlanId,
+      tripName,
+      startDate,
+      daysCount,
+      travellerCount,
+      travelStyle,
+      budgetLevel,
+      transportProfile,
+      optimizationMode,
+      days,
+      routeAnalysis,
+      dirty,
+      updatedAt:
+        Date.now(),
+    });
+  }, [
+    loading,
+    savedPlanId,
+    tripName,
+    startDate,
+    daysCount,
+    travellerCount,
+    travelStyle,
+    budgetLevel,
+    transportProfile,
+    optimizationMode,
+    days,
+    routeAnalysis,
+    dirty,
+  ]);
+
+
+  useEffect(() => {
+    if (
+      loading
+    ) {
+      return;
+    }
+
+    let stored;
+
+    try {
+      stored =
+        JSON.parse(
+          sessionStorage.getItem(
+            TRIP_PLANNER_RETURN_KEY
+          ) ||
+            "null"
+        );
+    } catch {
+      return;
+    }
+
+    if (
+      !stored?.restore
+    ) {
+      return;
+    }
+
+    sessionStorage.removeItem(
+      TRIP_PLANNER_RETURN_KEY
+    );
+
+    const targetY =
+      Math.max(
+        0,
+        Number(
+          stored.scrollY ||
+            0
+        )
+      );
+
+    window.requestAnimationFrame(
+      () => {
+        window.requestAnimationFrame(
+          () => {
+            window.scrollTo({
+              top:
+                targetY,
+              left: 0,
+              behavior:
+                "auto",
+            });
+          }
+        );
+      }
+    );
+  }, [
+    loading,
+  ]);
+
+
+  const persistDraftBeforeNavigation =
+    () => {
+      writePlannerDraft({
+        savedPlanId,
+        tripName,
+        startDate,
+        daysCount,
+        travellerCount,
+        travelStyle,
+        budgetLevel,
+        transportProfile,
+        optimizationMode,
+        days,
+        routeAnalysis,
+        dirty,
+        updatedAt:
+          Date.now(),
+      });
+
+      rememberPlannerReturn();
+    };
+
+
+  const rebuildDays =
+    () => {
+      const maxDays =
+        Number(
+          plannerConfig
+            .maxDays ||
+          30
+        );
+
+
+      const count =
+        Math.min(
+          Math.max(
+            1,
+            Number(
+              daysCount
+            ) || 1
+          ),
+          maxDays
+        );
+
+
+      setDaysCount(
+        String(count)
+      );
+
+
+      setDays(
+        (current) =>
+          Array.from(
+            {
+              length:
+                count,
+            },
+            (
+              _,
+              index
+            ) => {
+              const existing =
+                current[
+                  index
+                ];
+
+
+              if (existing) {
+                return {
+                  ...existing,
+
+                  dayNumber:
+                    index +
+                    1,
+
+                  date:
+                    addDays(
+                      startDate,
+                      index
+                    ),
+                };
+              }
+
+
+              return {
+                ...createDays(
+                  startDate,
+                  count
+                )[index],
+              };
             }
+          )
+      );
+
+
+      markChanged(
+        true
+      );
+
+      showMessage(
+        "Trip dates updated."
+      );
+    };
+
+
+  const updateDay =
+    (
+      dayIndex,
+      updater,
+      {
+        affectsRoute = false,
+      } = {}
+    ) => {
+      setDays(
+        (current) =>
+          current.map(
+            (
+              day,
+              index
+            ) =>
+              index ===
+              dayIndex
+                ? updater(
+                    day
+                  )
+                : day
+          )
+      );
+
+      markChanged(
+        affectsRoute
+      );
+    };
+
+
+  const addDestination =
+    (
+      dayIndex,
+      destinationId
+    ) => {
+      const id =
+        Number(
+          destinationId
+        );
+
+
+      const destination =
+        destinationMap.get(
+          id
+        );
+
+
+      if (!destination) {
+        return;
+      }
+
+
+      updateDay(
+        dayIndex,
+        (day) => {
+          if (
+            day.destinations.some(
+              (item) =>
+                Number(
+                  item.id
+                ) === id
+            )
+          ) {
+            showMessage(
+              `${destination.name} is already on this day.`,
+              true
+            );
+
+            return day;
+          }
+
+
+          const max =
+            Number(
+              plannerConfig
+                .maxDestinationsPerDay ||
+              10
+            );
+
+
+          if (
+            day.destinations
+              .length >= max
+          ) {
+            showMessage(
+              `Maximum ${max} destinations are allowed per day.`,
+              true
+            );
+
+            return day;
+          }
+
+
+          return {
+            ...day,
+
+            destinations: [
+              ...day.destinations,
+              destination,
+            ],
+          };
+        },
+        {
+          affectsRoute: true,
+        }
+      );
+    };
+
+
+  const removeDayItem =
+    (
+      dayIndex,
+      category,
+      itemIndex
+    ) => {
+      const removedItem =
+        days?.[dayIndex]
+          ?.[category]
+          ?.[itemIndex];
+
+
+      const affectsRoute =
+        category ===
+          "destinations" ||
+        Boolean(
+          removedItem?.isFixed ??
+          removedItem?.is_fixed
+        );
+
+
+      updateDay(
+        dayIndex,
+        (day) => ({
+          ...day,
+
+          [category]:
+            day[
+              category
+            ].filter(
+              (
+                _,
+                index
+              ) =>
+                index !==
+                itemIndex
+            ),
+        }),
+        {
+          affectsRoute,
+        }
+      );
+    };
+
+
+  const addSavedItem =
+    (
+      dayIndex,
+      item
+    ) => {
+      const category =
+        getTripItemCategoryKey(
+          item
+        );
+
+
+      if (
+        ![
+          "destinations",
+          "hotels",
+          "events",
+          "guides",
+        ].includes(
+          category
+        )
+      ) {
+        showMessage(
+          "Unsupported trip item.",
+          true
+        );
+
+        return;
+      }
+
+
+      /* =====================================================
+         DESTINATION
+      ===================================================== */
+
+      if (
+        category ===
+        "destinations"
+      ) {
+        const sourceId =
+          getSourceId(
+            item,
+            "destination"
+          );
+
+
+        if (
+          !destinationMap.has(
+            sourceId
+          )
+        ) {
+          showMessage(
+            `${item.name} is not available as a published database destination.`,
+            true
+          );
+
+          return;
+        }
+
+
+        addDestination(
+          dayIndex,
+          sourceId
+        );
+
+        return;
+      }
+
+
+      /* =====================================================
+         DAY CHECK
+      ===================================================== */
+
+      const targetDay =
+        days[
+          dayIndex
+        ];
+
+
+      if (!targetDay) {
+        showMessage(
+          "Selected trip day is not available.",
+          true
+        );
+
+        return;
+      }
+
+
+      if (
+        !Array.isArray(
+          targetDay.destinations
+        ) ||
+        targetDay.destinations
+          .length === 0
+      ) {
+        showMessage(
+          `Add a destination to Day ${
+            dayIndex + 1
+          } before adding ${getTripItemTypeLabel(
+            item
+          ).toLowerCase()}.`,
+          true
+        );
+
+        return;
+      }
+
+
+      /* =====================================================
+         DATABASE ID CHECK
+      ===================================================== */
+
+      const itemType =
+        getCanonicalType(
+          item
+        );
+
+
+      const sourceId =
+        getSourceId(
+          item,
+          itemType
+        );
+
+
+      if (!sourceId) {
+        showMessage(
+          category ===
+          "events"
+            ? `${item.name || "This event"} is no longer available in the approved event database. Use More events to choose an available event.`
+            : `${item.name || "Trip item"} does not have a valid database ID.`,
+          true
+        );
+
+        return;
+      }
+
+
+      /* =====================================================
+         DUPLICATE CHECK
+      ===================================================== */
+
+      const alreadyAdded =
+        targetDay[
+          category
+        ].some(
+          (current) =>
+            getSourceId(
+              current,
+              getCanonicalType(
+                current
+              )
+            ) === sourceId
+        );
+
+
+      if (alreadyAdded) {
+        showMessage(
+          `${item.name} is already added to Day ${
+            dayIndex + 1
+          }.`,
+          true
+        );
+
+        return;
+      }
+
+
+      /* =====================================================
+         LOCATION COMPATIBILITY
+
+         Hotels and events are matched to the selected
+         day's destination city or district.
+
+         Guides are not restricted. They can travel, so the
+         planner shows every saved guide and ranks nearby
+         guides first.
+      ===================================================== */
+
+      const requiresLocationMatch =
+        category ===
+          "hotels" ||
+        category ===
+          "events";
+
+
+      if (
+        requiresLocationMatch &&
+        !itemMatchesDayLocation(
+          item,
+          targetDay
+        )
+      ) {
+        const destinationNames =
+          targetDay.destinations
+            .map(
+              (
+                destination
+              ) =>
+                destination.name
+            )
+            .filter(
+              Boolean
+            )
+            .join(", ");
+
+
+        showMessage(
+          `${item.name} is not near the selected destination area for Day ${
+            dayIndex + 1
+          } (${destinationNames}).`,
+          true
+        );
+
+        return;
+      }
+
+
+      /* =====================================================
+         ADD ITEM
+      ===================================================== */
+
+      updateDay(
+        dayIndex,
+        (
+          day
+        ) => ({
+          ...day,
+
+          [category]: [
+            ...day[
+              category
+            ],
+
+            item,
+          ],
+        }),
+        {
+          affectsRoute:
+            Boolean(
+              item.isFixed ??
+              item.is_fixed
+            ),
+        }
+      );
+
+
+      showMessage(
+        `${item.name} added to Day ${
+          dayIndex + 1
+        }.`
+      );
+    };
+
+
+  const buildPayload =
+    () => {
+      if (
+        !tripName.trim()
+      ) {
+        throw new Error(
+          "Trip name is required."
+        );
+      }
+
+
+      const apiDays =
+        days.map(
+          (day) => {
+            const allItems = [
+              ...day.destinations,
+              ...day.hotels,
+              ...day.events,
+              ...day.guides,
+            ];
+
+
+            return {
+              date:
+                day.date,
+
+              notes:
+                day.notes ||
+                null,
+
+              isLocked:
+                Boolean(
+                  day.isLocked
+                ),
+
+              lockReason:
+                day.isLocked
+                  ? day.lockReason ||
+                    "Locked by traveller"
+                  : null,
+
+              items:
+                allItems.map(
+                  toApiItem
+                ),
+            };
+          }
+        );
+
+
+      return {
+        title:
+          tripName.trim(),
+
+        startDate,
+
+        endDate,
+
+        travelStyle:
+          travelStyle ||
+          null,
+
+        budgetLevel:
+          budgetLevel ||
+          null,
+
+        travellerCount:
+          Number(
+            travellerCount
+          ) || 1,
+
+        optimizationMode,
+
+        transportProfile,
+
+        status:
+          "saved",
+
+        days:
+          apiDays,
+      };
+    };
+
+
+  const saveTrip =
+    async ({
+      silent = false,
+    } = {}) => {
+      const payload =
+        buildPayload();
+
+
+      let response;
+
+
+      if (savedPlanId) {
+        response =
+          await updateTripPlan(
+            savedPlanId,
+            payload
+          );
+      } else {
+        response =
+          await createTripPlan(
+            payload
+          );
+      }
+
+
+      const id =
+        Number(
+          response
+            ?.data?.id ||
+          savedPlanId
+        );
+
+
+      setSavedPlanId(
+        id
+      );
+
+
+      setDirty(false);
+
+
+      await refreshSavedTrips();
+
+
+      if (!silent) {
+        showMessage(
+          "Plan saved."
+        );
+      }
+
+
+      return id;
+    };
+
+
+  const handleSave =
+    async () => {
+      try {
+        setActionLoading(
+          true
+        );
+
+        await saveTrip();
+      } catch (saveError) {
+        console.error(
+          saveError
+        );
+
+        showMessage(
+          saveError
+            ?.response
+            ?.data
+            ?.message ||
+          saveError.message ||
+          "Failed to save trip.",
+          true
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+
+  const hydrateTrip =
+    useCallback(
+      (
+        plan,
+        planId
+      ) => {
+        const localDays =
+          (
+            plan.days ||
+            []
+          ).map(
+            (
+              day,
+              index
+            ) => {
+              const groups = {
+                destinations:
+                  [],
+                hotels: [],
+                events: [],
+                guides: [],
+              };
+
+
+              (
+                day.items ||
+                []
+              ).forEach(
+                (item) => {
+                  const local =
+                    serverItemToLocal(
+                      item,
+                      destinationMap,
+                      savedItems
+                    );
+
+
+                  const category =
+                    getTripItemCategoryKey(
+                      local
+                    );
+
+
+                  if (
+                    groups[
+                      category
+                    ]
+                  ) {
+                    groups[
+                      category
+                    ].push(
+                      local
+                    );
+                  }
+                }
+              );
+
+
+              return {
+                dayNumber:
+                  index + 1,
+
+                date:
+                  day.trip_date,
+
+                notes:
+                  day.notes ||
+                  "",
+
+                isLocked:
+                  Boolean(
+                    day.is_locked
+                  ),
+
+                lockReason:
+                  day.lock_reason ||
+                  "",
+
+                ...groups,
+              };
+            }
+          );
+
+
+        setSavedPlanId(
+          Number(
+            planId ||
+            plan.id
+          )
+        );
+
+
+        setTripName(
+          plan.title ||
+          "Sri Lanka Trip"
+        );
+
+
+        setStartDate(
+          plan.start_date
+        );
+
+
+        setDaysCount(
+          String(
+            localDays.length
+          )
+        );
+
+
+        setTravellerCount(
+          String(
+            plan.traveller_count ||
+            1
+          )
+        );
+
+
+        setTravelStyle(
+          plan.travel_style ||
+          ""
+        );
+
+
+        setBudgetLevel(
+          plan.budget_level ||
+          ""
+        );
+
+
+        setTransportProfile(
+          plan.transport_profile ||
+          ""
+        );
+
+
+        setOptimizationMode(
+          plan.optimization_mode ||
+          ""
+        );
+
+
+        setDays(
+          localDays
+        );
+
+
+        setRouteAnalysis(
+          null
+        );
+
+
+        setRouteError(
+          ""
+        );
+
+
+        setDirty(false);
+      },
+      [
+        destinationMap,
+        savedItems,
+      ]
+    );
+
+
+  const loadSavedTrip =
+    async (
+      tripPlanId
+    ) => {
+      try {
+        setActionLoading(
+          true
+        );
+
+
+        const response =
+          await getTripPlanById(
+            tripPlanId
+          );
+
+
+        const plan =
+          response.data;
+
+
+        hydrateTrip(
+          plan,
+          tripPlanId
+        );
+
+
+        const savedRoutableDayCount =
+          (
+            plan?.days ||
+            []
+          ).filter(
+            (day) =>
+              (
+                day?.items ||
+                []
+              ).some(
+                (item) =>
+                  getCanonicalType(
+                    item
+                  ) ===
+                  "destination"
+              )
+          ).length;
+
+
+        if (
+          savedRoutableDayCount >=
+          2
+        ) {
+          try {
+            const routeResponse =
+              await analyzeTripRoute(
+                tripPlanId
+              );
+
+            setRouteAnalysis(
+              routeResponse.data
+            );
+
+            setRouteError(
+              ""
+            );
+          } catch (routeLoadError) {
+            console.error(
+              "Failed to restore saved route",
+              routeLoadError
+            );
+
+            setRouteAnalysis(
+              null
+            );
+
+            setRouteError(
+              routeLoadError
+                ?.response
+                ?.data
+                ?.message ||
+              "Road route could not be restored."
+            );
           }
         }
 
-        if (day.notes) {
-          y = ensurePdfSpace(doc, y, 20);
-          doc.setFillColor(255, 247, 222);
-          doc.setDrawColor(...pdfTheme.gold);
-          doc.roundedRect(14, y, 182, 18, 2, 2, "FD");
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(9);
-          doc.setTextColor(...pdfTheme.green);
-          doc.text("Day note", 18, y + 6);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(...pdfTheme.ink);
-          doc.text(day.notes, 18, y + 12, { maxWidth: 170 });
-          y += 24;
+
+        showMessage(
+          "Saved plan loaded."
+        );
+
+        return true;
+      } catch (loadError) {
+        console.error(
+          loadError
+        );
+
+        showMessage(
+          loadError
+            ?.response
+            ?.data
+            ?.message ||
+          "Failed to load trip.",
+          true
+        );
+
+        return false;
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+
+  const openSavedPlans =
+    async () => {
+      setSavedPlansOpen(
+        true
+      );
+
+      await refreshSavedTrips();
+    };
+
+
+  const openSavedPlanFromLibrary =
+    async (
+      tripPlanId
+    ) => {
+      const id =
+        Number(
+          tripPlanId
+        );
+
+      if (!id) {
+        return;
+      }
+
+      if (
+        dirty &&
+        Number(
+          savedPlanId || 0
+        ) !== id &&
+        !window.confirm(
+          "Open this saved plan and discard the current unsaved changes?"
+        )
+      ) {
+        return;
+      }
+
+      const loaded =
+        await loadSavedTrip(
+          id
+        );
+
+      if (loaded) {
+        setSavedPlansOpen(
+          false
+        );
+
+        window.scrollTo({
+          top: 0,
+          behavior:
+            "smooth",
+        });
+      }
+    };
+
+
+  const deleteSavedPlanFromLibrary =
+    async (
+      trip
+    ) => {
+      const id =
+        Number(
+          trip?.id
+        );
+
+      if (!id) {
+        return;
+      }
+
+      if (
+        !window.confirm(
+          `Delete ${trip?.title || "this saved trip"}?`
+        )
+      ) {
+        return;
+      }
+
+      try {
+        setActionLoading(
+          true
+        );
+
+        await deleteTripPlan(
+          id
+        );
+
+        if (
+          Number(
+            savedPlanId || 0
+          ) === id
+        ) {
+          newTrip();
         }
+
+        await refreshSavedTrips();
+
+        showMessage(
+          "Saved trip deleted."
+        );
+      } catch (deleteError) {
+        showMessage(
+          deleteError
+            ?.response
+            ?.data
+            ?.message ||
+          "Failed to delete trip.",
+          true
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+
+  const handleAnalyze =
+    async () => {
+      try {
+        setActionLoading(
+          true
+        );
+
+        setRouteError(
+          ""
+        );
+
+
+        const tripPlanId =
+          await saveTrip({
+            silent: true,
+          });
+
+
+        const response =
+          await analyzeTripRoute(
+            tripPlanId
+          );
+
+
+        setRouteAnalysis(
+          response.data
+        );
+
+        setRouteError(
+          ""
+        );
+
+
+        if (
+          response.data
+            ?.improved
+        ) {
+          showMessage(
+            "A more practical road route is available."
+          );
+        } else {
+          showMessage(
+            "Your current route is already practical for the selected optimization mode."
+          );
+        }
+      } catch (analysisError) {
+        console.error(
+          analysisError
+        );
+
+        const message =
+          analysisError
+            ?.response
+            ?.data
+            ?.message ||
+          analysisError.message ||
+          "Route analysis failed.";
+
+
+        setRouteError(
+          message
+        );
+
+        showMessage(
+          message,
+          true
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+
+  const handleApplyRoute =
+    async () => {
+      if (
+        !savedPlanId ||
+        !routeAnalysis
+          ?.analysisId
+      ) {
+        return;
       }
 
-      y = ensurePdfSpace(doc, y, 42);
-      doc.setFillColor(...pdfTheme.green);
-      doc.rect(14, y, 182, 11, "F");
-      doc.setTextColor(255, 252, 244);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text("Before you travel", 18, y + 7.5);
-      y += 17;
 
-      const checklist = [
-        "Confirm hotel booking and check-in time.",
-        "Check local weather and seasonal travel advisories.",
-        "Carry passport/ID, payment method, and emergency contact details.",
-        "Confirm transport time between cities before departure.",
-      ];
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(...pdfTheme.ink);
-      checklist.forEach((item) => {
-        doc.text(`• ${item}`, 18, y);
-        y += 6;
-      });
+      try {
+        setActionLoading(
+          true
+        );
 
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let page = 1; page <= pageCount; page += 1) {
-        doc.setPage(page);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(...pdfTheme.muted);
-        doc.text(`TourismHub LK • Page ${page} of ${pageCount}`, 14, 291);
+
+        const previousSaving =
+          routeAnalysis
+            .saving;
+
+
+        await applyTripRoute({
+          tripPlanId:
+            savedPlanId,
+
+          analysisId:
+            routeAnalysis
+              .analysisId,
+        });
+
+
+        const updated =
+          await getTripPlanById(
+            savedPlanId
+          );
+
+
+        hydrateTrip(
+          updated.data,
+          savedPlanId
+        );
+
+
+        const freshAnalysis =
+          await analyzeTripRoute(
+            savedPlanId
+          );
+
+
+        setRouteAnalysis(
+          freshAnalysis.data
+        );
+
+        setRouteError(
+          ""
+        );
+
+
+        showMessage(
+          `Better route applied. Saved approximately ${formatDurationSeconds(
+            previousSaving
+              ?.durationSeconds
+          )} and ${formatDistance(
+            previousSaving
+              ?.distanceMeters
+          )}.`
+        );
+
+
+        await refreshSavedTrips();
+      } catch (applyError) {
+        console.error(
+          applyError
+        );
+
+        showMessage(
+          applyError
+            ?.response
+            ?.data
+            ?.message ||
+          "Failed to apply recommended route.",
+          true
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+
+  const handleUseStarterItinerary =
+    (itinerary) => {
+      const places =
+        (
+          itinerary.places ||
+          []
+        )
+          .map(
+            (place) =>
+              destinationMap.get(
+                Number(
+                  place.id
+                )
+              )
+          )
+          .filter(
+            Boolean
+          );
+
+
+      if (!places.length) {
+        return;
       }
 
-      const fileName = `${(tripName || "Sri Lanka Holiday Plan").replace(/\s+/g, "_")}.pdf`;
-      doc.save(fileName);
-    } catch (error) {
-      console.error("PDF generation failed", error);
-      alert("Failed to generate PDF. Please try again.");
-    }
-  };
 
-                          return (
+      const maxDays =
+        Number(
+          plannerConfig
+            .maxDays ||
+          30
+        );
+
+
+      const count =
+        Math.min(
+          places.length,
+          maxDays
+        );
+
+
+      const nextDays =
+        createDays(
+          startDate,
+          count
+        );
+
+
+      places
+        .slice(
+          0,
+          count
+        )
+        .forEach(
+          (
+            place,
+            index
+          ) => {
+            nextDays[
+              index
+            ].destinations.push(
+              place
+            );
+          }
+        );
+
+
+      setDays(
+        nextDays
+      );
+
+      setDaysCount(
+        String(count)
+      );
+
+      setTripName(
+        itinerary.title ||
+        tripName
+      );
+
+      setSavedPlanId(
+        null
+      );
+
+      markChanged(
+        true
+      );
+
+      showMessage(
+        "Database itinerary loaded. You can edit every day."
+      );
+    };
+
+
+  const newTrip =
+    () => {
+      const count = 3;
+
+      try {
+        sessionStorage.removeItem(
+          TRIP_PLANNER_RETURN_KEY
+        );
+      } catch {
+        // No action needed.
+      }
+
+
+      setSavedPlanId(
+        null
+      );
+
+      setTripName(
+        "Sri Lanka Trip"
+      );
+
+      setStartDate(
+        today
+      );
+
+      setDaysCount(
+        String(count)
+      );
+
+      setTravellerCount(
+        "2"
+      );
+
+      setDays(
+        createDays(
+          today,
+          count
+        )
+      );
+
+      setRouteAnalysis(
+        null
+      );
+
+      setRouteError(
+        ""
+      );
+
+      setDirty(false);
+
+      showMessage(
+        "New trip started."
+      );
+    };
+
+
+  const handleDelete =
+    async () => {
+      if (!savedPlanId) {
+        newTrip();
+
+        return;
+      }
+
+
+      if (
+        !window.confirm(
+          "Delete this saved trip?"
+        )
+      ) {
+        return;
+      }
+
+
+      try {
+        setActionLoading(
+          true
+        );
+
+
+        await deleteTripPlan(
+          savedPlanId
+        );
+
+
+        await refreshSavedTrips();
+
+        newTrip();
+
+        showMessage(
+          "Trip deleted."
+        );
+      } catch (deleteError) {
+        showMessage(
+          deleteError
+            ?.response
+            ?.data
+            ?.message ||
+          "Failed to delete trip.",
+          true
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+
+  const downloadPdf =
+    async () => {
+      if (
+        pdfLoading
+      ) {
+        return;
+      }
+
+      try {
+        setPdfLoading(
+          true
+        );
+
+        const doc =
+          new jsPDF({
+            orientation:
+              "portrait",
+            unit:
+              "mm",
+            format:
+              "a4",
+            compress:
+              true,
+          });
+
+        const pageWidth =
+          doc.internal.pageSize.getWidth();
+
+        const pageHeight =
+          doc.internal.pageSize.getHeight();
+
+        const margin = 15;
+
+        const contentWidth =
+          pageWidth -
+          margin * 2;
+
+        const allItems =
+          days.flatMap(
+            (day) => [
+              ...(
+                day.destinations ||
+                []
+              ),
+              ...(
+                day.hotels ||
+                []
+              ),
+              ...(
+                day.events ||
+                []
+              ),
+              ...(
+                day.guides ||
+                []
+              ),
+            ]
+          );
+
+        const totalEstimatedCost =
+          allItems.reduce(
+            (
+              total,
+              item
+            ) =>
+              total +
+              getPdfItemCost(
+                item
+              ),
+            0
+          );
+
+        const transportLabel =
+          transportProfiles.find(
+            (profile) =>
+              profile.key ===
+              transportProfile
+          )?.label ||
+          transportProfile ||
+          "Not set";
+
+        const optimizationLabel =
+          optimizationModes.find(
+            (mode) =>
+              mode.key ===
+              optimizationMode
+          )?.label ||
+          optimizationMode ||
+          "Not set";
+
+        const heroItem =
+          allItems.find(
+            (item) =>
+              getTripItemImage(
+                item
+              )
+          );
+
+        const heroImage =
+          heroItem
+            ? await loadPdfImage(
+                heroItem
+              )
+            : null;
+
+
+        // Cover
+        doc.setFillColor(
+          ...PDF_THEME.tealDark
+        );
+
+        doc.rect(
+          0,
+          0,
+          pageWidth,
+          67,
+          "F"
+        );
+
+        doc.setFillColor(
+          ...PDF_THEME.amber
+        );
+
+        doc.rect(
+          0,
+          0,
+          pageWidth,
+          3,
+          "F"
+        );
+
+        doc.setTextColor(
+          ...PDF_THEME.white
+        );
+
+        doc.setFont(
+          "helvetica",
+          "bold"
+        );
+
+        doc.setFontSize(10);
+
+        doc.text(
+          "TOURISMHUB LK - TRIP ITINERARY",
+          margin,
+          17
+        );
+
+        doc.setFontSize(27);
+
+        const titleLines =
+          doc.splitTextToSize(
+            cleanPdfText(
+              tripName ||
+              "Sri Lanka Trip"
+            ),
+            heroImage
+              ? 102
+              : contentWidth
+          );
+
+        doc.text(
+          titleLines.slice(
+            0,
+            3
+          ),
+          margin,
+          31
+        );
+
+        const titleHeight =
+          titleLines
+            .slice(0, 3)
+            .length *
+          9;
+
+        doc.setFont(
+          "helvetica",
+          "normal"
+        );
+
+        doc.setFontSize(10);
+
+        doc.setTextColor(
+          218,
+          239,
+          234
+        );
+
+        doc.text(
+          `${cleanPdfText(
+            formatDate(
+              startDate
+            )
+          )} - ${cleanPdfText(
+            formatDate(
+              endDate
+            )
+          )}`,
+          margin,
+          Math.min(
+            58,
+            34 +
+              titleHeight
+          )
+        );
+
+        if (
+          heroImage
+        ) {
+          doc.setFillColor(
+            255,
+            255,
+            255
+          );
+
+          doc.roundedRect(
+            136,
+            13,
+            59,
+            42,
+            3,
+            3,
+            "F"
+          );
+
+          doc.addImage(
+            heroImage,
+            "JPEG",
+            138,
+            15,
+            55,
+            38,
+            undefined,
+            "FAST"
+          );
+        }
+
+
+        let y = 79;
+
+        y =
+          drawPdfSectionTitle(
+            doc,
+            "Trip overview",
+            "At a glance",
+            margin,
+            y
+          );
+
+
+        const statCards = [
+          {
+            label:
+              "Days",
+            value:
+              String(
+                days.length
+              ),
+          },
+          {
+            label:
+              "Travellers",
+            value:
+              String(
+                travellerCount
+              ),
+          },
+          {
+            label:
+              "Planned items",
+            value:
+              String(
+                allItems.length
+              ),
+          },
+          {
+            label:
+              "Item estimate",
+            value:
+              totalEstimatedCost >
+              0
+                ? formatMoney(
+                    totalEstimatedCost
+                  )
+                : "Not set",
+          },
+        ];
+
+        const statGap = 3;
+
+        const statWidth =
+          (
+            contentWidth -
+            statGap * 3
+          ) /
+          4;
+
+        statCards.forEach(
+          (
+            card,
+            index
+          ) => {
+            const x =
+              margin +
+              index *
+                (
+                  statWidth +
+                  statGap
+                );
+
+            doc.setFillColor(
+              ...PDF_THEME.soft
+            );
+
+            doc.setDrawColor(
+              ...PDF_THEME.line
+            );
+
+            doc.roundedRect(
+              x,
+              y,
+              statWidth,
+              24,
+              2.5,
+              2.5,
+              "FD"
+            );
+
+            doc.setTextColor(
+              ...PDF_THEME.muted
+            );
+
+            doc.setFont(
+              "helvetica",
+              "normal"
+            );
+
+            doc.setFontSize(7.5);
+
+            doc.text(
+              card.label,
+              x + 3,
+              y + 7
+            );
+
+            doc.setTextColor(
+              ...PDF_THEME.ink
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.setFontSize(
+              card.value.length >
+              15
+                ? 9
+                : 11
+            );
+
+            const lines =
+              doc.splitTextToSize(
+                cleanPdfText(
+                  card.value
+                ),
+                statWidth - 6
+              );
+
+            doc.text(
+              lines.slice(
+                0,
+                2
+              ),
+              x + 3,
+              y + 15
+            );
+          }
+        );
+
+        y += 33;
+
+
+        const detailRows = [
+          [
+            "Travel style",
+            travelStyle ||
+              "Not set",
+          ],
+          [
+            "Budget",
+            budgetLevel ||
+              "Not set",
+          ],
+          [
+            "Transport",
+            transportLabel,
+          ],
+          [
+            "Route priority",
+            optimizationLabel,
+          ],
+        ];
+
+        detailRows.forEach(
+          (
+            [
+              label,
+              value,
+            ],
+            index
+          ) => {
+            const rowY =
+              y +
+              index *
+                8;
+
+            doc.setTextColor(
+              ...PDF_THEME.muted
+            );
+
+            doc.setFont(
+              "helvetica",
+              "normal"
+            );
+
+            doc.setFontSize(8);
+
+            doc.text(
+              label,
+              margin,
+              rowY
+            );
+
+            doc.setTextColor(
+              ...PDF_THEME.ink
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.text(
+              cleanPdfText(
+                value
+              ),
+              53,
+              rowY
+            );
+          }
+        );
+
+        y += 39;
+
+
+        if (
+          routeAnalysis
+        ) {
+          y =
+            drawPdfSectionTitle(
+              doc,
+              "Road route",
+              "Route summary",
+              margin,
+              y
+            );
+
+          doc.setFillColor(
+            ...PDF_THEME.tealSoft
+          );
+
+          doc.setDrawColor(
+            188,
+            220,
+            211
+          );
+
+          doc.roundedRect(
+            margin,
+            y,
+            contentWidth,
+            routeAnalysis
+              .improved
+              ? 48
+              : 36,
+            3,
+            3,
+            "FD"
+          );
+
+          doc.setTextColor(
+            ...PDF_THEME.ink
+          );
+
+          doc.setFont(
+            "helvetica",
+            "bold"
+          );
+
+          doc.setFontSize(10);
+
+          doc.text(
+            `${formatDistance(
+              routeAnalysis
+                .current
+                ?.distanceMeters
+            )} road distance`,
+            margin + 5,
+            y + 9
+          );
+
+          doc.text(
+            `${formatDurationSeconds(
+              routeAnalysis
+                .current
+                ?.durationSeconds
+            )} travel time`,
+            margin + 72,
+            y + 9
+          );
+
+          doc.setFont(
+            "helvetica",
+            "normal"
+          );
+
+          doc.setFontSize(8);
+
+          doc.setTextColor(
+            ...PDF_THEME.muted
+          );
+
+          const currentOrder =
+            routeText(
+              routeAnalysis
+                .current
+                ?.order
+            );
+
+          if (
+            currentOrder
+          ) {
+            doc.text(
+              doc
+                .splitTextToSize(
+                  `Current: ${cleanPdfText(
+                    currentOrder
+                  )}`,
+                  contentWidth -
+                    10
+                )
+                .slice(
+                  0,
+                  2
+                ),
+              margin + 5,
+              y + 18
+            );
+          }
+
+          if (
+            routeAnalysis
+              .improved
+          ) {
+            doc.setTextColor(
+              ...PDF_THEME.tealDark
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.text(
+              `Recommended saving: ${formatDurationSeconds(
+                routeAnalysis
+                  .saving
+                  ?.durationSeconds
+              )} / ${formatDistance(
+                routeAnalysis
+                  .saving
+                  ?.distanceMeters
+              )}`,
+              margin + 5,
+              y + 31
+            );
+
+            const recommendedOrder =
+              routeText(
+                routeAnalysis
+                  .recommended
+                  ?.order
+              );
+
+            if (
+              recommendedOrder
+            ) {
+              doc.setFont(
+                "helvetica",
+                "normal"
+              );
+
+              doc.setTextColor(
+                ...PDF_THEME.muted
+              );
+
+              doc.text(
+                doc
+                  .splitTextToSize(
+                    `Recommended: ${cleanPdfText(
+                      recommendedOrder
+                    )}`,
+                    contentWidth -
+                      10
+                  )
+                  .slice(
+                    0,
+                    2
+                  ),
+                margin + 5,
+                y + 39
+              );
+            }
+          }
+
+          y +=
+            routeAnalysis
+              .improved
+              ? 57
+              : 45;
+        }
+
+
+        y =
+          drawPdfSectionTitle(
+            doc,
+            "Day-by-day plan",
+            "Itinerary preview",
+            margin,
+            y
+          );
+
+        const previewDays =
+          days.slice(
+            0,
+            5
+          );
+
+        previewDays.forEach(
+          (
+            day,
+            index
+          ) => {
+            const names =
+              (
+                day.destinations ||
+                []
+              )
+                .map(
+                  (item) =>
+                    cleanPdfText(
+                      item.name
+                    )
+                )
+                .filter(Boolean)
+                .join(" - ");
+
+            doc.setFillColor(
+              index % 2 ===
+                0
+                ? 249
+                : 255,
+              index % 2 ===
+                0
+                ? 251
+                : 255,
+              index % 2 ===
+                0
+                ? 250
+                : 255
+            );
+
+            doc.roundedRect(
+              margin,
+              y,
+              contentWidth,
+              11,
+              2,
+              2,
+              "F"
+            );
+
+            doc.setTextColor(
+              ...PDF_THEME.tealDark
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.setFontSize(8.5);
+
+            doc.text(
+              `Day ${day.dayNumber}`,
+              margin + 4,
+              y + 7
+            );
+
+            doc.setTextColor(
+              ...PDF_THEME.ink
+            );
+
+            doc.setFont(
+              "helvetica",
+              "normal"
+            );
+
+            doc.text(
+              cleanPdfText(
+                formatDate(
+                  day.date
+                )
+              ),
+              margin + 25,
+              y + 7
+            );
+
+            doc.setTextColor(
+              ...PDF_THEME.muted
+            );
+
+            doc.text(
+              doc
+                .splitTextToSize(
+                  names ||
+                    "No destination selected",
+                  78
+                )
+                .slice(
+                  0,
+                  1
+                ),
+              112,
+              y + 7
+            );
+
+            y += 12;
+          }
+        );
+
+        if (
+          days.length >
+          previewDays.length
+        ) {
+          doc.setTextColor(
+            ...PDF_THEME.muted
+          );
+
+          doc.setFont(
+            "helvetica",
+            "italic"
+          );
+
+          doc.setFontSize(8);
+
+          doc.text(
+            `+ ${
+              days.length -
+              previewDays.length
+            } more day(s) in the detailed itinerary`,
+            margin,
+            y + 3
+          );
+        }
+
+
+        // Detailed itinerary
+        for (
+          let dayIndex = 0;
+          dayIndex <
+          days.length;
+          dayIndex += 1
+        ) {
+          const day =
+            days[
+              dayIndex
+            ];
+
+          doc.addPage();
+
+          let pageY = 20;
+
+          const drawDayHeader =
+            (
+              continued =
+                false
+            ) => {
+              doc.setFillColor(
+                ...PDF_THEME.tealDark
+              );
+
+              doc.roundedRect(
+                margin,
+                pageY,
+                contentWidth,
+                28,
+                3,
+                3,
+                "F"
+              );
+
+              doc.setTextColor(
+                ...PDF_THEME.white
+              );
+
+              doc.setFont(
+                "helvetica",
+                "bold"
+              );
+
+              doc.setFontSize(10);
+
+              doc.text(
+                continued
+                  ? `DAY ${day.dayNumber} - CONTINUED`
+                  : `DAY ${day.dayNumber}`,
+                margin + 6,
+                pageY + 8
+              );
+
+              doc.setFontSize(17);
+
+              doc.text(
+                cleanPdfText(
+                  formatDate(
+                    day.date
+                  )
+                ),
+                margin + 6,
+                pageY + 18
+              );
+
+              const destinationNames =
+                (
+                  day.destinations ||
+                  []
+                )
+                  .map(
+                    (item) =>
+                      cleanPdfText(
+                        item.city ||
+                          item.name
+                      )
+                  )
+                  .filter(Boolean)
+                  .join(" - ");
+
+              doc.setFont(
+                "helvetica",
+                "normal"
+              );
+
+              doc.setFontSize(8);
+
+              doc.setTextColor(
+                218,
+                239,
+                234
+              );
+
+              doc.text(
+                doc
+                  .splitTextToSize(
+                    destinationNames ||
+                      "Open day",
+                    72
+                  )
+                  .slice(
+                    0,
+                    2
+                  ),
+                pageWidth - 21,
+                pageY + 9,
+                {
+                  align:
+                    "right",
+                }
+              );
+
+              pageY += 36;
+            };
+
+
+          drawDayHeader();
+
+
+          const dayItems = [
+            ...(
+              day.destinations ||
+              []
+            ),
+            ...(
+              day.hotels ||
+              []
+            ),
+            ...(
+              day.events ||
+              []
+            ),
+            ...(
+              day.guides ||
+              []
+            ),
+          ];
+
+
+          if (
+            !dayItems.length
+          ) {
+            doc.setTextColor(
+              ...PDF_THEME.muted
+            );
+
+            doc.setFont(
+              "helvetica",
+              "normal"
+            );
+
+            doc.setFontSize(10);
+
+            doc.text(
+              "No items planned for this day.",
+              margin,
+              pageY
+            );
+
+            pageY += 10;
+          }
+
+
+          for (
+            let itemIndex = 0;
+            itemIndex <
+            dayItems.length;
+            itemIndex += 1
+          ) {
+            const item =
+              dayItems[
+                itemIndex
+              ];
+
+            const typeLabel =
+              cleanPdfText(
+                getTripItemTypeLabel(
+                  item
+                )
+              ).toUpperCase();
+
+            const location =
+              getPdfItemLocation(
+                item
+              );
+
+            const cost =
+              getPdfItemCost(
+                item
+              );
+
+            const description =
+              getPdfItemDescription(
+                item
+              );
+
+            const extraLines =
+              getPdfItemExtraLines(
+                item
+              );
+
+            const descriptionLines =
+              description
+                ? doc
+                    .splitTextToSize(
+                      description,
+                      115
+                    )
+                    .slice(
+                      0,
+                      3
+                    )
+                : [];
+
+            const itemHeight =
+              Math.max(
+                31,
+                24 +
+                  descriptionLines.length *
+                    4 +
+                  extraLines.length *
+                    4
+              );
+
+            if (
+              pageY +
+                itemHeight >
+              pageHeight -
+                24
+            ) {
+              doc.addPage();
+
+              pageY = 20;
+
+              drawDayHeader(
+                true
+              );
+            }
+
+
+            doc.setFillColor(
+              ...PDF_THEME.white
+            );
+
+            doc.setDrawColor(
+              ...PDF_THEME.line
+            );
+
+            doc.roundedRect(
+              margin,
+              pageY,
+              contentWidth,
+              itemHeight,
+              3,
+              3,
+              "FD"
+            );
+
+
+            const itemImage =
+              await loadPdfImage(
+                item
+              );
+
+            const imageX =
+              margin + 4;
+
+            const imageY =
+              pageY + 4;
+
+            const imageWidth =
+              32;
+
+            const imageHeight =
+              Math.min(
+                24,
+                itemHeight - 8
+              );
+
+            if (
+              itemImage
+            ) {
+              doc.addImage(
+                itemImage,
+                "JPEG",
+                imageX,
+                imageY,
+                imageWidth,
+                imageHeight,
+                undefined,
+                "FAST"
+              );
+            } else {
+              doc.setFillColor(
+                ...PDF_THEME.tealSoft
+              );
+
+              doc.roundedRect(
+                imageX,
+                imageY,
+                imageWidth,
+                imageHeight,
+                2,
+                2,
+                "F"
+              );
+
+              doc.setTextColor(
+                ...PDF_THEME.tealDark
+              );
+
+              doc.setFont(
+                "helvetica",
+                "bold"
+              );
+
+              doc.setFontSize(7);
+
+              doc.text(
+                typeLabel,
+                imageX +
+                  imageWidth /
+                    2,
+                imageY +
+                  imageHeight /
+                    2,
+                {
+                  align:
+                    "center",
+                }
+              );
+            }
+
+
+            const textX =
+              margin + 40;
+
+            const textWidth =
+              contentWidth - 45;
+
+            doc.setTextColor(
+              ...PDF_THEME.teal
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.setFontSize(7.5);
+
+            doc.text(
+              typeLabel,
+              textX,
+              pageY + 7
+            );
+
+
+            if (
+              cost > 0
+            ) {
+              doc.setTextColor(
+                ...PDF_THEME.muted
+              );
+
+              doc.setFont(
+                "helvetica",
+                "normal"
+              );
+
+              doc.text(
+                cleanPdfText(
+                  formatMoney(
+                    cost
+                  )
+                ),
+                pageWidth -
+                  margin -
+                  4,
+                pageY + 7,
+                {
+                  align:
+                    "right",
+                }
+              );
+            }
+
+
+            doc.setTextColor(
+              ...PDF_THEME.ink
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.setFontSize(11.5);
+
+            const nameLines =
+              doc.splitTextToSize(
+                cleanPdfText(
+                  item.name ||
+                  "Trip item"
+                ),
+                textWidth -
+                  15
+              );
+
+            doc.text(
+              nameLines.slice(
+                0,
+                2
+              ),
+              textX,
+              pageY + 13
+            );
+
+
+            let detailY =
+              pageY +
+              13 +
+              Math.min(
+                nameLines.length,
+                2
+              ) *
+                4.2;
+
+
+            if (
+              location
+            ) {
+              doc.setTextColor(
+                ...PDF_THEME.muted
+              );
+
+              doc.setFont(
+                "helvetica",
+                "normal"
+              );
+
+              doc.setFontSize(8);
+
+              doc.text(
+                cleanPdfText(
+                  location
+                ),
+                textX,
+                detailY
+              );
+
+              detailY += 4;
+            }
+
+
+            extraLines.forEach(
+              (
+                line
+              ) => {
+                doc.setTextColor(
+                  ...PDF_THEME.muted
+                );
+
+                doc.setFontSize(7.5);
+
+                doc.text(
+                  cleanPdfText(
+                    line
+                  ),
+                  textX,
+                  detailY
+                );
+
+                detailY += 4;
+              }
+            );
+
+
+            if (
+              descriptionLines
+                .length
+            ) {
+              doc.setTextColor(
+                69,
+                84,
+                79
+              );
+
+              doc.setFont(
+                "helvetica",
+                "normal"
+              );
+
+              doc.setFontSize(7.5);
+
+              doc.text(
+                descriptionLines,
+                textX,
+                detailY
+              );
+            }
+
+
+            const itemLink =
+              getPdfAbsoluteLink(
+                item
+              );
+
+            if (
+              itemLink
+            ) {
+              const linkY =
+                pageY +
+                itemHeight -
+                5;
+
+              doc.setTextColor(
+                ...PDF_THEME.teal
+              );
+
+              doc.setFont(
+                "helvetica",
+                "bold"
+              );
+
+              doc.setFontSize(7.5);
+
+              doc.textWithLink(
+                "View in TourismHub LK",
+                textX,
+                linkY,
+                {
+                  url:
+                    itemLink,
+                }
+              );
+            }
+
+
+            pageY +=
+              itemHeight +
+              5;
+          }
+
+
+          if (
+            day.notes
+          ) {
+            const noteLines =
+              doc.splitTextToSize(
+                cleanPdfText(
+                  day.notes
+                ),
+                contentWidth -
+                  10
+              );
+
+            const noteHeight =
+              Math.max(
+                22,
+                13 +
+                  noteLines.length *
+                    4
+              );
+
+            if (
+              pageY +
+                noteHeight >
+              pageHeight -
+                24
+            ) {
+              doc.addPage();
+
+              pageY = 20;
+
+              drawDayHeader(
+                true
+              );
+            }
+
+            doc.setFillColor(
+              255,
+              249,
+              235
+            );
+
+            doc.setDrawColor(
+              239,
+              215,
+              163
+            );
+
+            doc.roundedRect(
+              margin,
+              pageY,
+              contentWidth,
+              noteHeight,
+              3,
+              3,
+              "FD"
+            );
+
+            doc.setTextColor(
+              128,
+              88,
+              25
+            );
+
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
+
+            doc.setFontSize(8);
+
+            doc.text(
+              "DAY NOTES",
+              margin + 5,
+              pageY + 7
+            );
+
+            doc.setTextColor(
+              86,
+              74,
+              52
+            );
+
+            doc.setFont(
+              "helvetica",
+              "normal"
+            );
+
+            doc.setFontSize(8.5);
+
+            doc.text(
+              noteLines,
+              margin + 5,
+              pageY + 13
+            );
+          }
+        }
+
+
+        const pageCount =
+          doc.getNumberOfPages();
+
+        for (
+          let pageNumber = 1;
+          pageNumber <=
+          pageCount;
+          pageNumber += 1
+        ) {
+          doc.setPage(
+            pageNumber
+          );
+
+          drawPdfFooter(
+            doc,
+            pageNumber,
+            pageCount
+          );
+        }
+
+
+        const safeName =
+          (
+            tripName ||
+            "Sri Lanka Trip"
+          )
+            .replace(
+              /[^a-z0-9]+/gi,
+              "_"
+            )
+            .replace(
+              /^_+|_+$/g,
+              ""
+            ) ||
+          "Sri_Lanka_Trip";
+
+        doc.save(
+          `${safeName}.pdf`
+        );
+
+        showMessage(
+          "PDF exported."
+        );
+      } catch (
+        pdfError
+      ) {
+        console.error(
+          pdfError
+        );
+
+        showMessage(
+          "Could not create the PDF.",
+          true
+        );
+      } finally {
+        setPdfLoading(
+          false
+        );
+      }
+    };
+
+
+  const availableSavedItems =
+    savedItems.filter(
+      (item) =>
+        getCanonicalType(
+          item
+        ) !==
+        "destination"
+    );
+
+
+  if (loading) {
+    return (
+      <main className="trip-planner-page">
+        <div className="trip-loading">
+          <RefreshCw
+            size={26}
+            className="spin"
+          />
+
+          <strong>
+            Loading Trip Planner…
+          </strong>
+
+          <span>
+            Fetching live destinations
+            and planner settings.
+          </span>
+        </div>
+      </main>
+    );
+  }
+
+
+  return (
     <main className="trip-planner-page">
-      <style>{plannerCss}</style>
+      <section className="trip-planner-hero">
+        <div
+          className="trip-hero-visual"
+          aria-hidden="true"
+        >
+          <span className="trip-hero-glow trip-hero-glow-left" />
+          <span className="trip-hero-glow trip-hero-glow-right" />
 
-      {showGuide && (
-        <div className="planner-guide-backdrop" role="dialog" aria-modal="true">
-          <section className="planner-guide-card">
-            <button className="planner-guide-close" onClick={() => setShowGuide(false)} aria-label="Close guide">
-              ×
-            </button>
-            <span className="planner-eyebrow">Trip guide</span>
-            <h2>{guideSteps[activeGuideStep].title}</h2>
-            <p>{guideSteps[activeGuideStep].text}</p>
-            <div className="planner-guide-dots">
-              {guideSteps.map((step, index) => (
-                <button
-                  key={step.title}
-                  className={activeGuideStep === index ? "active" : ""}
-                  onClick={() => setActiveGuideStep(index)}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-            <div className="planner-guide-actions">
+          <svg
+            className="trip-hero-route-art"
+            viewBox="0 0 280 130"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M14 103C48 59 82 112 121 74C155 40 180 72 207 45C229 23 249 31 266 18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray="5 8"
+            />
+
+            <circle
+              cx="14"
+              cy="103"
+              r="5"
+              fill="currentColor"
+            />
+
+            <circle
+              cx="121"
+              cy="74"
+              r="5"
+              fill="currentColor"
+            />
+
+            <circle
+              cx="207"
+              cy="45"
+              r="5"
+              fill="currentColor"
+            />
+
+            <circle
+              cx="266"
+              cy="18"
+              r="7"
+              fill="currentColor"
+            />
+          </svg>
+        </div>
+
+        <div className="trip-hero-copy">
+          <span className="trip-kicker">
+            TOURISMHUB LK · TRIP PLANNER
+          </span>
+
+          <div className="trip-hero-title-wrap">
+            <h1 className="trip-modern-hero-title">
+              Shape your{" "}
+              <span className="trip-title-sri-lanka">
+                Sri Lanka
+              </span>{" "}
+              <span className="trip-title-journey">
+                journey.
+              </span>
+            </h1>
+
+            <p className="trip-modern-hero-subtitle">
+              Plan each day. Travel with confidence.
+            </p>
+          </div>
+
+          <div className="trip-hero-actions">
+            <a
+              href="#trip-setup"
+              className="trip-hero-primary"
+            >
+              Start planning
+            </a>
+
+            <a
+              href="#trip-basket"
+              className="trip-hero-secondary"
+            >
+              Build itinerary
+            </a>
+          </div>
+
+          <div className="trip-hero-capabilities">
+            <span>
+              Day-by-day planning
+            </span>
+
+            <span>
+              Real road routing
+            </span>
+
+            <span>
+              Save and return
+            </span>
+
+            <span>
+              PDF export
+            </span>
+          </div>
+        </div>
+
+
+        <div className="trip-hero-guide">
+          <div className="trip-hero-guide-heading">
+            <span>
+              Simple planning flow
+            </span>
+
+            <strong>
+              From idea to itinerary
+            </strong>
+          </div>
+
+          <div className="trip-hero-steps">
+            <a
+              href="#trip-setup"
+              className="trip-hero-step"
+            >
+              <span className="trip-hero-step-icon">
+                <CalendarDays
+                  size={18}
+                />
+              </span>
+
+              <span className="trip-hero-step-copy">
+                <b>
+                  1. Set trip details
+                </b>
+
+                <small>
+                  Dates, travellers and preferences
+                </small>
+              </span>
+            </a>
+
+            <a
+              href="#trip-basket"
+              className="trip-hero-step"
+            >
+              <span className="trip-hero-step-icon">
+                <MapPin
+                  size={18}
+                />
+              </span>
+
+              <span className="trip-hero-step-copy">
+                <b>
+                  2. Build each day
+                </b>
+
+                <small>
+                  Add destinations and trip items
+                </small>
+              </span>
+            </a>
+
+            <a
+              href="#trip-route"
+              className="trip-hero-step"
+            >
+              <span className="trip-hero-step-icon">
+                <Route
+                  size={18}
+                />
+              </span>
+
+              <span className="trip-hero-step-copy">
+                <b>
+                  3. Check the route
+                </b>
+
+                <small>
+                  Compare distance and travel time
+                </small>
+              </span>
+            </a>
+
+            <a
+              href="#trip-save"
+              className="trip-hero-step"
+            >
+              <span className="trip-hero-step-icon">
+                <Save
+                  size={18}
+                />
+              </span>
+
+              <span className="trip-hero-step-copy">
+                <b>
+                  4. Save your plan
+                </b>
+
+                <small>
+                  Keep it or export a PDF
+                </small>
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+
+      <section className="trip-planner-toolbar">
+        <div className="trip-toolbar-summary">
+          <span>
+            Current trip
+          </span>
+
+          <strong>
+            {tripName ||
+              "Sri Lanka Trip"}
+          </strong>
+
+          <small>
+            {days.length}{" "}
+            {days.length === 1
+              ? "day"
+              : "days"}
+            {" · "}
+            {totalDestinations}{" "}
+            {totalDestinations === 1
+              ? "destination"
+              : "destinations"}
+            {" · "}
+            {dirty
+              ? "Unsaved changes"
+              : savedPlanId
+              ? "Saved"
+              : "New trip"}
+          </small>
+        </div>
+
+
+        <div className="trip-header-actions">
+          <button
+            type="button"
+            className="trip-secondary-button trip-saved-plans-button"
+            onClick={
+              openSavedPlans
+            }
+          >
+            <Save
+              size={17}
+            />
+
+            Saved plans
+
+            <span>
+              {savedTrips.length}
+            </span>
+          </button>
+
+
+          <button
+            type="button"
+            className="trip-secondary-button"
+            onClick={
+              newTrip
+            }
+          >
+            <Plus
+              size={17}
+            />
+
+            New trip
+          </button>
+        </div>
+      </section>
+
+
+      {savedPlansOpen && (
+        <div
+          className="trip-saved-plans-backdrop"
+          role="presentation"
+          onMouseDown={
+            (event) => {
+              if (
+                event.target ===
+                event.currentTarget
+              ) {
+                setSavedPlansOpen(
+                  false
+                );
+              }
+            }
+          }
+        >
+          <section
+            className="trip-saved-plans-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Saved trip plans"
+          >
+            <div className="trip-saved-plans-head">
+              <div>
+                <span>
+                  Your trips
+                </span>
+
+                <h2>
+                  Saved plans
+                </h2>
+              </div>
+
               <button
-                className="planner-ghost-btn"
-                onClick={() => setActiveGuideStep(Math.max(0, activeGuideStep - 1))}
-                disabled={activeGuideStep === 0}
+                type="button"
+                className="trip-saved-plans-close"
+                onClick={() =>
+                  setSavedPlansOpen(
+                    false
+                  )
+                }
+                aria-label="Close saved plans"
               >
-                Previous
+                ×
               </button>
-              {activeGuideStep < guideSteps.length - 1 ? (
-                <button
-                  className="planner-primary-btn"
-                  onClick={() => setActiveGuideStep(activeGuideStep + 1)}
-                >
-                  Next
-                </button>
-              ) : (
-                <button className="planner-primary-btn" onClick={() => setShowGuide(false)}>
-                  Start planning
-                </button>
-              )}
             </div>
+
+
+            {savedTrips.length ? (
+              <div className="trip-saved-plans-list">
+                {savedTrips.map(
+                  (trip) => {
+                    const active =
+                      Number(
+                        trip.id
+                      ) ===
+                      Number(
+                        savedPlanId ||
+                        0
+                      );
+
+                    return (
+                      <article
+                        key={
+                          trip.id
+                        }
+                        className={`trip-saved-plan-card ${
+                          active
+                            ? "active"
+                            : ""
+                        }`}
+                      >
+                        <div className="trip-saved-plan-main">
+                          <div className="trip-saved-plan-title-row">
+                            <strong>
+                              {trip.title ||
+                                "Sri Lanka Trip"}
+                            </strong>
+
+                            {active && (
+                              <span>
+                                Open
+                              </span>
+                            )}
+                          </div>
+
+                          <p>
+                            {formatDate(
+                              trip.start_date
+                            )}
+                            {trip.end_date
+                              ? ` - ${formatDate(
+                                  trip.end_date
+                                )}`
+                              : ""}
+                          </p>
+
+                          <div className="trip-saved-plan-meta">
+                            <span>
+                              {Number(
+                                trip.day_count ||
+                                  0
+                              )} days
+                            </span>
+
+                            <span>
+                              {Number(
+                                trip.item_count ||
+                                  0
+                              )} items
+                            </span>
+
+                            <span>
+                              {Number(
+                                trip.traveller_count ||
+                                  1
+                              )} travellers
+                            </span>
+                          </div>
+                        </div>
+
+
+                        <div className="trip-saved-plan-actions">
+                          <button
+                            type="button"
+                            className="open"
+                            disabled={
+                              actionLoading
+                            }
+                            onClick={() =>
+                              openSavedPlanFromLibrary(
+                                trip.id
+                              )
+                            }
+                          >
+                            Open
+                          </button>
+
+                          <button
+                            type="button"
+                            className="delete"
+                            disabled={
+                              actionLoading
+                            }
+                            onClick={() =>
+                              deleteSavedPlanFromLibrary(
+                                trip
+                              )
+                            }
+                            aria-label={`Delete ${trip.title || "saved trip"}`}
+                          >
+                            <Trash2
+                              size={15}
+                            />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  }
+                )}
+              </div>
+            ) : (
+              <div className="trip-saved-plans-empty">
+                <Save
+                  size={24}
+                />
+
+                <strong>
+                  No saved plans yet
+                </strong>
+              </div>
+            )}
           </section>
         </div>
       )}
 
-      <section
-        className="trip-planner-banner trip-planner-showcase-hero"
-        aria-label="Plan your trip hero"
-      >
-        {currentHeroSlide?.image ? (
-          <img
-            key={`${currentHeroSlide.id}-${heroSlideIndex}`}
-            className="trip-hero-bg-image"
-            src={currentHeroSlide.image}
-            alt=""
-            aria-hidden="true"
-          />
-        ) : null}
-        <div className="trip-showcase-overlay" aria-hidden="true" />
-        <div className="trip-showcase-inner">
-          <div className="trip-showcase-copy">
-            <p>PLAN YOUR TRIP</p>
-            <h1>Design your Sri Lanka route</h1>
-            <span>Start with saved destinations, mix nearby hotels, organise each day, and turn your ideas into a clean traveller-ready plan.</span>
 
-            <div className="trip-showcase-actions" aria-label="Trip planning actions">
-              <button
-                type="button"
-                className="guide-me-btn"
-                onClick={() => setShowGuide((current) => !current)}
-              >
-                🧭 Guide Me
-              </button>
-              <Link to="/explore">Explore Places</Link>
-              <a href="#saved-destinations">Saved Places</a>
-              <a href="#suggested-itineraries">Suggested Plans</a>
-              <a href="#custom-plan">Custom Plan</a>
-            </div>
-          </div>
+      {(error ||
+        notice) && (
+        <div
+          className={`trip-message ${
+            error
+              ? "error"
+              : ""
+          }`}
+        >
+          <span>
+            {error ||
+              notice}
+          </span>
 
-          <aside className="trip-showcase-card clear-preview-card" aria-label="Trip slideshow preview">
-            <div
-              className="trip-showcase-photo clear-preview-photo"
-              style={{ backgroundImage: currentHeroSlide?.image ? `url(${currentHeroSlide.image})` : undefined }}
-            />
-            <div className="clear-preview-shade" aria-hidden="true" />
-            <div className="trip-showcase-card-content clear-preview-content">
-              <span>Changing every 4 seconds</span>
-              <h2>{currentHeroSlide?.title || "Sri Lanka Trip Planner"}</h2>
-              <p>{currentHeroSlide?.subtitle || "Database photos from destinations and approved hotels"}</p>
-              <div className="trip-showcase-card-tags clear-preview-tags">
-                <b>{currentHeroSlide?.type || "Database"}</b>
-                <b>{heroSlides.length ? `${heroSlideIndex + 1}/${heroSlides.length}` : "Live"}</b>
-              </div>
-            </div>
-          </aside>
-        </div>
-
-        <div className="trip-showcase-stats" aria-label="Trip planner summary">
-          {tripHeroStats.map((item) => (
-            <article key={item.label}>
-              <strong>{item.value}</strong>
-              <span>{item.label}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <nav className="trip-breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link>
-        <span>›</span>
-        <strong>Plan Your Trip</strong>
-      </nav>
-
-      <section className="trip-planner-intro" aria-label="Trip planning introduction">
-        <article className="intro-main-card">
-          <span className="planner-eyebrow light">Book your trip</span>
-          <h2>Create a Sri Lanka route before choosing your stay.</h2>
-          <p>
-            Start with a suggested itinerary or bring saved destinations from Explore. Then arrange
-            each day, check nearby hotels, and export a traveller-friendly PDF plan.
-          </p>
-          <div className="intro-step-row">
-            {[
-              ["01", "Explore", "Save places"],
-              ["02", "Plan", "Arrange days"],
-              ["03", "Stay", "Find hotels"],
-              ["04", "Export", "Download PDF"],
-            ].map(([number, title, text]) => (
-              <div className="intro-step" key={title}>
-                <span>{number}</span>
-                <b>{title}</b>
-                <small>{text}</small>
-              </div>
-            ))}
-          </div>
-          <div className="planner-hero-actions">
-            <Link to="/explore" className="planner-primary-btn">Add places from Explore</Link>
-            <button className="planner-dark-btn" onClick={() => buildStarterPlan()}>Use island highlights</button>
-            <button className="planner-ghost-btn" onClick={() => setShowGuide((current) => !current)}>How it works</button>
-          </div>
-        </article>
-
-        <aside className="plan-visit-menu" aria-label="Plan your visit menu">
-          <h3>Plan Your Visit</h3>
-          <a href="#suggested-itineraries">Suggested itineraries</a>
-          <Link to="/explore">Attractions</Link>
-          <Link to="/hotels">Accommodation</Link>
-          <Link to="/events">Events</Link>
-          <Link to="/tourist-guides">Tour guides</Link>
-          <button type="button" onClick={() => setShowGuide((current) => !current)}>Planner guide</button>
-        </aside>
-      </section>
-
-      {notice && (
-        <div className={noticeIsError ? "planner-notice error" : "planner-notice"}>
-          <span>{notice}</span>
-          <button onClick={() => setNotice("")} aria-label="Dismiss notification">×</button>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setNotice("");
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
-      <section id="custom-plan" className="planner-settings-band" aria-label="Trip setup">
-        <div className="settings-header">
-          <span className="planner-eyebrow light">Trip basics</span>
-          <h2>Set the shape of your holiday</h2>
-        </div>
-        <div className="settings-grid">
-          <label>
-            Trip name
-            <input value={tripName} onChange={(event) => setTripName(event.target.value)} />
-          </label>
-          <label>
-            Start date
-            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-          </label>
-          <label>
-            Days
-            <input
-              type="number"
-              min="1"
-              max="14"
-              value={daysCount}
-              onChange={(event) => setDaysCount(event.target.value)}
-            />
-          </label>
-          <label>
-            Style
-            <select value={travelStyle} onChange={(event) => setTravelStyle(event.target.value)}>
-              {travelStyles.map((style) => (
-                <option key={style}>{style}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Budget
-            <select value={budgetLevel} onChange={(event) => setBudgetLevel(event.target.value)}>
-              {Object.keys(budgetDailyTargets).map((level) => (
-                <option key={level}>{level}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Pace
-            <select value={travelPace} onChange={(event) => setTravelPace(event.target.value)}>
-              <option>Relaxed</option>
-              <option>Balanced</option>
-              <option>Packed</option>
-            </select>
-          </label>
-          <button className="planner-primary-btn apply-btn" onClick={applyTripSettings}>Apply</button>
-        </div>
-      </section>
 
-      <section className="route-template-section" id="suggested-itineraries">
-        <div className="section-heading-line">
-          <div>
-            <span className="planner-eyebrow light">Suggested itineraries</span>
-            <h2>Start with a route, then make it yours</h2>
-          </div>
-          <p>Templates are editable. Add, remove, reorder, and connect hotels after selecting one.</p>
-        </div>
-        <div className="template-grid">
-          {starterRoutes.map((route) => {
-            const routePlaces = route.placeIds.map(getPlaceById).filter(Boolean);
-            const cover = routePlaces[0]?.image;
-            const cities = routePlaces.map((place) => place.city).filter(Boolean);
-
-            return (
-              <article className="template-card" key={route.id}>
-                <div className="template-image">
-                  {cover ? <img src={cover} alt={route.title} /> : <span>{route.title}</span>}
-                  <b>{route.label}</b>
-                </div>
-                <div className="template-body">
-                  <h3>{route.title}</h3>
-                  <p>{route.description}</p>
-                  <small>{cities.join(" → ")}</small>
-                  <button onClick={() => buildStarterPlan(route.placeIds)}>Use this route</button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="planner-services-strip" aria-label="Plan your visit links">
-        {visitServices.map((service) => (
-          <Link to={service.to} className="visit-service-card" key={service.title}>
-            <span>{service.icon}</span>
-            <div>
-              <h3>{service.title}</h3>
-              <p>{service.text}</p>
-            </div>
-          </Link>
-        ))}
-      </section>
-
-      <section className="planner-dashboard-grid" id="saved-destinations" ref={tripPlanSectionRef}>
-        {showSavedButton ? (
-          <button
-            type="button"
-            className={`saved-panel-fab ${unusedSavedPlaces.length ? "has-items" : ""}`}
-            onClick={() => setShowSavedPanel((current) => !current)}
-            aria-label={showSavedPanel ? "Close saved trip items" : "Open saved trip items"}
+      <div className="trip-planner-layout">
+        <div className="trip-planner-content">
+          <section
+            id="trip-setup"
+            className="trip-section trip-settings-card"
           >
-            <span>🧺</span>
-            <strong>Saved Items</strong>
-            <b>{unusedSavedPlaces.length}</b>
-          </button>
-        ) : null}
+            <div className="trip-section-heading">
+              <div>
+                <span>
+                  Step 1 · Trip setup
+                </span>
 
-        {showSavedPanel ? (
-        <aside className="saved-destinations-panel">
-          <div className="panel-title-row">
-            <div>
-              <span className="planner-eyebrow light">From your basket</span>
-              <h2>Saved trip items</h2>
+                <h2>
+                  Travel details
+                </h2>
+              </div>
+
+              {dirty && (
+                <small className="trip-unsaved">
+                  Unsaved changes
+                </small>
+              )}
             </div>
-            <div className="panel-title-actions">
-              <Link to="/explore">Add more</Link>
-              <button type="button" className="saved-panel-close" onClick={() => setShowSavedPanel(false)} aria-label="Close saved trip items">
-                ×
+
+
+            <div className="trip-settings-grid">
+              <label>
+                <span>
+                  Trip name
+                </span>
+
+                <input
+                  value={
+                    tripName
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setTripName(
+                        event
+                          .target
+                          .value
+                      );
+
+                      markChanged();
+                    }
+                  }
+                />
+              </label>
+
+
+              <label>
+                <span>
+                  Start date
+                </span>
+
+                <input
+                  type="date"
+                  value={
+                    startDate
+                  }
+                  min={
+                    today
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setStartDate(
+                        event
+                          .target
+                          .value
+                      );
+
+                      markChanged();
+                    }
+                  }
+                />
+              </label>
+
+
+              <label>
+                <span>
+                  Days
+                </span>
+
+                <input
+                  type="number"
+                  min="1"
+                  max={
+                    plannerConfig
+                      .maxDays ||
+                    30
+                  }
+                  value={
+                    daysCount
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setDaysCount(
+                        event
+                          .target
+                          .value
+                      );
+                    }
+                  }
+                />
+              </label>
+
+
+              <label>
+                <span>
+                  Travellers
+                </span>
+
+                <div className="trip-input-icon">
+                  <Users
+                    size={17}
+                  />
+
+                  <input
+                    type="number"
+                    min="1"
+                    value={
+                      travellerCount
+                    }
+                    onChange={
+                      (
+                        event
+                      ) => {
+                        setTravellerCount(
+                          event
+                            .target
+                            .value
+                        );
+
+                        markChanged();
+                      }
+                    }
+                  />
+                </div>
+              </label>
+
+
+              <label>
+                <span>
+                  Travel style
+                </span>
+
+                <select
+                  value={
+                    travelStyle
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setTravelStyle(
+                        event
+                          .target
+                          .value
+                      );
+
+                      markChanged();
+                    }
+                  }
+                >
+                  {travelStyles.map(
+                    (
+                      style
+                    ) => (
+                      <option
+                        key={
+                          style
+                        }
+                      >
+                        {
+                          style
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+
+              <label>
+                <span>
+                  Budget
+                </span>
+
+                <select
+                  value={
+                    budgetLevel
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setBudgetLevel(
+                        event
+                          .target
+                          .value
+                      );
+
+                      markChanged();
+                    }
+                  }
+                >
+                  {Object.keys(
+                    budgetTargets
+                  ).map(
+                    (
+                      level
+                    ) => (
+                      <option
+                        key={
+                          level
+                        }
+                      >
+                        {
+                          level
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+
+              <label>
+                <span>
+                  Transport
+                </span>
+
+                <select
+                  value={
+                    transportProfile
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setTransportProfile(
+                        event
+                          .target
+                          .value
+                      );
+
+                      markChanged(
+                        true
+                      );
+                    }
+                  }
+                >
+                  {transportProfiles.map(
+                    (
+                      profile
+                    ) => (
+                      <option
+                        key={
+                          profile.key
+                        }
+                        value={
+                          profile.key
+                        }
+                      >
+                        {
+                          profile.label
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+
+              <label>
+                <span>
+                  Route priority
+                </span>
+
+                <select
+                  value={
+                    optimizationMode
+                  }
+                  onChange={
+                    (
+                      event
+                    ) => {
+                      setOptimizationMode(
+                        event
+                          .target
+                          .value
+                      );
+
+                      markChanged(
+                        true
+                      );
+                    }
+                  }
+                >
+                  {optimizationModes.map(
+                    (
+                      mode
+                    ) => (
+                      <option
+                        key={
+                          mode.key
+                        }
+                        value={
+                          mode.key
+                        }
+                      >
+                        {
+                          mode.label
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <small className="trip-field-help">
+                  {optimizationMode ===
+                  "fastest"
+                    ? "Reduces estimated road travel time."
+                    : optimizationMode ===
+                      "shortest"
+                    ? "Reduces total road distance. Travel time may not always decrease."
+                    : "Choose how the route should be optimized."}
+                </small>
+              </label>
+            </div>
+
+
+            <div className="trip-settings-footer">
+              <span>
+                <CalendarDays
+                  size={17}
+                />
+
+                {startDate}
+                {" — "}
+                {endDate}
+              </span>
+
+              <button
+                type="button"
+                className="trip-secondary-button"
+                onClick={
+                  rebuildDays
+                }
+              >
+                Apply dates
               </button>
             </div>
-          </div>
+          </section>
 
-          {unusedSavedPlaces.length ? (
-            <>
-              <div className="saved-category-tabs">
-                {savedPlaceGroups.map((group) => (
-                  <button
-                    key={group.key}
-                    type="button"
-                    className={activeSavedCategory === group.key ? "active" : ""}
-                    onClick={() => setActiveSavedCategory(group.key)}
-                  >
-                    <span>{group.icon} {group.label}</span>
-                    <b>{group.items.length}</b>
-                  </button>
-                ))}
+
+          {starterItineraries.length >
+            0 && (
+            <section className="trip-section">
+              <div className="trip-section-heading">
+                <div>
+                  <span>
+                    Optional starting ideas
+                  </span>
+
+                  <h2>
+                    Suggested routes
+                  </h2>
+                </div>
+
+                <small>
+                  Starting ideas only — you can edit everything.
+                </small>
               </div>
 
-              <div className="saved-place-list">
-                {activeSavedGroup?.items.length ? (
-                  activeSavedGroup.items.map((place) => (
+
+              <div className="trip-starter-grid">
+                {starterItineraries.map(
+                  (
+                    itinerary
+                  ) => (
                     <article
-                      className="saved-place-card"
-                      key={place.id}
-                      draggable
-                      onDragStart={() => handleDragStart({ source: "saved", place })}
+                      key={
+                        itinerary.id
+                      }
+                      className="trip-starter-card"
                     >
-                      <img src={getTripItemImage(place)} alt={place.name} />
                       <div>
-                        <h3>{place.name}</h3>
-                        <p className="trip-item-meta">{getTripItemMeta(place)}</p>
-                        <div className="quick-day-row">
-                          <select
-                            value={quickAddDayByItem[place.id] ?? ""}
-                            onChange={(event) => {
-                              const dayIndex = event.target.value;
-                              setQuickAddDayByItem((current) => ({ ...current, [place.id]: "" }));
-                              if (dayIndex !== "") addItemToDay(place, Number(dayIndex));
-                            }}
-                          >
-                            <option value="">Add to day...</option>
-                            {days.map((day, index) => (
-                              <option key={day.dayNumber} value={index}>Day {day.dayNumber}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <strong>
+                          {
+                            itinerary.title
+                          }
+                        </strong>
+
+                        <span>
+                          {
+                            itinerary.days
+                          }
+                        </span>
                       </div>
+
+                      <p>
+                        {
+                          itinerary.tone
+                        }
+                      </p>
+
+                      <small>
+                        {(
+                          itinerary.places ||
+                          []
+                        )
+                          .map(
+                            (
+                              place
+                            ) =>
+                              place.city ||
+                              place.name
+                          )
+                          .join(
+                            " → "
+                          )}
+                      </small>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUseStarterItinerary(
+                            itinerary
+                          )
+                        }
+                      >
+                        Use route
+                      </button>
                     </article>
-                  ))
-                ) : (
-                  <div className="saved-category-empty">
-                    No {activeSavedGroup?.label.toLowerCase()} saved yet.
-                  </div>
+                  )
                 )}
               </div>
-            </>
-          ) : (
-            <div className="quick-add-box">
-              <strong>No unused saved trip items</strong>
-              <p>Save places, hotels, events, or guides, then add them to your travel days.</p>
-              <div className="quick-add-list">
-                {popularPlaces.map((place) => (
-                  <button key={place.id} onClick={() => addPopularToSaved(place)}>
-                    + {place.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+            </section>
           )}
-        </aside>
-        ) : null}
 
-        <section className="itinerary-board" id="itinerary-board">
-          <div className="route-overview-card">
-            <div>
-              <span className="planner-eyebrow light">Route overview</span>
-              <h2>{routeCities.length ? routeCities.join(" → ") : "Choose destinations to create your route"}</h2>
-              <p>
-                {totalPlaces} places • {formatLkr(totalCost)} activity estimate • {formatDuration(totalTransit)} travel time
-              </p>
+
+          <section
+            id="trip-basket"
+            className="trip-section trip-basket-section"
+          >
+            <div className="trip-section-heading">
+              <div>
+                <span>
+                  Saved for this trip
+                </span>
+
+                <h2>
+                  Trip basket
+                </h2>
+              </div>
+
+              <small>
+                Choose a day and add saved places, stays, events or guides.
+              </small>
             </div>
-            <div className="route-actions">
-              <button onClick={downloadPdf}>Download PDF</button>
-              <button onClick={saveTripPlan}>Save</button>
-              <button className="danger" onClick={clearPlan}>Clear</button>
+
+            <TripBasketWidget
+              embedded
+              sourceLabel="Trip basket"
+              assetUrl={
+                assetUrl
+              }
+              days={
+                days
+              }
+              onAddToDay={
+                addSavedItem
+              }
+              onNavigateAway={
+                persistDraftBeforeNavigation
+              }
+            />
+          </section>
+
+
+          <section
+            id="trip-itinerary"
+            className="trip-section"
+          >
+            <div className="trip-section-heading">
+              <div>
+                <span>
+                  Step 2 · Build itinerary
+                </span>
+
+                <h2>
+                  Your itinerary
+                </h2>
+              </div>
+
             </div>
-          </div>
 
-          <div className="day-route-list">
-            {days.map((day, dayIndex) => {
-              const dayCost = calculateDayCost(day);
-              const transitMinutes = calculateTransitMinutes(day);
-              const isOverBudget = dayCost > dailyBudgetTarget;
-              const dayItems = getDayItems(day);
-              const city = day.destinations[0]?.city || "this city";
 
-              return (
-                <article
-                  className="day-itinerary-card"
-                  key={day.dayNumber}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => handleDropOnDay(dayIndex)}
-                >
-                  <div className="day-number-rail">
-                    <span>{String(day.dayNumber).padStart(2, "0")}</span>
-                  </div>
-
-                  <div className="day-card-content">
-                    <header className="day-card-header">
-                      <div>
-                        <strong>Day {day.dayNumber}</strong>
-                        <h3>{formatDate(day.date)}</h3>
+            <div className="trip-days-list">
+              {days.map(
+                (
+                  day,
+                  dayIndex
+                ) => (
+                  <article
+                    className="trip-day-card"
+                    key={
+                      day.dayNumber
+                    }
+                  >
+                    <header className="trip-day-header">
+                      <div className="trip-day-number">
+                        {
+                          day.dayNumber
+                        }
                       </div>
-                      <span className={day.hotels.length > 0 ? "hotel-status selected" : "hotel-status missing"}>
-                        {day.hotels.length > 0 ? "Hotel selected" : "Need hotel"}
-                      </span>
+
+                      <div className="trip-day-title">
+                        <span>
+                          Day{" "}
+                          {
+                            day.dayNumber
+                          }
+                        </span>
+
+                        <h3>
+                          {
+                            formatDate(
+                              day.date
+                            )
+                          }
+                        </h3>
+                      </div>
+
+                      {dayIndex === 0 ? (
+                        <div
+                          className="trip-anchor-badge"
+                          title="The first travel day stays as the starting point when the route is optimized."
+                        >
+                          <MapPin
+                            size={15}
+                          />
+
+                          Start anchor
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className={`trip-lock-button ${
+                            day.isLocked
+                              ? "locked"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            updateDay(
+                              dayIndex,
+                              (
+                                current
+                              ) => ({
+                                ...current,
+
+                                isLocked:
+                                  !current.isLocked,
+
+                                lockReason:
+                                  !current.isLocked
+                                    ? "Locked by traveller"
+                                    : "",
+                              }),
+                              {
+                                affectsRoute: true,
+                              }
+                            )
+                          }
+                        >
+                          {day.isLocked
+                            ? (
+                              <Lock
+                                size={16}
+                              />
+                            )
+                            : (
+                              <Unlock
+                                size={16}
+                              />
+                            )}
+
+                          {day.isLocked
+                            ? "Locked"
+                            : "Lock day"}
+                        </button>
+                      )}
                     </header>
 
-                    <div className="day-metrics-row">
-                      <span className={isOverBudget ? "warning" : ""}>Cost {formatLkr(dayCost)}</span>
-                      <span>Transit {formatDuration(transitMinutes)}</span>
-                      <span>{dayItems.length} items</span>
+
+                    <div className="trip-destination-add">
+                      <MapPin
+                        size={18}
+                      />
+
+                      <select
+                        value=""
+                        onChange={
+                          (
+                            event
+                          ) => {
+                            if (
+                              event
+                                .target
+                                .value
+                            ) {
+                              addDestination(
+                                dayIndex,
+                                event
+                                  .target
+                                  .value
+                              );
+                            }
+                          }
+                        }
+                      >
+                        <option value="">
+                          Add destination…
+                        </option>
+
+                        {destinations.map(
+                          (
+                            destination
+                          ) => (
+                            <option
+                              key={
+                                destination.id
+                              }
+                              value={
+                                destination.id
+                              }
+                            >
+                              {
+                                destination.name
+                              }
+                              {" — "}
+                              {
+                                destination.city
+                              }
+                            </option>
+                          )
+                        )}
+                      </select>
                     </div>
 
-                    {!dayItems.length ? (
-                      <div className="empty-drop-zone">
-                        <strong>Drop trip items here</strong>
-                        <p>Use saved places, hotels, events, or guides from the left panel.</p>
-                      </div>
-                    ) : null}
 
-                    {CATEGORY_CONFIG.map((category) => {
-                      const categoryItems = day[category.key];
-                      const dayDistrict = getDayDestinationDistrict(day);
-                      const needsDestinationFirst = category.key !== "destinations" && !dayDistrict;
-                      const hasSavedOfType = savedPlaces.some(
-                        (item) => getTripItemCategoryKey(item) === category.key
-                      );
-                      const availableToAdd = needsDestinationFirst
-                        ? []
-                        : savedPlaces.filter(
-                            (item) =>
-                              getTripItemCategoryKey(item) === category.key &&
-                              !categoryItems.some((existing) => existing.id === item.id) &&
-                              validateItemForDay(item, day, category.key).ok
+                    {day.destinations.length ===
+                    0 ? (
+                      <div className="trip-empty-day">
+                        <MapPin
+                          size={21}
+                        />
+
+                        <strong>
+                          Add a destination
+                        </strong>
+                      </div>
+                    ) : (
+                      <div className="trip-place-list">
+                        {day.destinations.map(
+                          (
+                            destination,
+                            destinationIndex
+                          ) => (
+                            <div
+                              className="trip-place-row"
+                              key={`${destination.id}-${destinationIndex}`}
+                            >
+                              <span className="trip-place-sequence">
+                                {day.dayNumber}
+                                .
+                                {destinationIndex +
+                                  1}
+                              </span>
+
+                              {destination.image && (
+                                <img
+                                  src={
+                                    destination.image
+                                  }
+                                  alt={
+                                    destination.name
+                                  }
+                                />
+                              )}
+
+                              <div>
+                                <strong>
+                                  {
+                                    destination.name
+                                  }
+                                </strong>
+
+                                <span>
+                                  {[
+                                    destination.city,
+                                    destination.district,
+                                    destination.region,
+                                  ]
+                                    .filter(
+                                      Boolean
+                                    )
+                                    .join(
+                                      " • "
+                                    )}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeDayItem(
+                                    dayIndex,
+                                    "destinations",
+                                    destinationIndex
+                                  )
+                                }
+                              >
+                                <Trash2
+                                  size={16}
+                                />
+                              </button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+
+                    {CATEGORY_CONFIG.map(
+                      (
+                        category
+                      ) => {
+                        const items =
+                          day[
+                            category.key
+                          ];
+
+
+                        const baseCandidates =
+                          availableSavedItems.filter(
+                            (
+                              item
+                            ) =>
+                              getTripItemCategoryKey(
+                                item
+                              ) ===
+                                category.key &&
+                              (
+                                category.key !==
+                                  "events" ||
+                                Boolean(
+                                  getSourceId(
+                                    item,
+                                    "event"
+                                  )
+                                )
+                              ) &&
+                              !items.some(
+                                (
+                                  existing
+                                ) =>
+                                  getSourceId(
+                                    existing,
+                                    getCanonicalType(
+                                      existing
+                                    )
+                                  ) ===
+                                  getSourceId(
+                                    item,
+                                    getCanonicalType(
+                                      item
+                                    )
+                                  )
+                              )
                           );
 
-                      return (
-                        <div className="day-category-section" key={category.key}>
-                          <div className="day-category-header">
-                            <span>{category.label}</span>
-                            {!needsDestinationFirst && availableToAdd.length ? (
-                              <select
-                                value=""
-                                onChange={(event) => {
-                                  const item = availableToAdd.find(
-                                    (candidate) => String(candidate.id) === event.target.value
-                                  );
-                                  if (item) addItemToDay(item, dayIndex);
-                                }}
-                              >
-                                <option value="">Add a {category.label.toLowerCase().replace(/s$/, "")}...</option>
-                                {availableToAdd.map((item) => (
-                                  <option key={item.id} value={item.id}>{item.name}</option>
-                                ))}
-                              </select>
-                            ) : null}
-                          </div>
 
-                          {categoryItems.length ? (
-                            <div className="scheduled-place-list">
-                              {categoryItems.map((place, placeIndex) => {
-                                const previousPlace = placeIndex ? categoryItems[placeIndex - 1] : null;
-                                const travel = category.key === "destinations" && previousPlace?.city && place.city
-                                  ? getTravelTime(previousPlace.city, place.city)
-                                  : null;
-
-                                return (
-                                  <div className="place-schedule-block" key={place.id}>
-                                    {travel && (
-                                      <div className="travel-connector">
-                                        <span>{travel.mode}</span>
-                                        <p>{travel.label} from {previousPlace.city} to {place.city}</p>
-                                      </div>
-                                    )}
-
-                                    <article
-                                      className="scheduled-place-card"
-                                      draggable
-                                      onDragStart={() => handleDragStart({ source: "day", dayIndex, category: category.key, place })}
-                                    >
-                                      <div className="place-time-badge">{daySlotLabels[placeIndex] || "Later"}</div>
-                                      <img src={getTripItemImage(place)} alt={place.name} />
-                                      <div className="scheduled-place-info">
-                                        <h4>{place.name}</h4>
-                                        <p className="trip-item-meta">{getTripItemMeta(place)} • {place.duration || "Plan item"}</p>
-                                        <div className="place-tags-row">
-                                          <span>{place.budget || getTripItemTypeLabel(place)}</span>
-                                          <span>{formatLkr(Number(place.estimatedCost || 0))}</span>
-                                        </div>
-                                      </div>
-                                      <div className="place-action-stack">
-                                        <Link to={getTripItemDetailsLink(place)}>Details</Link>
-                                        <button onClick={() => moveItemWithinDay(dayIndex, category.key, placeIndex, -1)}>↑</button>
-                                        <button onClick={() => moveItemWithinDay(dayIndex, category.key, placeIndex, 1)}>↓</button>
-                                        <button onClick={() => removeItemFromDay(dayIndex, category.key, place.id)}>Remove</button>
-                                      </div>
-                                    </article>
-                                  </div>
+                        const candidates =
+                          category.key ===
+                          "guides"
+                            ? [
+                                ...baseCandidates,
+                              ].sort(
+                                (
+                                  first,
+                                  second
+                                ) =>
+                                  getLocationMatchRank(
+                                    first,
+                                    day
+                                  ) -
+                                    getLocationMatchRank(
+                                      second,
+                                      day
+                                    ) ||
+                                  String(
+                                    first.name ||
+                                      ""
+                                  ).localeCompare(
+                                    String(
+                                      second.name ||
+                                        ""
+                                    )
+                                  )
+                              )
+                            : baseCandidates
+                                .filter(
+                                  (
+                                    item
+                                  ) =>
+                                    itemMatchesDayLocation(
+                                      item,
+                                      day
+                                    )
+                                )
+                                .sort(
+                                  (
+                                    first,
+                                    second
+                                  ) =>
+                                    getLocationMatchRank(
+                                      first,
+                                      day
+                                    ) -
+                                      getLocationMatchRank(
+                                        second,
+                                        day
+                                      ) ||
+                                    String(
+                                      first.name ||
+                                        ""
+                                    ).localeCompare(
+                                      String(
+                                        second.name ||
+                                          ""
+                                      )
+                                    )
                                 );
-                              })}
+
+
+                        const hasDestination =
+                          Array.isArray(
+                            day.destinations
+                          ) &&
+                          day.destinations
+                            .length > 0;
+
+
+                        const browseLink =
+                          getBrowseLinkForCategory(
+                            category.key,
+                            day
+                          );
+
+
+                        const browseLabel =
+                          getBrowseLabelForCategory(
+                            category.key,
+                            day
+                          );
+
+
+                        return (
+                          <div
+                            className="trip-day-subsection"
+                            key={
+                              category.key
+                            }
+                          >
+                            <div className="trip-day-subheading trip-day-subheading-smart">
+                              <div>
+                                <strong>
+                                  {
+                                    category.label
+                                  }
+                                </strong>
+
+                              </div>
+
+
+                              <div className="trip-day-subheading-actions">
+                                {candidates.length >
+                                  0 && (
+                                  <select
+                                    value=""
+                                    onChange={
+                                      (
+                                        event
+                                      ) => {
+                                        const selected =
+                                          candidates.find(
+                                            (
+                                              item
+                                            ) =>
+                                              getTripItemKey(
+                                                item
+                                              ) ===
+                                              event
+                                                .target
+                                                .value
+                                          );
+
+
+                                        if (
+                                          selected
+                                        ) {
+                                          addSavedItem(
+                                            dayIndex,
+                                            selected
+                                          );
+                                        }
+                                      }
+                                    }
+                                  >
+                                    <option value="">
+                                      Add saved{" "}
+                                      {
+                                        category.label
+                                      }
+                                      …
+                                    </option>
+
+                                    {candidates.map(
+                                      (
+                                        item
+                                      ) => (
+                                        <option
+                                          key={
+                                            getTripItemKey(
+                                              item
+                                            )
+                                          }
+                                          value={
+                                            getTripItemKey(
+                                              item
+                                            )
+                                          }
+                                        >
+                                          {
+                                            item.name
+                                          }
+                                          {" — "}
+                                          {getItemLocationLabel(
+                                            item
+                                          )}
+                                        </option>
+                                      )
+                                    )}
+                                  </select>
+                                )}
+
+
+                                <Link
+                                  className="trip-more-link"
+                                  to={
+                                    browseLink
+                                  }
+                                  onClick={
+                                    persistDraftBeforeNavigation
+                                  }
+                                >
+                                  {
+                                    browseLabel
+                                  }
+                                </Link>
+                              </div>
                             </div>
-                          ) : needsDestinationFirst ? (
-                            <p className="day-category-empty-hint">
-                              Add a destination to this day first.
-                            </p>
-                          ) : !hasSavedOfType ? (
-                            <p className="day-category-empty-hint">
-                              No saved {category.label.toLowerCase()} yet. <Link to={category.browseTo}>{category.browseLabel}</Link>
-                            </p>
-                          ) : !availableToAdd.length ? (
-                            <p className="day-category-empty-hint">
-                              No saved {category.label.toLowerCase()} in {dayDistrict} district yet.
-                            </p>
-                          ) : null}
-                        </div>
-                      );
-                    })}
 
-                    {dayItems.length > 0 && !day.hotels.length && (
-                      <div className="stay-check-card">
-                        <div>
-                          <strong>Stay check</strong>
-                          <p>You are visiting {city}. Choose a hotel for this night.</p>
-                        </div>
-                        <Link to={getHotelSearchLink(day)}>Find hotels in {city}</Link>
-                      </div>
+
+                            {items.length >
+                            0 ? (
+                              <div className="trip-extra-items trip-extra-items-detailed">
+                                {items.map(
+                                  (
+                                    item,
+                                    itemIndex
+                                  ) => {
+                                    const itemLink =
+                                      getTripItemLink(
+                                        item
+                                      );
+
+
+                                    const sourceId =
+                                      getSourceId(
+                                        item,
+                                        getCanonicalType(
+                                          item
+                                        )
+                                      );
+
+
+                                    const bookingLink =
+                                      category.key ===
+                                        "hotels" &&
+                                      sourceId
+                                        ? `/hotels/${sourceId}/rooms`
+                                        : "";
+
+
+                                    const itemImage =
+                                      assetUrl(
+                                        getTripItemImage(
+                                          item
+                                        )
+                                      );
+
+
+                                    return (
+                                      <article
+                                        className="trip-extra-item-card"
+                                        key={`${getTripItemKey(
+                                          item
+                                        )}-${itemIndex}`}
+                                      >
+                                        <div className="trip-extra-item-info">
+                                          {itemLink ? (
+                                            <Link
+                                              className="trip-extra-item-media"
+                                              to={
+                                                itemLink
+                                              }
+                                              onClick={
+                                                persistDraftBeforeNavigation
+                                              }
+                                            >
+                                              {itemImage ? (
+                                                <img
+                                                  src={
+                                                    itemImage
+                                                  }
+                                                  alt={
+                                                    item.name
+                                                  }
+                                                />
+                                              ) : (
+                                                <span>
+                                                  {
+                                                    getTripItemTypeLabel(
+                                                      item
+                                                    )
+                                                  }
+                                                </span>
+                                              )}
+                                            </Link>
+                                          ) : (
+                                            <div className="trip-extra-item-media">
+                                              {itemImage ? (
+                                                <img
+                                                  src={
+                                                    itemImage
+                                                  }
+                                                  alt={
+                                                    item.name
+                                                  }
+                                                />
+                                              ) : (
+                                                <span>
+                                                  {
+                                                    getTripItemTypeLabel(
+                                                      item
+                                                    )
+                                                  }
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+
+
+                                          <div className="trip-extra-item-copy">
+                                            {itemLink ? (
+                                              <Link
+                                                to={
+                                                  itemLink
+                                                }
+                                                onClick={
+                                                  persistDraftBeforeNavigation
+                                                }
+                                              >
+                                                {
+                                                  item.name
+                                                }
+                                              </Link>
+                                            ) : (
+                                              <strong>
+                                                {
+                                                  item.name
+                                                }
+                                              </strong>
+                                            )}
+
+                                            <span>
+                                              {getItemLocationLabel(
+                                                item
+                                              )}
+                                            </span>
+
+                                            <small>
+                                              {
+                                                getTripItemTypeLabel(
+                                                  item
+                                                )
+                                              }
+                                            </small>
+                                          </div>
+                                        </div>
+
+
+                                        <div className="trip-extra-item-actions">
+                                          {itemLink && (
+                                            <Link
+                                              to={
+                                                itemLink
+                                              }
+                                              onClick={
+                                                persistDraftBeforeNavigation
+                                              }
+                                            >
+                                              View
+                                            </Link>
+                                          )}
+
+                                          {bookingLink && (
+                                            <Link
+                                              className="book"
+                                              to={
+                                                bookingLink
+                                              }
+                                              onClick={
+                                                persistDraftBeforeNavigation
+                                              }
+                                            >
+                                              Book
+                                            </Link>
+                                          )}
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              removeDayItem(
+                                                dayIndex,
+                                                category.key,
+                                                itemIndex
+                                              )
+                                            }
+                                            aria-label={`Remove ${item.name}`}
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      </article>
+                                    );
+                                  }
+                                )}
+                              </div>
+                            ) : (
+                              <small className="trip-no-extra">
+                                {category.key ===
+                                "guides"
+                                  ? "No guides added."
+                                  : !hasDestination
+                                  ? `Choose a destination before adding ${category.label.toLowerCase()}.`
+                                  : `No ${category.label.toLowerCase()} added yet.`}
+                              </small>
+                            )}
+                          </div>
+                        );
+                      }
                     )}
 
-                    {dayItems.length > 0 && day.hotels.length > 0 && (
-                      <div className="stay-selected-card">Stay selected for this day.</div>
-                    )}
 
-                    <label className="day-note-field">
-                      Day note
+                    <label className="trip-day-notes">
+                      <span>
+                        Notes
+                      </span>
+
                       <textarea
-                        value={day.notes}
-                        onChange={(event) => updateDayNotes(dayIndex, event.target.value)}
-                        placeholder="Example: Start early, keep evening free, check train times..."
+                        rows="2"
+                        value={
+                          day.notes
+                        }
+                        placeholder="Optional notes for this day…"
+                        onChange={
+                          (
+                            event
+                          ) =>
+                            updateDay(
+                              dayIndex,
+                              (
+                                current
+                              ) => ({
+                                ...current,
+
+                                notes:
+                                  event
+                                    .target
+                                    .value,
+                              })
+                            )
+                        }
                       />
                     </label>
+                  </article>
+                )
+              )}
+            </div>
+          </section>
+
+
+          <section
+            id="trip-save"
+            className="trip-section trip-save-section"
+          >
+            <div>
+              <span>
+                Step 4 · Save and export
+              </span>
+
+              <h2>
+                Save before you travel
+              </h2>
+
+            </div>
+
+
+            <div className="trip-save-actions">
+              <button
+                type="button"
+                className="trip-secondary-button"
+                disabled={
+                  pdfLoading
+                }
+                onClick={
+                  downloadPdf
+                }
+              >
+                {pdfLoading ? (
+                  <RefreshCw
+                    size={17}
+                    className="spin"
+                  />
+                ) : (
+                  <Download
+                    size={17}
+                  />
+                )}
+
+                {pdfLoading
+                  ? "Preparing..."
+                  : "PDF"}
+              </button>
+
+
+              <button
+                type="button"
+                className="trip-secondary-button danger"
+                onClick={
+                  handleDelete
+                }
+              >
+                <Trash2
+                  size={17}
+                />
+
+                {savedPlanId
+                  ? "Delete"
+                  : "Clear"}
+              </button>
+
+
+              {!savedPlanId ||
+              dirty ? (
+                <button
+                  type="button"
+                  className="trip-primary-button"
+                  disabled={
+                    actionLoading
+                  }
+                  onClick={
+                    handleSave
+                  }
+                >
+                  <Save
+                    size={17}
+                  />
+
+                  {savedPlanId
+                    ? "Save changes"
+                    : "Save trip"}
+                </button>
+              ) : (
+                <div
+                  className="trip-save-state"
+                  role="status"
+                >
+                  <CheckCircle2
+                    size={17}
+                  />
+
+                  Saved
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+
+        <aside className="trip-planner-side">
+          <section
+            id="trip-map"
+            className="trip-map-card"
+          >
+            <div className="trip-map-heading">
+              <div>
+                <span>
+                  Step 3 · Review map
+                </span>
+
+                <h2>
+                  Sri Lanka journey
+                </h2>
+              </div>
+
+              <b>
+                {
+                  totalDestinations
+                }{" "}
+                stops
+              </b>
+            </div>
+
+
+            <TripPlannerMap
+              days={
+                days
+              }
+              mapConfig={
+                mapConfig
+              }
+              routeAnalysis={
+                routeAnalysis
+              }
+            />
+          </section>
+
+
+          <section
+            id="trip-route"
+            className="trip-route-card"
+          >
+            <div className="trip-route-card-header">
+              <Route
+                size={20}
+              />
+
+              <div>
+                <span>
+                  Step 3 · Optimize route
+                </span>
+
+                <h2>
+                  Route check
+                </h2>
+              </div>
+            </div>
+
+
+            {!routeAnalysis ? (
+              <div className="trip-route-empty">
+                <p>
+                  {routableDayCount < 2
+                    ? "Add destinations to at least two different days to analyze the road route."
+                    : routeError ||
+                      "Analyze the trip to draw the real road route and calculate travel time."}
+                </p>
+
+                <button
+                  type="button"
+                  className="trip-primary-button full"
+                  disabled={
+                    actionLoading ||
+                    routableDayCount <
+                      2
+                  }
+                  onClick={
+                    handleAnalyze
+                  }
+                >
+                  {actionLoading
+                    ? (
+                      <RefreshCw
+                        size={17}
+                        className="spin"
+                      />
+                    )
+                    : (
+                      <Route
+                        size={17}
+                      />
+                    )}
+
+                  {routeError
+                    ? "Retry road route"
+                    : "Analyze road route"}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="trip-route-metrics">
+                  <article>
+                    <Clock3
+                      size={18}
+                    />
+
+                    <span>
+                      Travel time
+                    </span>
+
+                    <strong>
+                      {formatDurationSeconds(
+                        routeAnalysis
+                          .current
+                          ?.durationSeconds
+                      )}
+                    </strong>
+                  </article>
+
+
+                  <article>
+                    <MapPin
+                      size={18}
+                    />
+
+                    <span>
+                      Distance
+                    </span>
+
+                    <strong>
+                      {formatDistance(
+                        routeAnalysis
+                          .current
+                          ?.distanceMeters
+                      )}
+                    </strong>
+                  </article>
+                </div>
+
+
+                {Array.isArray(
+                  routeAnalysis.warnings
+                ) &&
+                routeAnalysis.warnings
+                  .length > 0 ? (
+                  <div className="trip-route-warnings">
+                    {routeAnalysis.warnings.map(
+                      (
+                        warning,
+                        warningIndex
+                      ) => (
+                        <div
+                          className="trip-route-warning"
+                          key={`${warning}-${warningIndex}`}
+                        >
+                          <AlertTriangle
+                            size={16}
+                          />
+
+                          <span>
+                            {warning}
+                          </span>
+                        </div>
+                      )
+                    )}
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
+                ) : null}
 
-        <aside className="plan-assistant-panel">
-          <div className="assistant-card plan-health-card">
-            <span className="planner-eyebrow light">Plan health</span>
-            <strong>{readiness}%</strong>
-            <div className="planner-progress"><i style={{ width: `${readiness}%` }} /></div>
-            <p>{hotelCoveredDays}/{days.length} days have stay status checked.</p>
-          </div>
 
-          <div className="assistant-card before-card">
-            <span className="planner-eyebrow light">Before you go</span>
-            <ul>
-              {beforeYouGo.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
+                <div className="trip-current-route">
+                  <span>
+                    Current order
+                  </span>
 
-          <div className="assistant-card export-card">
-            <span className="planner-eyebrow light">Final step</span>
-            <h3>Ready to share?</h3>
-            <p>Download a detailed itinerary with images, day notes, hotel status, travel time, and cost estimates.</p>
-            <button onClick={downloadPdf}>Download itinerary PDF</button>
-          </div>
+                  <p>
+                    {routeText(
+                      routeAnalysis
+                        .current
+                        ?.order
+                    ) ||
+                      "Current trip order"}
+                  </p>
+                </div>
+
+
+                {routeAnalysis.improved ? (
+                  <div className="trip-recommendation">
+                    <div className="trip-recommendation-title">
+                      <CheckCircle2
+                        size={20}
+                      />
+
+                      <div>
+                        <strong>
+                          Better route found
+                        </strong>
+
+                        <span>
+                          Based on real road routing
+                        </span>
+                      </div>
+                    </div>
+
+
+                    <p className="trip-recommended-order">
+                      {routeText(
+                        routeAnalysis
+                          .recommended
+                          ?.order
+                      )}
+                    </p>
+
+
+                    <div className="trip-saving-grid">
+                      <div
+                        className={
+                          routeAnalysis.metric ===
+                          "duration"
+                            ? "primary"
+                            : ""
+                        }
+                      >
+                        <Clock3
+                          size={16}
+                        />
+
+                        <span>
+                          {routeAnalysis.metric ===
+                          "duration"
+                            ? "Primary saving"
+                            : Number(
+                                routeAnalysis
+                                  .saving
+                                  ?.durationSeconds ||
+                                0
+                              ) > 0
+                            ? "Time saved"
+                            : "Time saving"}
+                        </span>
+
+                        <strong>
+                          {formatDurationSeconds(
+                            routeAnalysis
+                              .saving
+                              ?.durationSeconds
+                          )}
+                        </strong>
+                      </div>
+
+
+                      <div
+                        className={
+                          routeAnalysis.metric ===
+                          "distance"
+                            ? "primary"
+                            : ""
+                        }
+                      >
+                        <MapPin
+                          size={16}
+                        />
+
+                        <span>
+                          {routeAnalysis.metric ===
+                          "distance"
+                            ? "Primary saving"
+                            : "Distance saved"}
+                        </span>
+
+                        <strong>
+                          {formatDistance(
+                            routeAnalysis
+                              .saving
+                              ?.distanceMeters
+                          )}
+                        </strong>
+                      </div>
+                    </div>
+
+
+                    <p className="trip-route-priority-note">
+                      Optimized for{" "}
+                      <strong>
+                        {routeAnalysis.metric ===
+                        "duration"
+                          ? "less travel time"
+                          : "less road distance"}
+                      </strong>
+                      .
+
+                      {routeAnalysis.metric ===
+                        "distance" &&
+                      Number(
+                        routeAnalysis
+                          .saving
+                          ?.durationSeconds ||
+                        0
+                      ) === 0
+                        ? " Travel time is not the primary target for this mode."
+                        : ""}
+                    </p>
+
+
+                    <button
+                      type="button"
+                      className="trip-primary-button full"
+                      disabled={
+                        actionLoading
+                      }
+                      onClick={
+                        handleApplyRoute
+                      }
+                    >
+                      Apply recommended route
+                    </button>
+                  </div>
+                ) : (
+                  <div className="trip-route-good">
+                    <CheckCircle2
+                      size={20}
+                    />
+
+                    <div>
+                      <strong>
+                        Route looks practical
+                      </strong>
+
+                      <span>
+                        No better order was found for the selected route priority.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+
+                <button
+                  type="button"
+                  className="trip-text-button"
+                  disabled={
+                    actionLoading
+                  }
+                  onClick={
+                    handleAnalyze
+                  }
+                >
+                  <RefreshCw
+                    size={15}
+                  />
+
+                  Re-analyze
+                </button>
+              </>
+            )}
+          </section>
+
+
+          <section className="trip-summary-card">
+            <span>
+              Trip summary
+            </span>
+
+            <div>
+              <strong>
+                {
+                  days.length
+                }
+              </strong>
+
+              <small>
+                days
+              </small>
+            </div>
+
+            <div>
+              <strong>
+                {
+                  totalItems
+                }
+              </strong>
+
+              <small>
+                planned items
+              </small>
+            </div>
+
+            <div>
+              <strong>
+                {
+                  travellerCount
+                }
+              </strong>
+
+              <small>
+                travellers
+              </small>
+            </div>
+
+            <div>
+              <strong>
+                {formatMoney(
+                  estimatedItemCost
+                )}
+              </strong>
+
+              <small>
+                item estimate
+              </small>
+            </div>
+          </section>
+
+
+          <Link
+            className="trip-explore-link"
+            to="/explore"
+          >
+            <MapPin
+              size={17}
+            />
+
+            Explore more destinations
+          </Link>
         </aside>
-      </section>
+      </div>
     </main>
   );
 }
 
-const plannerCss = `
-  .trip-planner-page {
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at 8% 8%, rgba(255, 199, 44, 0.16), transparent 28%),
-      radial-gradient(circle at 90% 12%, rgba(15, 118, 110, 0.12), transparent 26%),
-      linear-gradient(180deg, #fffaf0 0%, #f3fffb 46%, #fffdf7 100%);
-    color: #12302d;
-    padding-bottom: 82px;
-  }
-
-
-  .trip-planner-banner {
-    min-height: 300px;
-    background:
-      linear-gradient(90deg, rgba(5, 24, 39, 0.72), rgba(5, 124, 111, 0.35)),
-      url("https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1800&q=85") center/cover no-repeat;
-    display: flex;
-    align-items: center;
-    padding: 54px max(18px, 8vw);
-    border-bottom: 1px solid rgba(15, 118, 110, 0.12);
-  }
-
-  .trip-banner-card {
-    width: min(420px, 92vw);
-    border-radius: 18px;
-    padding: 28px 30px;
-    background: rgba(12, 24, 34, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    box-shadow: 0 24px 65px rgba(0, 0, 0, 0.28);
-    color: #ffffff;
-    backdrop-filter: blur(8px);
-  }
-
-  .trip-banner-card .planner-eyebrow {
-    background: transparent;
-    color: #ffffff;
-    border: none;
-    padding: 0;
-  }
-
-  .trip-banner-card h1 {
-    margin: 14px 0 8px;
-    font-size: clamp(36px, 5vw, 58px);
-    line-height: 0.98;
-    letter-spacing: -1px;
-  }
-
-  .trip-banner-card i {
-    display: block;
-    width: 54px;
-    height: 4px;
-    border-radius: 999px;
-    background: #18d0bf;
-    margin: 14px 0 18px;
-  }
-
-  .trip-banner-card p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.88);
-    font-weight: 700;
-    line-height: 1.7;
-  }
-
-  .trip-breadcrumb {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 18px 18px 0;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 800;
-  }
-
-  .trip-breadcrumb a {
-    color: #0f766e;
-    text-decoration: none;
-  }
-
-  .trip-breadcrumb strong { color: #0f172a; }
-
-  .trip-planner-intro {
-    max-width: 1180px;
-    margin: 46px auto 26px;
-    padding: 0 18px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 28px;
-    align-items: start;
-  }
-
-  .intro-main-card,
-  .plan-visit-menu {
-    background: #ffffff;
-    border: 1px solid #d8eee8;
-    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
-  }
-
-  .intro-main-card {
-    border-radius: 28px;
-    padding: 34px;
-    border-left: 6px solid #0f766e;
-  }
-
-  .intro-main-card h2 {
-    margin: 12px 0 12px;
-    font-size: clamp(30px, 4vw, 48px);
-    line-height: 1.02;
-    letter-spacing: -1.4px;
-    color: #063d38;
-  }
-
-  .intro-main-card > p {
-    margin: 0;
-    max-width: 760px;
-    color: #52625e;
-    font-weight: 750;
-    line-height: 1.8;
-  }
-
-  .intro-step-row {
-    margin: 26px 0 4px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-
-  .intro-step {
-    border-radius: 18px;
-    background: #f7fffc;
-    border: 1px solid #ccfbf1;
-    padding: 14px;
-  }
-
-  .intro-step span {
-    display: inline-grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #0f766e;
-    color: #ffffff;
-    font-weight: 950;
-    margin-bottom: 10px;
-  }
-
-  .intro-step b,
-  .intro-step small { display: block; }
-
-  .intro-step b { color: #0f172a; font-weight: 950; }
-  .intro-step small { color: #64748b; font-weight: 800; margin-top: 3px; }
-
-  .plan-visit-menu {
-    border-radius: 22px;
-    overflow: hidden;
-    position: sticky;
-    top: 104px;
-  }
-
-  .plan-visit-menu h3 {
-    margin: 0;
-    padding: 20px 22px;
-    color: #ffffff;
-    background: linear-gradient(135deg, #0f172a, #0f766e);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-
-  .plan-visit-menu a,
-  .plan-visit-menu button {
-    display: block;
-    width: 100%;
-    padding: 15px 22px;
-    border: 0;
-    border-bottom: 1px solid #edf3f1;
-    background: #ffffff;
-    color: #334155;
-    text-align: left;
-    text-decoration: none;
-    font-weight: 850;
-    cursor: pointer;
-  }
-
-  .plan-visit-menu a:hover,
-  .plan-visit-menu button:hover {
-    background: #ecfdf5;
-    color: #0f766e;
-  }
-
-  .planner-hero-pro,
-  .planner-notice,
-  .planner-settings-band,
-  .route-template-section,
-  .planner-services-strip,
-  .planner-dashboard-grid {
-    max-width: 1240px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 22px;
-    padding-right: 22px;
-  }
-
-  .planner-hero-pro {
-    padding-top: 58px;
-    padding-bottom: 24px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
-    gap: 28px;
-    align-items: stretch;
-  }
-
-  .planner-hero-copy {
-    min-height: 350px;
-    border-radius: 34px;
-    padding: 42px;
-    color: #ffffff;
-    overflow: hidden;
-    position: relative;
-    background:
-      linear-gradient(90deg, rgba(4, 47, 46, 0.94), rgba(15, 118, 110, 0.74)),
-      url("https://images.pexels.com/photos/38253196/pexels-photo-38253196.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=1400") center/cover;
-    box-shadow: 0 30px 80px rgba(6, 65, 61, 0.18);
-  }
-  .planner-hero-copy::after {
-    content: "";
-    position: absolute;
-    right: -80px;
-    bottom: -100px;
-    width: 260px;
-    height: 260px;
-    border-radius: 50%;
-    background: rgba(255, 199, 44, 0.18);
-  }
-
-  .planner-eyebrow {
-    display: inline-flex;
-    width: fit-content;
-    align-items: center;
-    gap: 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
-    color: #fffdf5;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 13px;
-    font-size: 12px;
-    font-weight: 950;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .planner-eyebrow.light {
-    background: #d7fff4;
-    color: #0f766e;
-    border-color: #a7f3d0;
-  }
-
-  .planner-hero-copy h1 {
-    position: relative;
-    z-index: 1;
-    max-width: 750px;
-    margin: 22px 0 16px;
-    font-size: clamp(42px, 6vw, 74px);
-    line-height: 0.96;
-    letter-spacing: -0.06em;
-  }
-  .planner-hero-copy p {
-    position: relative;
-    z-index: 1;
-    max-width: 720px;
-    margin: 0;
-    color: #dcfffa;
-    font-size: 18px;
-    line-height: 1.65;
-    font-weight: 800;
-  }
-
-  .planner-hero-actions,
-  .planner-guide-actions,
-  .settings-grid,
-  .route-actions,
-  .quick-day-row,
-  .place-tags-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-  }
-  .planner-hero-actions { position: relative; z-index: 1; margin-top: 28px; }
-
-  .planner-primary-btn,
-  .planner-ghost-btn,
-  .planner-dark-btn,
-  .apply-btn,
-  .template-card button,
-  .route-actions button,
-  .quick-add-list button,
-  .export-card button,
-  .stay-check-card a,
-  .panel-title-row a,
-  .place-action-stack a,
-  .place-action-stack button {
-    border: none;
-    border-radius: 999px;
-    min-height: 42px;
-    padding: 11px 17px;
-    font-weight: 950;
-    text-decoration: none;
-    cursor: pointer;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-  }
-  .planner-primary-btn,
-  .template-card button,
-  .route-actions button:first-child,
-  .export-card button {
-    background: #ffc72c;
-    color: #10201e;
-    box-shadow: 0 16px 35px rgba(255, 199, 44, 0.25);
-  }
-  .planner-dark-btn,
-  .stay-check-card a,
-  .panel-title-row a {
-    background: #0f766e;
-    color: #ffffff;
-  }
-  .planner-ghost-btn,
-  .route-actions button,
-  .place-action-stack a,
-  .place-action-stack button {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-  }
-  .route-actions button,
-  .place-action-stack a,
-  .place-action-stack button {
-    background: #ffffff;
-    color: #0f766e;
-    border: 1px solid #b7eee6;
-  }
-  .route-actions .danger,
-  .planner-guide-close {
-    background: #fee2e2;
-    color: #b91c1c;
-  }
-  .planner-primary-btn:hover,
-  .planner-ghost-btn:hover,
-  .planner-dark-btn:hover,
-  .apply-btn:hover,
-  .template-card button:hover,
-  .route-actions button:hover,
-  .quick-add-list button:hover,
-  .export-card button:hover,
-  .stay-check-card a:hover,
-  .panel-title-row a:hover,
-  .place-action-stack a:hover,
-  .place-action-stack button:hover {
-    transform: translateY(-2px);
-  }
-
-  .planner-flow-panel,
-  .planner-settings-band,
-  .template-card,
-  .visit-service-card,
-  .saved-destinations-panel,
-  .route-overview-card,
-  .day-itinerary-card,
-  .assistant-card,
-  .planner-guide-card {
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid #c8f1e7;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-  }
-
-  .planner-flow-panel {
-    border-radius: 32px;
-    padding: 24px;
-    display: grid;
-    gap: 18px;
-  }
-  .flow-panel-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: center;
-  }
-  .flow-panel-header span,
-  .settings-header h2,
-  .section-heading-line h2,
-  .panel-title-row h2,
-  .route-overview-card h2,
-  .assistant-card h3 {
-    color: #063f3a;
-  }
-  .flow-panel-header span { font-weight: 950; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
-  .flow-panel-header strong { color: #0f766e; font-size: 26px; }
-  .planner-progress { height: 10px; background: #e1f5f1; border-radius: 999px; overflow: hidden; }
-  .planner-progress i { display: block; height: 100%; background: linear-gradient(90deg, #ffc72c, #0f766e); border-radius: 999px; }
-  .flow-steps-list { display: grid; gap: 12px; }
-  .flow-steps-list article { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; }
-  .flow-steps-list article span { width: 44px; height: 44px; border-radius: 16px; background: #063f3a; color: #fff; display: grid; place-items: center; font-weight: 950; }
-  .flow-steps-list h3 { margin: 0 0 3px; color: #063f3a; }
-  .flow-steps-list p { margin: 0; color: #64748b; font-weight: 760; }
-
-  .planner-notice {
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .planner-notice span { flex: 1; padding: 14px 16px; border-radius: 18px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 950; }
-  .planner-notice.error span { background: #fff1f0; border-color: #fecaca; color: #b91c1c; }
-  .planner-notice button { border: none; background: transparent; font-size: 24px; color: #0f766e; cursor: pointer; }
-
-  .planner-settings-band {
-    margin-top: 28px;
-    border-radius: 30px;
-    padding-top: 24px;
-    padding-bottom: 24px;
-  }
-  .settings-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
-  .settings-header h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.04em; }
-  .settings-grid { align-items: end; }
-  .settings-grid label {
-    flex: 1 1 140px;
-    display: grid;
-    gap: 7px;
-    color: #334155;
-    font-weight: 950;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .settings-grid input,
-  .settings-grid select,
-  .day-note-field textarea {
-    width: 100%;
-    border: 1px solid #b7eee6;
-    border-radius: 16px;
-    background: #f8fffc;
-    color: #12302d;
-    padding: 13px 14px;
-    font-weight: 850;
-    outline: none;
-  }
-  .apply-btn { background: #063f3a; color: white; }
-
-  .route-template-section { padding-top: 42px; }
-  .section-heading-line {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 22px;
-    margin-bottom: 20px;
-  }
-  .section-heading-line h2 { margin: 12px 0 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: -0.05em; }
-  .section-heading-line p { max-width: 410px; color: #64748b; font-weight: 780; line-height: 1.5; }
-  .template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .template-card { border-radius: 26px; overflow: hidden; }
-  .template-image { height: 150px; position: relative; overflow: hidden; background: #0f766e; color: white; }
-  .template-image img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(0.72); transition: transform 0.35s ease; }
-  .template-card:hover .template-image img { transform: scale(1.06); }
-  .template-image b { position: absolute; left: 12px; bottom: 12px; background: #ffc72c; color: #10201e; border-radius: 999px; padding: 7px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .template-body { padding: 16px; }
-  .template-body h3 { margin: 0 0 8px; color: #063f3a; font-size: 20px; }
-  .template-body p { margin: 0 0 10px; color: #64748b; line-height: 1.5; font-weight: 720; }
-  .template-body small { display: block; min-height: 34px; color: #0f766e; font-weight: 900; }
-  .template-body button { margin-top: 12px; width: 100%; }
-
-  .planner-services-strip {
-    padding-top: 34px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-  }
-  .visit-service-card {
-    border-radius: 24px;
-    padding: 18px;
-    display: flex;
-    gap: 13px;
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.18s ease;
-  }
-  .visit-service-card:hover { transform: translateY(-3px); }
-  .visit-service-card span { width: 46px; height: 46px; border-radius: 16px; background: #d7fff4; display: grid; place-items: center; font-size: 22px; }
-  .visit-service-card h3 { margin: 0 0 5px; color: #063f3a; }
-  .visit-service-card p { margin: 0; color: #64748b; font-weight: 730; line-height: 1.45; }
-
-  .planner-dashboard-grid {
-    padding-top: 34px;
-    display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
-    position: relative;
-  }
-  .plan-assistant-panel { position: sticky; top: 96px; order: -1; }
-  .assistant-card { border-radius: 28px; padding: 18px; }
-  .saved-panel-fab {
-    position: fixed;
-    right: 22px;
-    bottom: 24px;
-    z-index: 72;
-    border: 2px solid rgba(255, 194, 43, 0.82);
-    border-radius: 999px;
-    background: linear-gradient(135deg, #064e45, #087768);
-    color: #fff;
-    box-shadow: 0 18px 44px rgba(3, 58, 54, 0.28), 0 0 0 6px rgba(255, 194, 43, 0.14);
-    padding: 12px 14px 12px 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 900;
-    cursor: pointer;
-  }
-  .saved-panel-fab span { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #ffc22b; color: #063c38; font-size: 20px; }
-  .saved-panel-fab strong { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .saved-panel-fab b { min-width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: #fff; color: #064e45; font-size: 13px; }
-  .saved-panel-fab.has-items { animation: savedPanelPulse 2.8s ease-in-out infinite; }
-  @keyframes savedPanelPulse { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-  .saved-destinations-panel {
-    position: fixed;
-    right: 22px;
-    bottom: 94px;
-    z-index: 76;
-    width: min(380px, calc(100vw - 32px));
-    max-height: min(650px, calc(100vh - 130px));
-    overflow: auto;
-    border-radius: 26px;
-    padding: 18px;
-    box-shadow: 0 24px 70px rgba(2, 50, 49, 0.24);
-    border: 1px solid #dbece4;
-  }
-  .panel-title-actions { display: flex; align-items: center; gap: 8px; }
-  .saved-panel-close { border: none; background: #eef8f4; color: #07584e; border-radius: 999px; width: 32px; height: 32px; font-size: 18px; line-height: 1; cursor: pointer; }
-  .panel-title-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 10px; }
-  .panel-title-row h2 { margin: 4px 0 0; font-size: 17px; line-height: 1.15; letter-spacing: -0.02em; }
-  .panel-title-row a { font-size: 12px; min-height: auto; padding: 8px 11px; }
-  .saved-place-list { display: grid; gap: 18px; max-height: 670px; overflow: auto; padding-right: 4px; }
-  .saved-category-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
-  .saved-category-tabs button { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px solid #d7f8ef; background: #f8fffc; border-radius: 14px; padding: 9px 6px; cursor: pointer; }
-  .saved-category-tabs button span { color: #063f3a; font-weight: 900; font-size: 11px; text-align: center; line-height: 1.2; }
-  .saved-category-tabs button b { background: #eef8f4; color: #07584e; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 950; }
-  .saved-category-tabs button.active { background: #0f766e; border-color: #0f766e; }
-  .saved-category-tabs button.active span { color: #fff; }
-  .saved-category-tabs button.active b { background: #ffc72c; color: #10201e; }
-  .saved-category-empty { padding: 24px 8px; text-align: center; color: #64748b; font-weight: 750; }
-  .saved-place-card {
-    display: grid;
-    grid-template-columns: 78px 1fr;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 20px;
-    background: #f8fffc;
-    border: 1px solid #d7f8ef;
-    cursor: grab;
-  }
-  .saved-place-card img { width: 78px; height: 72px; object-fit: cover; border-radius: 15px; }
-  .saved-place-card h3 { margin: 0 0 4px; color: #063f3a; font-size: 16px; }
-  .saved-place-card p { margin: 0; color: #64748b; font-weight: 750; font-size: 13px; }
-  .quick-day-row { margin-top: 8px; }
-  .quick-day-row select { width: 100%; border: 1px solid #cfe9e0; border-radius: 999px; background: #e5fdf7; color: #0f766e; font-weight: 850; font-size: 12px; padding: 7px 10px; }
-  .quick-add-box { display: grid; gap: 10px; color: #64748b; font-weight: 750; }
-  .quick-add-list { display: grid; gap: 7px; }
-  .quick-add-list button { text-align: left; background: #f8fffc; color: #063f3a; border: 1px solid #d7f8ef; border-radius: 14px; }
-
-  .itinerary-board { min-width: 0; }
-  .route-overview-card {
-    border-radius: 28px;
-    padding: 22px;
-    display: flex;
-    justify-content: space-between;
-    gap: 18px;
-    align-items: center;
-    margin-bottom: 18px;
-  }
-  .route-overview-card h2 { margin: 12px 0 6px; font-size: 30px; line-height: 1.08; letter-spacing: -0.04em; }
-  .route-overview-card p { margin: 0; color: #64748b; font-weight: 800; }
-  .route-actions { justify-content: flex-end; }
-
-  .day-route-list { display: grid; gap: 18px; }
-  .day-itinerary-card {
-    border-radius: 24px;
-    display: grid;
-    grid-template-columns: 50px 1fr;
-    overflow: hidden;
-  }
-  .day-number-rail { background: linear-gradient(180deg, #063f3a, #0f766e); display: flex; justify-content: center; padding-top: 16px; }
-  .day-number-rail span { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #ffc72c; color: #10201e; font-weight: 950; font-size: 13px; }
-  .day-card-content { padding: 14px 16px; }
-  .day-card-header { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
-  .day-card-header strong { color: #0f766e; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
-  .day-card-header h3 { margin: 4px 0 0; color: #063f3a; font-size: 19px; }
-  .hotel-status { display: inline-block; border: none; border-radius: 999px; padding: 7px 11px; font-weight: 950; font-size: 12px; }
-  .hotel-status.selected { background: #dcfce7; color: #166534; }
-  .hotel-status.missing { background: #fee2e2; color: #b91c1c; }
-  .day-metrics-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
-  .day-metrics-row span { background: #f8fffc; border: 1px solid #d7f8ef; border-radius: 999px; color: #0f766e; padding: 5px 9px; font-weight: 950; font-size: 11px; }
-  .day-metrics-row .warning { background: #fff7ed; color: #b45309; border-color: #fed7aa; }
-  .empty-drop-zone { border: 1.5px dashed #98d9cd; border-radius: 18px; padding: 20px; text-align: center; background: #f8fffc; color: #64748b; font-weight: 760; }
-  .empty-drop-zone strong { display: block; color: #063f3a; font-size: 17px; margin-bottom: 4px; }
-  .day-category-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e6f2ee; }
-  .day-category-section:first-of-type { margin-top: 4px; padding-top: 0; border-top: none; }
-  .day-category-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
-  .day-category-header > span { color: #063f3a; font-weight: 950; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-  .day-category-header select { border: 1px solid #cfe9e0; border-radius: 999px; background: #f8fffc; color: #0f766e; font-weight: 850; font-size: 11px; padding: 6px 9px; max-width: 200px; }
-  .day-category-empty-hint { margin: 0; color: #94a3b8; font-weight: 700; font-size: 12px; }
-  .day-category-empty-hint a { color: #0f766e; font-weight: 900; }
-  .scheduled-place-list { display: grid; gap: 8px; }
-  .travel-connector { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px 60px; color: #0f766e; font-weight: 850; }
-  .travel-connector span { background: #d7fff4; border-radius: 999px; padding: 5px 9px; font-size: 11px; text-transform: uppercase; }
-  .travel-connector p { margin: 0; color: #64748b; font-size: 12px; }
-  .scheduled-place-card {
-    display: grid;
-    grid-template-columns: 60px 88px minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
-    background: #f8fffc;
-    border: 1px solid #d7f8ef;
-    border-radius: 18px;
-    padding: 9px;
-  }
-  .place-time-badge { background: #063f3a; color: white; border-radius: 999px; padding: 6px 8px; text-align: center; font-weight: 950; font-size: 11px; }
-  .scheduled-place-card img { width: 88px; height: 68px; object-fit: cover; border-radius: 14px; }
-  .scheduled-place-info h4 { margin: 0 0 3px; color: #063f3a; font-size: 16px; }
-  .scheduled-place-info p { margin: 0 0 6px; color: #64748b; font-weight: 760; font-size: 12.5px; }
-  .place-tags-row span { background: #ecfdf5; color: #0f766e; border-radius: 999px; padding: 5px 8px; font-weight: 950; font-size: 11px; }
-  .place-action-stack { display: grid; gap: 4px; justify-items: stretch; }
-  .place-action-stack a,
-  .place-action-stack button { min-height: auto; padding: 6px 8px; font-size: 11px; text-align: center; }
-  .stay-check-card,
-  .stay-selected-card {
-    margin-top: 14px;
-    border-radius: 22px;
-    padding: 16px;
-  }
-  .stay-check-card { display: flex; justify-content: space-between; gap: 14px; align-items: center; background: #fff7ed; border: 1px solid #fed7aa; }
-  .stay-check-card strong { color: #b45309; }
-  .stay-check-card p { margin: 5px 0 0; color: #7c2d12; font-weight: 760; }
-  .stay-selected-card { background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; font-weight: 950; }
-  .day-note-field { display: grid; gap: 8px; margin-top: 14px; color: #334155; font-weight: 950; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .day-note-field textarea { min-height: 74px; resize: vertical; }
-
-  .plan-assistant-panel { display: grid; gap: 14px; }
-  .assistant-card { color: #64748b; font-weight: 760; }
-  .plan-health-card strong { display: block; color: #0f766e; font-size: 46px; line-height: 1; margin: 12px 0; }
-  .before-card ul { margin: 14px 0 0; padding-left: 18px; display: grid; gap: 10px; }
-  .before-card li { line-height: 1.45; }
-  .export-card h3 { margin: 12px 0 8px; font-size: 24px; }
-  .export-card p { line-height: 1.55; }
-  .export-card button { width: 100%; }
-
-
-  @media (max-width: 980px) {
-    .trip-planner-intro { grid-template-columns: 1fr; }
-    .plan-visit-menu { position: static; }
-    .intro-step-row { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (max-width: 640px) {
-    .trip-planner-banner { min-height: 260px; padding: 36px 18px; }
-    .trip-banner-card { padding: 22px; }
-    .intro-main-card { padding: 24px; }
-    .intro-step-row { grid-template-columns: 1fr; }
-  }
-
-  .planner-guide-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    display: grid;
-    place-items: center;
-    background: rgba(4, 28, 26, 0.66);
-    padding: 20px;
-  }
-  .planner-guide-card { width: min(620px, 100%); border-radius: 28px; padding: 28px; position: relative; }
-  .planner-guide-card h2 { margin: 22px 0 12px; color: #063f3a; font-size: 34px; letter-spacing: -0.04em; }
-  .planner-guide-card p { color: #64748b; font-weight: 760; line-height: 1.6; }
-  .planner-guide-close { position: absolute; top: 12px; right: 14px; width: 38px; height: 38px; font-size: 24px; border: none; border-radius: 50%; cursor: pointer; }
-  .planner-guide-dots { display: flex; gap: 8px; margin: 22px 0; }
-  .planner-guide-dots button { width: 34px; height: 34px; border-radius: 999px; border: none; background: #d7fff4; color: #0f766e; font-weight: 950; cursor: pointer; }
-  .planner-guide-dots button.active { background: #0f766e; color: white; }
-  .planner-guide-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  @media (max-width: 1180px) {
-    .planner-dashboard-grid { grid-template-columns: 1fr; }
-    .plan-assistant-panel { position: static; }
-  }
-  @media (max-width: 680px) {
-    .saved-panel-fab { right: 14px; bottom: 18px; }
-    .saved-panel-fab strong { display: none; }
-    .saved-destinations-panel { right: 12px; bottom: 82px; width: calc(100vw - 24px); }
-  }
-  @media (max-width: 980px) {
-    .planner-hero-pro { grid-template-columns: 1fr; }
-    .template-grid,
-    .planner-services-strip { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 760px) {
-    .planner-hero-copy { border-radius: 0; margin-left: -22px; margin-right: -22px; padding: 34px 22px; }
-    .settings-header,
-    .section-heading-line,
-    .route-overview-card,
-    .stay-check-card { flex-direction: column; align-items: flex-start; }
-    .settings-grid label { flex-basis: 100%; }
-    .apply-btn { width: 100%; }
-    .day-itinerary-card { grid-template-columns: 1fr; }
-    .day-number-rail { padding: 12px; justify-content: flex-start; }
-    .scheduled-place-card { grid-template-columns: 1fr; }
-    .scheduled-place-card img { width: 100%; height: 180px; }
-    .place-action-stack { grid-template-columns: repeat(4, 1fr); }
-    .travel-connector { margin-left: 0; }
-  }
-  @media (max-width: 560px) {
-    .template-grid,
-    .planner-services-strip { grid-template-columns: 1fr; }
-    .planner-hero-actions a,
-    .planner-hero-actions button,
-    .route-actions button { width: 100%; text-align: center; }
-    .planner-dashboard-grid,
-  
-  .trip-planner-banner {
-    min-height: 300px;
-    background:
-      linear-gradient(90deg, rgba(5, 24, 39, 0.72), rgba(5, 124, 111, 0.35)),
-      url("https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1800&q=85") center/cover no-repeat;
-    display: flex;
-    align-items: center;
-    padding: 54px max(18px, 8vw);
-    border-bottom: 1px solid rgba(15, 118, 110, 0.12);
-  }
-
-  .trip-banner-card {
-    width: min(420px, 92vw);
-    border-radius: 18px;
-    padding: 28px 30px;
-    background: rgba(12, 24, 34, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    box-shadow: 0 24px 65px rgba(0, 0, 0, 0.28);
-    color: #ffffff;
-    backdrop-filter: blur(8px);
-  }
-
-  .trip-banner-card .planner-eyebrow {
-    background: transparent;
-    color: #ffffff;
-    border: none;
-    padding: 0;
-  }
-
-  .trip-banner-card h1 {
-    margin: 14px 0 8px;
-    font-size: clamp(36px, 5vw, 58px);
-    line-height: 0.98;
-    letter-spacing: -1px;
-  }
-
-  .trip-banner-card i {
-    display: block;
-    width: 54px;
-    height: 4px;
-    border-radius: 999px;
-    background: #18d0bf;
-    margin: 14px 0 18px;
-  }
-
-  .trip-banner-card p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.88);
-    font-weight: 700;
-    line-height: 1.7;
-  }
-
-  .trip-breadcrumb {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 18px 18px 0;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 800;
-  }
-
-  .trip-breadcrumb a {
-    color: #0f766e;
-    text-decoration: none;
-  }
-
-  .trip-breadcrumb strong { color: #0f172a; }
-
-  .trip-planner-intro {
-    max-width: 1180px;
-    margin: 46px auto 26px;
-    padding: 0 18px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 28px;
-    align-items: start;
-  }
-
-  .intro-main-card,
-  .plan-visit-menu {
-    background: #ffffff;
-    border: 1px solid #d8eee8;
-    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
-  }
-
-  .intro-main-card {
-    border-radius: 28px;
-    padding: 34px;
-    border-left: 6px solid #0f766e;
-  }
-
-  .intro-main-card h2 {
-    margin: 12px 0 12px;
-    font-size: clamp(30px, 4vw, 48px);
-    line-height: 1.02;
-    letter-spacing: -1.4px;
-    color: #063d38;
-  }
-
-  .intro-main-card > p {
-    margin: 0;
-    max-width: 760px;
-    color: #52625e;
-    font-weight: 750;
-    line-height: 1.8;
-  }
-
-  .intro-step-row {
-    margin: 26px 0 4px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-
-  .intro-step {
-    border-radius: 18px;
-    background: #f7fffc;
-    border: 1px solid #ccfbf1;
-    padding: 14px;
-  }
-
-  .intro-step span {
-    display: inline-grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #0f766e;
-    color: #ffffff;
-    font-weight: 950;
-    margin-bottom: 10px;
-  }
-
-  .intro-step b,
-  .intro-step small { display: block; }
-
-  .intro-step b { color: #0f172a; font-weight: 950; }
-  .intro-step small { color: #64748b; font-weight: 800; margin-top: 3px; }
-
-  .plan-visit-menu {
-    border-radius: 22px;
-    overflow: hidden;
-    position: sticky;
-    top: 104px;
-  }
-
-  .plan-visit-menu h3 {
-    margin: 0;
-    padding: 20px 22px;
-    color: #ffffff;
-    background: linear-gradient(135deg, #0f172a, #0f766e);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-
-  .plan-visit-menu a,
-  .plan-visit-menu button {
-    display: block;
-    width: 100%;
-    padding: 15px 22px;
-    border: 0;
-    border-bottom: 1px solid #edf3f1;
-    background: #ffffff;
-    color: #334155;
-    text-align: left;
-    text-decoration: none;
-    font-weight: 850;
-    cursor: pointer;
-  }
-
-  .plan-visit-menu a:hover,
-  .plan-visit-menu button:hover {
-    background: #ecfdf5;
-    color: #0f766e;
-  }
-
-  .planner-hero-pro,
-    .planner-settings-band,
-    .route-template-section,
-    .planner-services-strip,
-    .planner-notice { padding-left: 14px; padding-right: 14px; }
-  }
-
-  /* Explore-style Trip Planner landing hero */
-  .trip-planner-banner.trip-planner-hero-match {
-    position: relative;
-    min-height: 480px;
-    background:
-      linear-gradient(90deg, rgba(1, 55, 63, 0.86), rgba(1, 77, 78, 0.58), rgba(1, 38, 49, 0.88)),
-      url("https://images.pexels.com/photos/1971292/pexels-photo-1971292.jpeg?auto=compress&cs=tinysrgb&w=1800") center/cover no-repeat;
-    display: grid;
-    place-items: center;
-    text-align: center;
-    color: #ffffff;
-    overflow: visible;
-    padding: 70px 22px 82px;
-    border-bottom: none;
-  }
-
-  .trip-hero-overlay {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(circle at 50% 26%, rgba(255, 255, 255, 0.16), transparent 22%),
-      linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.32));
-    pointer-events: none;
-  }
-
-  .trip-hero-content {
-    position: relative;
-    z-index: 2;
-    max-width: 1120px;
-    margin: 0 auto;
-  }
-
-  .trip-hero-content > p {
-    margin: 0 0 20px;
-    color: #ffbc38;
-    font-size: 13px;
-    font-weight: 950;
-    letter-spacing: 0.46em;
-  }
-
-  .trip-hero-content h1 {
-    margin: 0 0 18px;
-    font-size: clamp(44px, 7vw, 76px);
-    line-height: 1.03;
-    letter-spacing: 0.04em;
-    font-weight: 950;
-    color: #ffffff;
-  }
-
-  .trip-hero-content > span {
-    display: block;
-    max-width: 820px;
-    margin: 0 auto;
-    color: #e5fffb;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.8;
-  }
-
-  .trip-hero-categories {
-    margin-top: 40px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 14px;
-  }
-
-  .trip-hero-categories a,
-  .trip-hero-categories button {
-    border: 0;
-    border-radius: 999px;
-    padding: 14px 30px;
-    background: #ffffff;
-    color: #182c2b;
-    text-decoration: none;
-    font-weight: 950;
-    cursor: pointer;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
-  }
-
-  .trip-hero-categories a:first-child {
-    background: #0aa6c7;
-    color: #ffffff;
-  }
-
-  .trip-hero-four-actions {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .trip-breadcrumb {
-    margin-top: 34px;
-  }
-
-  @media (max-width: 780px) {
-    .trip-planner-banner.trip-planner-hero-match {
-      min-height: 520px;
-      padding: 58px 18px 74px;
-    }
-    .trip-hero-content h1 {
-      font-size: clamp(36px, 11vw, 54px);
-      letter-spacing: 0.02em;
-    }
-    .trip-hero-content > span {
-      font-size: 15px;
-    }
-    .trip-hero-categories a,
-    .trip-hero-categories button {
-      width: 100%;
-      padding: 13px 18px;
-    }
-    .trip-breadcrumb {
-      margin-top: 28px;
-    }
-  }
-
-
-  /* professional full-width trip planner top */
-  .trip-planner-banner.trip-planner-showcase-hero {
-    position: relative;
-    min-height: clamp(520px, 68vh, 680px);
-    width: 100%;
-    padding: 52px max(18px, 5vw) 38px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
-    color: #ffffff;
-    background: linear-gradient(135deg, #064e45, #0b6f61);
-    border-bottom: 1px solid rgba(15, 118, 110, 0.14);
-  }
-
-  .trip-hero-bg-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 0;
-    filter: saturate(1.08) contrast(1.02) brightness(1.08);
-    animation: tripHeroFadeZoom 4.2s ease-in-out both;
-  }
-
-  .trip-showcase-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background:
-      linear-gradient(90deg, rgba(3, 47, 43, .68) 0%, rgba(5, 106, 92, .42) 52%, rgba(2, 35, 39, .56) 100%),
-      radial-gradient(circle at 70% 15%, rgba(255, 205, 62, .18), transparent 36%);
-  }
-
-  .trip-showcase-inner {
-    position: relative;
-    z-index: 2;
-    width: min(1240px, 100%);
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(300px, .46fr);
-    align-items: center;
-    gap: 34px;
-  }
-
-  .trip-showcase-copy p {
-    display: inline-flex;
-    margin: 0 0 18px;
-    padding: 9px 17px;
-    border-radius: 999px;
-    background: rgba(255, 238, 159, .94);
-    color: #04483f;
-    letter-spacing: .26em;
-    font-size: 12px;
-    font-weight: 760;
-  }
-
-  .trip-showcase-copy h1 {
-    margin: 0 0 18px;
-    max-width: 760px;
-    font-size: clamp(44px, 5.4vw, 76px);
-    line-height: 1.04;
-    letter-spacing: 0;
-    font-weight: 800;
-    color: #ffffff;
-    text-shadow: 0 18px 50px rgba(0,0,0,.28);
-  }
-
-  .trip-showcase-copy > span {
-    display: block;
-    max-width: 700px;
-    color: #f5fffc;
-    font-size: clamp(16px, 1.25vw, 20px);
-    font-weight: 620;
-    line-height: 1.65;
-    text-shadow: 0 8px 24px rgba(0,0,0,.22);
-  }
-
-  .trip-showcase-actions {
-    margin-top: 26px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-  }
-
-  .trip-showcase-actions a {
-    border-radius: 999px;
-    padding: 13px 22px;
-    background: #ffffff;
-    color: #064e45;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 760;
-    box-shadow: 0 14px 35px rgba(0,0,0,.14);
-  }
-
-  .trip-showcase-actions a:first-child {
-    background: #ffc22b;
-    color: #083c38;
-  }
-
-  .guide-me-btn {
-    border: none;
-    cursor: pointer;
-    border-radius: 999px;
-    padding: 13px 22px;
-    font-size: 15px;
-    font-weight: 900;
-    background: #ffc22b;
-    color: #083c38;
-    box-shadow: 0 14px 35px rgba(0,0,0,.14), 0 0 0 5px rgba(255,194,43,.22);
-    animation: guideMePulse 2.6s ease-in-out infinite;
-  }
-
-  @keyframes guideMePulse {
-    0%, 100% { transform: translateY(0); box-shadow: 0 14px 35px rgba(0,0,0,.14), 0 0 0 5px rgba(255,194,43,.22); }
-    50% { transform: translateY(-3px); box-shadow: 0 18px 42px rgba(0,0,0,.18), 0 0 0 9px rgba(255,194,43,.14); }
-  }
-
-  .trip-showcase-card {
-    min-height: 340px;
-    border-radius: 28px;
-    padding: 26px;
-    color: #ffffff;
-    background: linear-gradient(145deg, rgba(255,255,255,.25), rgba(255,255,255,.1));
-    border: 1px solid rgba(255,255,255,.34);
-    box-shadow: 0 32px 80px rgba(0,0,0,.22);
-    backdrop-filter: blur(13px);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    overflow: hidden;
-  }
-
-  .trip-showcase-photo {
-    height: 180px;
-    border-radius: 26px;
-    background: rgba(255,255,255,.18) center/cover no-repeat;
-    margin-bottom: auto;
-    box-shadow: inset 0 -60px 90px rgba(0,0,0,.18);
-  }
-
-  .trip-showcase-card > span {
-    width: max-content;
-    margin-top: 20px;
-    padding: 9px 13px;
-    border-radius: 999px;
-    background: rgba(7, 102, 88, .82);
-    color: #fff3a7;
-    font-size: 12px;
-    font-weight: 950;
-  }
-
-  .trip-showcase-card h2 {
-    margin: 22px 0 8px;
-    font-size: clamp(28px, 2.8vw, 44px);
-    line-height: 1.05;
-    letter-spacing: -.04em;
-  }
-
-  .trip-showcase-card p {
-    margin: 0;
-    font-weight: 850;
-    color: #effffb;
-  }
-
-  .trip-showcase-card div {
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:18px;
-  }
-
-  .trip-showcase-card b {
-    border-radius:999px;
-    padding:9px 13px;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
-    color:#fff8cc;
-    font-size:12px;
-  }
-
-
-  /* clear photo preview card effect */
-  .trip-showcase-card.clear-preview-card {
-    position:relative;
-    min-height:340px;
-    padding:0;
-    color:#ffffff;
-    background:#063f39;
-    border:1px solid rgba(255,255,255,.34);
-    box-shadow:0 32px 80px rgba(0,0,0,.24);
-    backdrop-filter:none;
-    display:block;
-    overflow:hidden;
-    isolation:isolate;
-  }
-
-  .trip-showcase-photo.clear-preview-photo {
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    margin:0;
-    border-radius:0;
-    background:rgba(255,255,255,.12) center/cover no-repeat;
-    filter:saturate(1.08) contrast(1.02) brightness(1.08);
-    box-shadow:none;
-    transform:scale(1.01);
-    transition:transform 4s ease, opacity .45s ease;
-    z-index:0;
-  }
-
-  .trip-showcase-card.clear-preview-card:hover .clear-preview-photo { transform:scale(1.055); }
-
-  .trip-showcase-card .clear-preview-shade {
-    position:absolute;
-    inset:0;
-    z-index:1;
-    background:linear-gradient(0deg,rgba(3,39,35,.84) 0%,rgba(4,65,58,.48) 46%,rgba(255,196,37,.07) 100%);
-  }
-
-  .trip-showcase-card-content.clear-preview-content {
-    position:absolute;
-    left:24px;
-    right:24px;
-    bottom:24px;
-    z-index:2;
-    display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    justify-content:flex-end;
-  }
-
-  .trip-showcase-card-content.clear-preview-content > span {
-    width:max-content;
-    margin:0;
-    padding:9px 13px;
-    border-radius:999px;
-    background:rgba(5,85,75,.80);
-    color:#fff3a7;
-    font-size:12px;
-    font-weight:760;
-    border:1px solid rgba(255,255,255,.24);
-    box-shadow:0 10px 24px rgba(0,0,0,.16);
-  }
-
-  .trip-showcase-card-content.clear-preview-content h2 {
-    margin:18px 0 8px;
-    font-size:clamp(24px,2.2vw,34px);
-    line-height:1.12;
-    letter-spacing:-.045em;
-    text-shadow:0 4px 18px rgba(0,0,0,.36);
-  }
-
-  .trip-showcase-card-content.clear-preview-content p {
-    margin:0;
-    font-weight:650;
-    color:#eafffb;
-    text-shadow:0 2px 12px rgba(0,0,0,.32);
-  }
-
-  .trip-showcase-card-tags.clear-preview-tags {
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:16px;
-  }
-
-  .trip-showcase-card-tags.clear-preview-tags b {
-    border-radius:999px;
-    padding:9px 13px;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.28);
-    color:#fff8cc;
-    font-size:12px;
-    backdrop-filter:blur(4px);
-  }
-
-  .trip-showcase-stats {
-    position: relative;
-    z-index: 2;
-    width: min(1240px, 100%);
-    margin: 24px auto 0;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .trip-showcase-stats article {
-    min-height: 78px;
-    border-radius: 18px;
-    padding: 16px 18px;
-    background: rgba(255,255,255,.16);
-    border: 1px solid rgba(255,255,255,.28);
-    color: #fff;
-    backdrop-filter: blur(10px);
-  }
-
-  .trip-showcase-stats strong {
-    display:block;
-    color:#ffe176;
-    font-size: clamp(24px, 2.5vw, 34px);
-    line-height: 1;
-  }
-
-  .trip-showcase-stats span {
-    display:block;
-    margin-top:8px;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    font-size:12px;
-    font-weight:760;
-  }
-
-  @keyframes tripHeroFadeZoom {
-    0% { opacity: .12; transform: scale(1.02); }
-    12% { opacity: 1; }
-    100% { opacity: 1; transform: scale(1.075); }
-  }
-
-  @media (max-width: 1050px) {
-    .trip-showcase-inner { grid-template-columns: 1fr; }
-    .trip-showcase-stats { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (max-width: 680px) {
-    .trip-planner-banner.trip-planner-showcase-hero {
-      min-height: auto;
-      padding: 38px 16px 42px;
-    }
-    .trip-showcase-copy h1 { font-size: clamp(38px, 12vw, 54px); }
-    .trip-showcase-actions a { width: 100%; text-align: center; }
-    .trip-showcase-stats { grid-template-columns: 1fr; }
-  }
-
-`;
 
 export default TripPlannerPage;
