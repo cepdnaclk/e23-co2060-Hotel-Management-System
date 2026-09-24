@@ -434,7 +434,7 @@ function PublicLayout() {
     <div className="tourismhub-shell">
       <style>{layoutCss}</style>
 
-      <header className="site-header">
+      <header className={`site-header${menuOpen ? " site-header-menu-open" : ""}`}>
         <div className="top-line" />
 
         <div className="site-header-inner">
@@ -466,6 +466,7 @@ function PublicLayout() {
             onClick={() => setMenuOpen((current) => !current)}
             aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={menuOpen}
+            aria-controls="public-navigation public-header-actions"
           >
             <span className="hamburger-lines" aria-hidden="true">
               <span />
@@ -474,12 +475,13 @@ function PublicLayout() {
             </span>
           </button>
 
-          <nav className={`main-navigation ${menuOpen ? "main-navigation-open" : ""}`}>
+          <nav id="public-navigation" aria-label="Main navigation" className={`main-navigation ${menuOpen ? "main-navigation-open" : ""}`}>
             {navLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 end={link.end}
+                onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
                   isActive ? "nav-item nav-item-active" : "nav-item"
                 }
@@ -495,9 +497,10 @@ function PublicLayout() {
             ))}
           </nav>
 
-          <div className={`header-actions ${menuOpen ? "header-actions-open" : ""}`}>
+          <div id="public-header-actions" className={`header-actions ${menuOpen ? "header-actions-open" : ""}`}>
             <Link
               to="/list-your-property"
+              onClick={() => setMenuOpen(false)}
               className="property-link"
               title="Become a Partner"
               data-tooltip="Become a Partner"
@@ -590,13 +593,22 @@ function PublicLayout() {
               <>
                 <Link
                   to="/my-bookings"
+                  onClick={() => setMenuOpen(false)}
                   className="booking-link cart-icon-link"
                   title="My bookings"
                   aria-label="Open booking cart"
                 >
                   🛒
                 </Link>
-                {user?.role === "tourist" && <Link to="/my-reports" className="booking-link">My Reports</Link>}
+                {user?.role === "tourist" && (
+                  <Link
+                    to="/my-reports"
+                    onClick={() => setMenuOpen(false)}
+                    className="booking-link"
+                  >
+                    My Reports
+                  </Link>
+                )}
                 <span className="user-greeting notranslate" data-no-translate>Hi, {username}</span>
                 <button
                   type="button"
@@ -616,6 +628,7 @@ function PublicLayout() {
               <>
                 <Link
                   to="/login"
+                  onClick={() => setMenuOpen(false)}
                   className="login-link"
                   title="Login"
                   data-tooltip="Login"
@@ -628,6 +641,7 @@ function PublicLayout() {
                 </Link>
                 <Link
                   to="/register"
+                  onClick={() => setMenuOpen(false)}
                   className="register-link"
                   title="Register"
                   data-tooltip="Register"
@@ -4465,11 +4479,14 @@ const layoutCss = `
      complete translated text rather than truncating it. */
 
   @media (max-width: 1280px) {
-    .main-navigation.main-navigation-open .nav-item {
+    .main-navigation.main-navigation-open .nav-item,
+    .main-navigation.main-navigation-open:hover .nav-item,
+    .main-navigation.main-navigation-open:hover .nav-item:hover {
       width: 100%;
       max-width: none;
 
       flex: none;
+      transition: color 0.18s ease, background-color 0.18s ease;
     }
 
     .main-navigation.main-navigation-open .nav-label,
@@ -5378,6 +5395,272 @@ const layoutCss = `
 
     .brand-logo-tagline {
       display: none;
+    }
+  }
+
+
+  /* =========================================================
+     FINAL RESPONSIVE HEADER FIX
+     Keeps the full desktop header above 1280px and switches
+     tablet/smaller widths to one reliable hamburger menu.
+  ========================================================= */
+
+  .site-header {
+    isolation: isolate;
+  }
+
+  @media (max-width: 1280px) {
+    .site-header.site-header-menu-open {
+      z-index: 10001;
+      max-height: 100dvh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .site-header-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto;
+      grid-auto-rows: auto;
+      align-items: center;
+      justify-items: stretch;
+      gap: 10px;
+      padding: 11px 18px;
+      overflow: visible;
+    }
+
+    .brand-link {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      min-width: 0;
+      max-width: min(270px, calc(100vw - 92px));
+      overflow: visible;
+    }
+
+    .mobile-menu-button {
+      display: inline-flex;
+      grid-column: 2;
+      grid-row: 1;
+      align-items: center;
+      justify-content: center;
+      justify-self: end;
+      width: 44px;
+      min-width: 44px;
+      height: 44px;
+      min-height: 44px;
+      padding: 0;
+      position: relative;
+      z-index: 1010;
+      border: 1px solid rgba(8, 117, 104, 0.28);
+      background: #ffffff;
+      border-radius: 13px;
+      color: var(--hub-green);
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(8, 117, 104, 0.08);
+      pointer-events: auto;
+    }
+
+    .hamburger-lines {
+      width: 20px;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hamburger-lines span {
+      display: block;
+      width: 100%;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--hub-green-dark);
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .mobile-menu-button[aria-expanded="true"] .hamburger-lines span:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
+    }
+
+    .mobile-menu-button[aria-expanded="true"] .hamburger-lines span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .mobile-menu-button[aria-expanded="true"] .hamburger-lines span:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+
+    .main-navigation,
+    .header-actions {
+      display: none;
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      overflow: visible;
+    }
+
+    .main-navigation {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      align-self: start;
+    }
+
+    .header-actions {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      align-self: start;
+    }
+
+    .main-navigation.main-navigation-open {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+      margin: 2px 0 0;
+      padding: 12px;
+      position: relative;
+      z-index: 1005;
+      background: #ffffff;
+      border: 1px solid rgba(8, 117, 104, 0.14);
+      border-radius: 16px 16px 8px 8px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      pointer-events: auto;
+    }
+
+    .header-actions.header-actions-open {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin: -4px 0 0;
+      padding: 10px 12px 13px;
+      position: relative;
+      z-index: 1005;
+      background: #ffffff;
+      border: 1px solid rgba(8, 117, 104, 0.14);
+      border-top: 0;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      pointer-events: auto;
+    }
+
+    .main-navigation.main-navigation-open .nav-item {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      min-height: 44px;
+      padding: 11px 12px;
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      border-radius: 11px;
+      background: #f8fafc;
+      border: 1px solid rgba(8, 117, 104, 0.10);
+      color: #1f2937;
+      font-size: 12px;
+      font-weight: 750;
+      text-align: center;
+      text-decoration: none;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .main-navigation.main-navigation-open .nav-item:hover,
+    .main-navigation.main-navigation-open .nav-item-active {
+      color: var(--hub-green);
+      background: #edf9f7;
+      border-color: rgba(8, 117, 104, 0.25);
+    }
+
+    .main-navigation.main-navigation-open .nav-item-active::after {
+      display: none;
+    }
+
+    .main-navigation.main-navigation-open .nav-label,
+    .main-navigation.main-navigation-open .nav-label > font {
+      width: 100%;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      pointer-events: none;
+    }
+
+    .header-actions.header-actions-open > a,
+    .header-actions.header-actions-open > button,
+    .header-actions.header-actions-open .language-picker,
+    .header-actions.header-actions-open .clean-select,
+    .header-actions.header-actions-open .user-greeting {
+      position: relative;
+      z-index: 1;
+      pointer-events: auto;
+    }
+
+    .header-actions.header-actions-open .property-link,
+    .header-actions.header-actions-open .logout-button,
+    .header-actions.header-actions-open .login-link,
+    .header-actions.header-actions-open .register-link,
+    .header-actions.header-actions-open .booking-link {
+      width: auto;
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .site-header-inner {
+      padding: 10px 12px;
+    }
+
+    .brand-link {
+      max-width: min(235px, calc(100vw - 78px));
+    }
+
+    .main-navigation.main-navigation-open {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .header-actions.header-actions-open {
+      padding: 10px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .main-navigation.main-navigation-open {
+      grid-template-columns: 1fr;
+    }
+
+    .header-actions.header-actions-open {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .header-actions.header-actions-open > a,
+    .header-actions.header-actions-open > button,
+    .header-actions.header-actions-open .language-picker,
+    .header-actions.header-actions-open .clean-select,
+    .header-actions.header-actions-open .user-greeting {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .header-actions.header-actions-open .language-picker-button,
+    .header-actions.header-actions-open .clean-select,
+    .header-actions.header-actions-open .property-link,
+    .header-actions.header-actions-open .booking-link,
+    .header-actions.header-actions-open .login-link,
+    .header-actions.header-actions-open .register-link,
+    .header-actions.header-actions-open .logout-button {
+      width: 100%;
+      max-width: 100%;
+      justify-content: center;
+    }
+
+    .header-actions.header-actions-open .user-greeting {
+      text-align: center;
+      order: -1;
     }
   }
 

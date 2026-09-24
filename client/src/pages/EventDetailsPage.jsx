@@ -11,6 +11,7 @@ import {
   getTouristEvents,
 } from "../services/exploreService";
 import {
+  getTripItemKey,
   readTripItems,
   SAVED_TRIP_EVENT,
   toggleTripItem,
@@ -195,7 +196,7 @@ function EventDetailsPage() {
   useEffect(() => {
     let active = true;
     setLoading(true); setError(""); setEvent(null); setEvents([]);
-    getTouristEvent(id).then(row => { if (active) setEvent(normaliseEvent(row)); })
+    getTouristEvent(id).then(row => { if (active) setEvent(normaliseDatabaseEvent(row) || normaliseEvent(row)); })
       .catch(err => { if (active) setError(err.response?.status === 404 ? "This event is no longer available." : "Could not load this event. Please try again."); })
       .finally(() => { if (active) setLoading(false); });
     getTouristEvents().then(rows => { if (active) setEvents(rows.map(normaliseEvent)); }).catch(() => {});
