@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import api from "../../api/api";
@@ -777,7 +778,7 @@ function PropertyManagementPage() {
               }}
             >
               {property.logo_url ? (
-                <img src={property.logo_url} alt="logo" style={styles.preview} />
+                <ContentImage src={property.logo_url} alt="logo" style={styles.preview} />
               ) : (
                 <>
                   <strong>Upload logo</strong>
@@ -806,7 +807,7 @@ function PropertyManagementPage() {
               }}
             >
               {property.photos?.find((photo) => photo.is_main)?.image_url ? (
-                <img
+                <ContentImage
                   src={property.photos.find((photo) => photo.is_main)?.image_url}
                   alt="main"
                   style={styles.preview}
@@ -839,7 +840,7 @@ function PropertyManagementPage() {
               }}
             >
               {getIntroPhotoByIndex(0) ? (
-                <img
+                <ContentImage
                   src={getIntroPhotoByIndex(0)}
                   alt="Intro photo 1"
                   style={styles.preview}
@@ -873,7 +874,7 @@ function PropertyManagementPage() {
               }}
             >
               {getIntroPhotoByIndex(1) ? (
-                <img
+                <ContentImage
                   src={getIntroPhotoByIndex(1)}
                   alt="Intro photo 2"
                   style={styles.preview}
@@ -990,7 +991,7 @@ function PropertyManagementPage() {
             >
               {addRoomPhotoPreview ? (
                 <>
-                  <img
+                  <ContentImage
                     src={addRoomPhotoPreview}
                     alt="New room preview"
                     style={styles.roomPhotoPreview}
@@ -1038,7 +1039,7 @@ function PropertyManagementPage() {
                   }}
                 >
                   {room.main_image ? (
-                    <img
+                    <ContentImage
                       src={room.main_image}
                       alt={room.room_type}
                       style={styles.roomImage}

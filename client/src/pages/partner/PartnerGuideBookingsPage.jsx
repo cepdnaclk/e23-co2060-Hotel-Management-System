@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft, CalendarDays, CheckCircle2, Clock3, MapPin, Phone, UserRound } from "lucide-react";
@@ -143,7 +144,7 @@ export default function PartnerGuideBookingsPage() {
           <article className="guide-summary-card">
             <div className="guide-avatar-large">
               {guide.image_url ? (
-                <img src={guide.image_url} alt={guide.display_name} />
+                <ContentImage src={guide.image_url} alt={guide.display_name} />
               ) : (
                 <UserRound size={32} />
               )}

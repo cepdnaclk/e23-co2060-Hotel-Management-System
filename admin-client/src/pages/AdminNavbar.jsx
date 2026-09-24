@@ -26,7 +26,7 @@ function AdminNavbar() {
         <NavLink to="/dashboard" className="admin-brand admin-brand-modern">
           <span className="admin-brand-logo">TH</span>
           <span>
-            <strong>TourismHub LK</strong>
+            <strong>TripLanka</strong>
             <small>Admin Command Center</small>
           </span>
         </NavLink>

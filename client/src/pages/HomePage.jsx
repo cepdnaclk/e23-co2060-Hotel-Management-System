@@ -1,1847 +1,3119 @@
-import { useEffect, useMemo, useState } from "react";
+import ContentImage from "../components/ContentImage";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { Link } from "react-router-dom";
-import api from "../api/api";
-import { explorePlaces } from "../data/exploreData";
 
-const fallbackHotels = [
-  {
-    id: 1,
-    name: "Kandy Lake Hotel",
-    city: "Kandy",
-    district: "Kandy",
-    property_type: "Hotel",
-    main_photo:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 2,
-    name: "Colombo City Stay",
-    city: "Colombo",
-    district: "Colombo",
-    property_type: "City Stay",
-    main_photo:
-      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 3,
-    name: "Ella Mountain Resort",
-    city: "Ella",
-    district: "Badulla",
-    property_type: "Resort",
-    main_photo:
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
-  },
-];
+import {
+  assetUrl,
+  getHomePageData,
+} from "../services/exploreService";
 
 
-const heroVideoUrl = "/videos/sri-lanka-real-hero.mp4";
-const heroPosterUrl = "/videos/sri-lanka-real-hero-poster.jpg";
-
-const getPlaceImage = (place) =>
-  place?.image ||
-  "https://images.unsplash.com/photo-1586611292717-f828b167408c?auto=format&fit=crop&w=1200&q=80";
-
-const getHotelImage = (hotel) =>
-  hotel?.main_photo ||
-  hotel?.image_url ||
-  hotel?.photo_url ||
-  hotel?.cover_image ||
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
-
-function HomePage() {
-  const [hotels, setHotels] = useState([]);
-  const [loadingHotels, setLoadingHotels] = useState(true);
-
-  const heroSlides = useMemo(() => {
-    const featured = explorePlaces.filter((place) => place.featured).slice(0, 4);
-    return featured.length >= 4 ? featured : explorePlaces.slice(0, 4);
-  }, []);
-
-  const exploreCards = useMemo(() => {
-    const preferredPlaces = [
-      "sigiriya",
-      "nine arch",
-      "mirissa",
-      "tooth",
-      "yala",
-      "galle fort",
-    ];
-
-    const selected = preferredPlaces
-      .map((keyword) =>
-        explorePlaces.find((place) =>
-          place.name?.toLowerCase().includes(keyword)
-        )
-      )
-      .filter(Boolean);
-
-    const extraPlaces = explorePlaces
-      .filter((place) => !selected.some((item) => item.id === place.id))
-      .slice(0, Math.max(0, 6 - selected.length));
-
-    return [...selected, ...extraPlaces].slice(0, 6);
-  }, []);
-
-  const tripPlannerPreview = useMemo(() => {
-    return {
-      image:
-        "https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=1400&q=85",
-      steps: [
-        { number: "01", title: "Choose days", text: "Set dates, travel style, and budget." },
-        { number: "02", title: "Add places", text: "Place saved destinations into each day." },
-        { number: "03", title: "Check stay", text: "Find hotels near the city for that night." },
-      ],
-    };
-  }, []);
-
-  const eventCards = useMemo(() => {
-    const kandy = explorePlaces.find((place) => place.city === "Kandy") || explorePlaces[0];
-    const mirissa = explorePlaces.find((place) => place.city === "Mirissa") || explorePlaces[0];
-    const colombo = explorePlaces.find((place) => place.city === "Colombo") || explorePlaces[0];
-
-    return [
-      {
-        id: "perahera-night",
-        title: "Cultural nights",
-        subtitle: "Kandy • Perahera • temple city",
-        image: getPlaceImage(kandy),
-        meta: "Festivals",
-        eventLink: "/events?search=Kandy&category=Cultural%20%26%20Religious",
-      },
-      {
-        id: "coastal-events",
-        title: "Coastal evenings",
-        subtitle: "Mirissa • music • sunsets",
-        image: getPlaceImage(mirissa),
-        meta: "Beach life",
-        eventLink: "/events?search=Mirissa&category=Beach%20%26%20Coastal",
-      },
-      {
-        id: "city-food-events",
-        title: "City food walks",
-        subtitle: "Colombo • street food • local stories",
-        image: getPlaceImage(colombo),
-        meta: "Food events",
-        eventLink: "/events?search=Colombo&category=Food%20%26%20Culinary",
-      },
-    ];
-  }, []);
-
-  const guideCards = useMemo(() => {
-    const sigiriya = explorePlaces.find((place) => place.name?.toLowerCase().includes("sigiriya")) || explorePlaces[0];
-    const ella = explorePlaces.find((place) => place.city === "Ella") || explorePlaces[0];
-    const yala = explorePlaces.find((place) => place.name?.toLowerCase().includes("yala")) || explorePlaces[0];
-
-    return [
-      {
-        id: "heritage-guide",
-        title: "Heritage guide",
-        subtitle: "Ancient cities • temples • UNESCO sites",
-        image: getPlaceImage(sigiriya),
-        meta: "Culture",
-      },
-      {
-        id: "hill-country-guide",
-        title: "Hill country guide",
-        subtitle: "Tea trails • train rides • viewpoints",
-        image: getPlaceImage(ella),
-        meta: "Scenic",
-      },
-      {
-        id: "wildlife-guide",
-        title: "Wildlife guide",
-        subtitle: "Safari routes • parks • nature safety",
-        image: getPlaceImage(yala),
-        meta: "Adventure",
-      },
-    ];
-  }, []);
-
-  const quickStartCards = useMemo(() => {
-    const sigiriya = explorePlaces.find((place) => place.name?.toLowerCase().includes("sigiriya")) || explorePlaces[0];
-    const ella = explorePlaces.find((place) => place.city === "Ella") || explorePlaces[1] || explorePlaces[0];
-    const mirissa = explorePlaces.find((place) => place.city === "Mirissa") || explorePlaces[2] || explorePlaces[0];
-
-    return [
-      {
-        id: "discover-first",
-        label: "Start with inspiration",
-        title: "Explore Sri Lanka",
-        text: "Open destination stories, browse experiences, and save the places that match your mood before choosing where to stay.",
-        action: "Start exploring",
-        to: "/explore",
-        icon: "🧭",
-        image: getPlaceImage(sigiriya),
-        badge: "Best first step",
-        chips: ["Places", "Experiences", "Local tips"],
-      },
-      {
-        id: "already-know",
-        label: "Ready to stay",
-        title: "Find hotels",
-        text: "Search approved hotels by city, compare room options, and continue smoothly to reservation details.",
-        action: "Browse hotels",
-        to: "/hotels",
-        icon: "🏨",
-        image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=85",
-        badge: "Book-ready",
-        chips: ["Approved stays", "Room details", "Bookings"],
-      },
-      {
-        id: "need-route",
-        label: "Build the route",
-        title: "Plan my trip",
-        text: "Arrange saved places into travel days, check hotel needs for each night, and download a clean itinerary.",
-        action: "Build route",
-        to: "/trip-planner",
-        icon: "🗺️",
-        image: getPlaceImage(ella || mirissa),
-        badge: "Day-by-day",
-        chips: ["Daily plan", "Stay checks", "PDF export"],
-      },
-    ];
-  }, []);
-
-  const landingStats = useMemo(() => [
-    { value: "Explore", label: "places, events, guides" },
-    { value: "Plan", label: "day-by-day travel routes" },
-    { value: "Stay", label: "hotels near each city" },
-    { value: "Book", label: "continue reservations" },
-  ], []);
-
-  const loadHotels = async () => {
-    try {
-      setLoadingHotels(true);
-      const response = await api.get("/properties");
-      const data = response.data.data || response.data.properties || response.data || [];
-      setHotels(Array.isArray(data) && data.length > 0 ? data.slice(0, 3) : fallbackHotels);
-    } catch (error) {
-      console.error("Load home hotels error:", error);
-      setHotels(fallbackHotels);
-    } finally {
-      setLoadingHotels(false);
-    }
-  };
-
-  useEffect(() => {
-    loadHotels();
-  }, []);
+const EMPTY_HOME_DATA = {
+  sections: {},
+  quickActions: [],
+  featuredPlaces: [],
+  featuredHotels: [],
+  upcomingEvents: [],
+  featuredGuides: [],
+};
 
 
-  const handleNavigateTop = () => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  };
+const resolveMediaUrl = assetUrl;
+
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "auto",
+  });
+};
+
+
+const formatEventDate = (event) => {
+  if (event?.dateLabel) {
+    return event.dateLabel;
+  }
+
+  if (!event?.eventDate) {
+    return "";
+  }
+
+  const date = new Date(event.eventDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("en-LK", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+
+function Media({
+  src,
+  alt,
+  className = "",
+}) {
+  const [failedUrl, setFailedUrl] = useState(null);
+
+  const resolved = resolveMediaUrl(src);
+
+  if (!resolved || failedUrl === resolved) {
+    return (
+      <div
+        className={`home-image-placeholder ${className}`}
+        aria-label={alt || "TripLanka"}
+      >
+        <div className="home-placeholder-mark">
+          <span>✦</span>
+
+          <strong>
+            {alt || "TripLanka"}
+          </strong>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main className="cinematic-home-page" id="top">
+    <img
+      src={resolved}
+      alt={alt || ""}
+      className={className}
+      loading="lazy"
+      onError={() => setFailedUrl(resolved)}
+    />
+  );
+}
+
+
+function SectionHeading({ section }) {
+  if (!section) {
+    return null;
+  }
+
+  return (
+    <div className="home-section-heading">
+      <div className="home-section-heading-copy">
+        {section.eyebrow && (
+          <span className="home-kicker">
+            {section.eyebrow}
+          </span>
+        )}
+
+        <h2>{section.title}</h2>
+
+        {section.description && (
+          <p>{section.description}</p>
+        )}
+      </div>
+
+      {section.primaryAction && (
+        <Link
+          to={section.primaryAction.url}
+          className="home-section-action"
+          onClick={scrollToTop}
+        >
+          {section.primaryAction.label}
+          <span aria-hidden="true">→</span>
+        </Link>
+      )}
+    </div>
+  );
+}
+
+
+function HomePage() {
+  const [home, setHome] =
+    useState(EMPTY_HOME_DATA);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [loadError, setLoadError] =
+    useState("");
+
+
+  const loadHome =
+    useCallback(async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        const data =
+          await getHomePageData();
+
+        setHome({
+          ...EMPTY_HOME_DATA,
+          ...data,
+
+          sections:
+            data?.sections || {},
+
+          quickActions:
+            data?.quickActions || [],
+
+          featuredPlaces:
+            data?.featuredPlaces || [],
+
+          featuredHotels:
+            data?.featuredHotels || [],
+
+          upcomingEvents:
+            data?.upcomingEvents || [],
+
+          featuredGuides:
+            data?.featuredGuides || [],
+        });
+      } catch (error) {
+        console.error(
+          "Load TripLanka home error:",
+          error
+        );
+
+        setLoadError(
+          error?.response?.data?.message ||
+            "Home page could not be loaded."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, []);
+
+
+  useEffect(() => {
+    loadHome();
+  }, [loadHome]);
+
+
+  const {
+    sections,
+    quickActions,
+    featuredPlaces,
+    featuredHotels,
+    upcomingEvents,
+    featuredGuides,
+  } = home;
+
+
+  const hero =
+    sections.hero;
+
+  const placesSection =
+    sections.featured_places;
+
+  const hotelsSection =
+    sections.featured_hotels;
+
+  const plannerSection =
+    sections.trip_planner;
+
+  const eventsSection =
+    sections.events;
+
+  const guidesSection =
+    sections.guides;
+
+  const partnerSection =
+    sections.partner;
+
+
+  const hotelQuickAction =
+    useMemo(
+      () =>
+        quickActions.find(
+          (item) =>
+            item.key === "hotels"
+        ),
+      [quickActions]
+    );
+
+
+  const heroMedia =
+    resolveMediaUrl(
+      hero?.media?.path
+    );
+
+  const heroPoster =
+    resolveMediaUrl(
+      hero?.media?.poster
+    );
+
+  const heroFallback =
+    resolveMediaUrl(
+      featuredPlaces[0]?.imageUrl
+    );
+
+
+  if (loading) {
+    return (
+      <main className="triplanka-home">
+        <style>{homeCss}</style>
+
+        <section className="home-state">
+          <div className="home-loader" />
+
+          <h1>
+            Loading TripLanka
+          </h1>
+
+          <p>
+            Preparing your journey.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+
+  if (loadError) {
+    return (
+      <main className="triplanka-home">
+        <style>{homeCss}</style>
+
+        <section className="home-state">
+          <span className="home-error-icon">
+            !
+          </span>
+
+          <h1>
+            Home page unavailable
+          </h1>
+
+          <p>
+            {loadError}
+          </p>
+
+          <button
+            type="button"
+            className="home-primary-button"
+            onClick={loadHome}
+          >
+            Try again
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+
+  return (
+    <main
+      className="triplanka-home"
+      id="top"
+    >
       <style>{homeCss}</style>
 
-      <section className="hero-cinema-section">
-        <div className="hero-video-shell">
-          <video
-            className="hero-bg-video"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster={heroPosterUrl}
-            aria-hidden="true"
-          >
-            <source src={heroVideoUrl} type="video/mp4" />
-          </video>
 
-          <div className="hero-video-layer hero-fallback-layer">
-            {heroSlides.map((place, index) => (
-              <div
-                className="hero-slide"
-                key={place.id}
-                style={{ animationDelay: `${index * 5}s` }}
-              >
-                <img src={place.image} alt={place.name} />
-              </div>
-            ))}
-          </div>
+      {/* HERO */}
 
-          <div className="hero-gradient" />
-          <div className="moving-light light-one" />
-          <div className="moving-light light-two" />
-          <div className="wave-line wave-one" />
-          <div className="wave-line wave-two" />
-
-          <div className="hero-center-copy">
-            <span>TourismHub LK</span>
-            <h1>Your {"Sri\u00a0Lanka"} journey starts here.</h1>
-            <p>Real journeys. Local smiles. Stays that bring you closer.</p>
-
-            <div className="hero-center-actions" aria-label="Main landing actions">
-              <Link to="/hotels" onClick={handleNavigateTop}>Find hotels</Link>
-              <Link to="/explore" onClick={handleNavigateTop}>Explore Sri Lanka</Link>
-              <Link to="/trip-planner" onClick={handleNavigateTop}>Plan trip</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="quick-start-section" aria-label="Choose how to start using TourismHub LK">
-        <div className="quick-start-header">
-          <span className="section-kicker">Start your journey</span>
-          <h2>What would you like to do first?</h2>
-          <p>
-            Choose a path that matches your travel mood: discover the island, find a stay, or build
-            a day-by-day route across Sri Lanka.
-          </p>
-        </div>
-
-        <div className="quick-start-grid">
-          {quickStartCards.map((card) => (
-            <Link
-              to={card.to}
-              onClick={handleNavigateTop}
-              className={`quick-start-card ${card.id}`}
-              key={card.id}
+      {hero && (
+        <section
+          className="home-cinematic-hero"
+          aria-label="TripLanka introduction"
+        >
+          {hero.media?.type ===
+            "video" && heroMedia ? (
+            <video
+              className="home-hero-background"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={
+                heroPoster ||
+                undefined
+              }
+              aria-hidden="true"
             >
-              <div className="quick-card-visual">
-                <img src={card.image} alt={card.title} />
-                <div className="quick-card-shade" />
-                <span className="quick-card-badge">{card.badge}</span>
-                <div className="quick-icon">{card.icon}</div>
-              </div>
-
-              <div className="quick-card-content">
-                <span className="quick-eyebrow">{card.label}</span>
-                <h3>{card.title}</h3>
-                <p>{card.text}</p>
-                <div className="quick-chip-row">
-                  {card.chips.map((chip) => (
-                    <em key={chip}>{chip}</em>
-                  ))}
-                </div>
-                <strong>{card.action} →</strong>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="journey-flow-strip" aria-label="TourismHub LK journey flow">
-          {landingStats.map((item, index) => (
-            <div className="flow-item" key={item.value}>
-              <strong>{item.value}</strong>
-              <span>{item.label}</span>
-              {index < landingStats.length - 1 && <em>→</em>}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-showcase-section first-showcase">
-        <div className="showcase-heading">
-          <div>
-            <span className="section-kicker">Explore Sri Lanka</span>
-            <h2>Things to see and do</h2>
-            <p>
-              Start with iconic places, culture, beaches, wildlife, and local experiences. Click a
-              card to open the matching destination detail view in Explore.
-            </p>
-          </div>
-          <Link to="/explore" onClick={handleNavigateTop} className="outline-action">Explore more</Link>
-        </div>
-
-        <div className="showcase-card-grid">
-          {exploreCards.map((place) => (
-            <Link
-              to={`/explore?place=${place.id}`}
-              onClick={handleNavigateTop}
-              className="showcase-card"
-              key={place.id}
-              aria-label={`View ${place.name} details in Explore Sri Lanka`}
-            >
-              <img src={getPlaceImage(place)} alt={place.name} />
-              <div className="showcase-card-body">
-                <span>{place.region || place.category}</span>
-                <h3>{place.name}</h3>
-                <p>{place.shortDescription || place.city}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-showcase-section tinted-showcase planner-showcase">
-        <div className="showcase-heading">
-          <div>
-            <span className="section-kicker">Plan your dream holiday</span>
-            <h2>Build a route that feels natural</h2>
-            <p>
-              Turn saved destinations into a clear daily route with dates, notes, budget checks,
-              travel flow, and hotel links for each night.
-            </p>
-          </div>
-          <Link to="/trip-planner" onClick={handleNavigateTop} className="outline-action">Plan more</Link>
-        </div>
-
-        <div className="planner-showcase-layout">
-          <Link to="/trip-planner" onClick={handleNavigateTop} className="planner-image-panel">
-            <img src={tripPlannerPreview.image} alt="Travel map, camera, and trip planning notebook" />
-            <div className="planner-image-overlay">
-              <span>Trip Planner</span>
-              <h3>From saved places to a complete Sri Lanka route</h3>
-              <p>Plan the island day by day before choosing where to stay.</p>
-            </div>
-          </Link>
-
-          <div className="planner-feature-card">
-            <span className="mini-label">How it helps</span>
-            <h3>A clear travel board for your Sri Lanka route</h3>
-            <p>
-              Save places from Explore, arrange each travel day, add notes, and continue to nearby
-              hotels when your route is ready.
-            </p>
-
-            <div className="planner-step-list">
-              {tripPlannerPreview.steps.map((step) => (
-                <div className="planner-step" key={step.number}>
-                  <strong>{step.number}</strong>
-                  <div>
-                    <h4>{step.title}</h4>
-                    <p>{step.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Link to="/trip-planner" onClick={handleNavigateTop} className="solid-action">Start planning</Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-showcase-section">
-        <div className="showcase-heading">
-          <div>
-            <span className="section-kicker">Hotels and stays</span>
-            <h2>Stay closer to your journey</h2>
-            <p>
-              Move from travel inspiration to real hotel choices. Open approved stays by city,
-              compare options, and continue the booking flow.
-            </p>
-          </div>
-          <Link to="/hotels" onClick={handleNavigateTop} className="outline-action">Hotel more</Link>
-        </div>
-
-        <div className="showcase-card-grid hotel-grid">
-          {loadingHotels ? (
-            <div className="loading-card">Loading hotels...</div>
+              <source
+                src={heroMedia}
+                type="video/mp4"
+              />
+            </video>
+          ) : heroMedia ? (
+            <ContentImage className="home-hero-background"
+              src={heroMedia}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : heroFallback ? (
+            <ContentImage className="home-hero-background"
+              src={heroFallback}
+              alt=""
+              aria-hidden="true"
+            />
           ) : (
-            hotels.map((hotel) => (
-              <Link
-                to={`/hotels/${hotel.id || hotel.property_id}`}
-                onClick={handleNavigateTop}
-                className="showcase-card hotel-card"
-                key={hotel.id || hotel.property_id || hotel.name}
-              >
-                <img src={getHotelImage(hotel)} alt={hotel.name || hotel.property_name} />
-                <div className="showcase-card-body">
-                  <span>{hotel.property_type || "Hotel"}</span>
-                  <h3>{hotel.name || hotel.property_name}</h3>
-                  <p>{hotel.city || hotel.district || "Sri Lanka"}</p>
-                </div>
-              </Link>
-            ))
+            <div className="home-hero-background home-hero-fallback" />
           )}
-        </div>
-      </section>
 
-      <section className="landing-showcase-section tinted-showcase event-showcase">
-        <div className="showcase-heading">
-          <div>
-            <span className="section-kicker">Events and moments</span>
-            <h2>Find what is happening around the island</h2>
-            <p>
-              Add local events, cultural nights, food walks, and coastal moments to the same journey
-              you are planning.
-            </p>
+          <div className="home-hero-overlay" />
+
+          <div className="home-hero-center">
+            {hero.eyebrow && (
+              <span className="home-hero-kicker">
+                {hero.eyebrow}
+              </span>
+            )}
+
+            <h1>
+              {hero.title}
+            </h1>
+
+            <div className="home-hero-accent" />
+
+            {hero.description && (
+              <p>
+                {hero.description}
+              </p>
+            )}
+
+            <div className="home-hero-actions">
+              {hero.primaryAction && (
+                <Link
+                  to={
+                    hero.primaryAction.url
+                  }
+                  className="home-hero-primary"
+                  onClick={scrollToTop}
+                >
+                  {
+                    hero.primaryAction.label
+                  }
+                </Link>
+              )}
+
+              {hero.secondaryAction && (
+                <Link
+                  to={
+                    hero.secondaryAction.url
+                  }
+                  className="home-hero-secondary"
+                  onClick={scrollToTop}
+                >
+                  {
+                    hero.secondaryAction.label
+                  }
+                </Link>
+              )}
+
+              {hotelQuickAction && (
+                <Link
+                  to={
+                    hotelQuickAction.targetUrl
+                  }
+                  className="home-hero-ghost"
+                  onClick={scrollToTop}
+                >
+                  {
+                    hotelQuickAction.buttonLabel
+                  }
+                </Link>
+              )}
+            </div>
           </div>
-          <Link to="/events" onClick={handleNavigateTop} className="outline-action">View events</Link>
-        </div>
 
-        <div className="showcase-card-grid event-grid">
-          {eventCards.map((event) => (
-            <Link to={event.eventLink || "/events"} onClick={handleNavigateTop} className="showcase-card route-card" key={event.id}>
-              <img src={event.image} alt={event.title} />
-              <div className="route-badge">{event.meta}</div>
-              <div className="showcase-card-body">
-                <span>{event.subtitle}</span>
-                <h3>{event.title}</h3>
-                <p>Browse events and connect the experience with nearby hotels and trip days.</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+          <a
+            href="#home-content"
+            className="home-scroll-cue"
+            aria-label="Explore TripLanka"
+          >
+            <span>
+              Discover more
+            </span>
 
-      <section className="landing-showcase-section guide-showcase">
-        <div className="showcase-heading">
-          <div>
-            <span className="section-kicker">Tourist guides</span>
-            <h2>Travel with local knowledge</h2>
-            <p>
-              Discover guide options for heritage routes, hill-country journeys, safari days, and
-              local food experiences.
-            </p>
+            <b>↓</b>
+          </a>
+        </section>
+      )}
+
+
+      <div id="home-content" />
+
+
+      {/* DESTINATIONS */}
+
+      {placesSection && (
+        <section className="home-width home-section home-first-section">
+          <SectionHeading
+            section={
+              placesSection
+            }
+          />
+
+          {featuredPlaces.length >
+          0 ? (
+            <div className="home-place-grid">
+              {featuredPlaces.map(
+                (
+                  place,
+                  index
+                ) => (
+                  <Link
+                    key={place.id}
+                    to={`/explore?place=${place.id}`}
+                    className={`home-place-card ${
+                      index === 0
+                        ? "home-place-featured"
+                        : ""
+                    }`}
+                    onClick={
+                      scrollToTop
+                    }
+                  >
+                    <Media
+                      src={
+                        place.imageUrl
+                      }
+                      alt={
+                        place.name
+                      }
+                    />
+
+                    <div className="home-card-overlay" />
+
+                    <div className="home-place-content">
+                      <span className="home-light-label">
+                        {place.region ||
+                          place.category ||
+                          place.city}
+                      </span>
+
+                      <h3>
+                        {
+                          place.name
+                        }
+                      </h3>
+
+                      <p>
+                        {[
+                          place.city,
+                          place.district,
+                        ]
+                          .filter(
+                            (
+                              value,
+                              indexValue,
+                              array
+                            ) =>
+                              value &&
+                              array.indexOf(
+                                value
+                              ) ===
+                                indexValue
+                          )
+                          .join(
+                            " • "
+                          )}
+                      </p>
+
+                      <strong>
+                        Explore
+
+                        <b aria-hidden="true">
+                          →
+                        </b>
+                      </strong>
+                    </div>
+                  </Link>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="home-empty">
+              No destinations
+              available.
+            </div>
+          )}
+        </section>
+      )}
+
+
+      {/* TRIP PLANNER */}
+
+      {plannerSection && (
+        <section className="home-width home-planner-panel">
+          <div className="home-planner-copy">
+            {plannerSection.eyebrow && (
+              <span className="home-kicker">
+                {
+                  plannerSection.eyebrow
+                }
+              </span>
+            )}
+
+            <h2>
+              {
+                plannerSection.title
+              }
+            </h2>
+
+            {plannerSection.description && (
+              <p>
+                {
+                  plannerSection.description
+                }
+              </p>
+            )}
+
+            {plannerSection.primaryAction && (
+              <Link
+                to={
+                  plannerSection
+                    .primaryAction.url
+                }
+                className="home-primary-button"
+                onClick={scrollToTop}
+              >
+                {
+                  plannerSection
+                    .primaryAction.label
+                }
+              </Link>
+            )}
           </div>
-          <Link to="/tourist-guides" onClick={handleNavigateTop} className="outline-action">Find guides</Link>
-        </div>
 
-        <div className="showcase-card-grid guide-grid">
-          {guideCards.map((guide) => (
-            <Link to="/tourist-guides" onClick={handleNavigateTop} className="showcase-card guide-card" key={guide.id}>
-              <img src={guide.image} alt={guide.title} />
-              <div className="route-badge guide-badge">{guide.meta}</div>
-              <div className="showcase-card-body">
-                <span>{guide.subtitle}</span>
-                <h3>{guide.title}</h3>
-                <p>Choose a suitable guide and make each route easier to enjoy.</p>
+          <div className="home-planner-preview">
+            <div className="home-preview-header">
+              <span>
+                SIMPLE PLANNING FLOW
+              </span>
+
+              <h3>
+                From idea to itinerary
+              </h3>
+            </div>
+
+            <div className="home-preview-steps">
+              {quickActions.map(
+                (
+                  action,
+                  index
+                ) => (
+                  <div
+                    className="home-preview-step"
+                    key={
+                      action.id ||
+                      action.key
+                    }
+                  >
+                    <span className="home-preview-number">
+                      {index + 1}
+                    </span>
+
+                    <div>
+                      <strong>
+                        {
+                          action.title
+                        }
+                      </strong>
+
+                      <small>
+                        {
+                          action.description
+                        }
+                      </small>
+                    </div>
+                  </div>
+                )
+              )}
+
+              <div className="home-preview-step">
+                <span className="home-preview-number">
+                  {quickActions.length + 1}
+                </span>
+
+                <div>
+                  <strong>
+                    Save your plan
+                  </strong>
+
+                  <small>
+                    Return to your
+                    journey anytime.
+                  </small>
+                </div>
               </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+
+      {/* HOTELS */}
+
+      {hotelsSection && (
+        <section className="home-soft-section">
+          <div className="home-width">
+            <SectionHeading
+              section={
+                hotelsSection
+              }
+            />
+
+            {featuredHotels.length >
+            0 ? (
+              <div className="home-adaptive-grid">
+                {featuredHotels.map(
+                  (hotel) => (
+                    <Link
+                      key={
+                        hotel.id
+                      }
+                      to={`/hotels/${hotel.id}`}
+                      className="home-info-card"
+                      onClick={scrollToTop}
+                    >
+                      <div className="home-info-media">
+                        <Media
+                          src={
+                            hotel.imageUrl
+                          }
+                          alt={
+                            hotel.name
+                          }
+                        />
+
+                        {hotel.verified && (
+                          <span className="home-card-badge">
+                            Verified
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="home-info-body">
+                        <span className="home-card-type">
+                          {
+                            hotel.propertyType
+                          }
+                        </span>
+
+                        <h3>
+                          {
+                            hotel.name
+                          }
+                        </h3>
+
+                        <p>
+                          {[
+                            hotel.city,
+                            hotel.district,
+                          ]
+                            .filter(
+                              (
+                                value,
+                                indexValue,
+                                array
+                              ) =>
+                                value &&
+                                array.indexOf(
+                                  value
+                                ) ===
+                                  indexValue
+                            )
+                            .join(
+                              " • "
+                            )}
+                        </p>
+
+                        <strong className="home-card-action">
+                          View stay
+
+                          <b aria-hidden="true">
+                            →
+                          </b>
+                        </strong>
+                      </div>
+                    </Link>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="home-empty">
+                No verified stays
+                available.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+
+      {/* EVENTS */}
+
+      {eventsSection && (
+        <section className="home-width home-section">
+          <SectionHeading
+            section={
+              eventsSection
+            }
+          />
+
+          {upcomingEvents.length >
+          0 ? (
+            <div className="home-adaptive-grid">
+              {upcomingEvents.map(
+                (event) => {
+                  const date =
+                    formatEventDate(
+                      event
+                    );
+
+                  return (
+                    <Link
+                      key={
+                        event.id ||
+                        event.slug
+                      }
+                      to={
+                        event.slug
+                          ? `/events/${encodeURIComponent(
+                              event.slug
+                            )}`
+                          : "/events"
+                      }
+                      className="home-info-card"
+                      onClick={scrollToTop}
+                    >
+                      <div className="home-info-media">
+                        <Media
+                          src={
+                            event.imageUrl
+                          }
+                          alt={
+                            event.title
+                          }
+                        />
+
+                        {date && (
+                          <span className="home-card-badge">
+                            {date}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="home-info-body">
+                        <span className="home-card-type">
+                          {
+                            event.category
+                          }
+                        </span>
+
+                        <h3>
+                          {
+                            event.title
+                          }
+                        </h3>
+
+                        <p>
+                          {[
+                            event.city,
+                            event.venue,
+                          ]
+                            .filter(
+                              Boolean
+                            )
+                            .join(
+                              " • "
+                            )}
+                        </p>
+
+                        <div className="home-info-footer">
+                          <span>
+                            {
+                              event.priceLabel
+                            }
+                          </span>
+
+                          <strong>
+                            View event
+
+                            <b aria-hidden="true">
+                              →
+                            </b>
+                          </strong>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                }
+              )}
+            </div>
+          ) : (
+            <div className="home-empty">
+              No upcoming events
+              available.
+            </div>
+          )}
+        </section>
+      )}
+
+
+      {/* GUIDES */}
+
+      {guidesSection && (
+        <section className="home-soft-section">
+          <div className="home-width">
+            <SectionHeading
+              section={
+                guidesSection
+              }
+            />
+
+            {featuredGuides.length >
+            0 ? (
+              <div className="home-adaptive-grid">
+                {featuredGuides.map(
+                  (guide) => (
+                    <Link
+                      key={
+                        guide.id
+                      }
+                      to={
+                        guide.slug
+                          ? `/tourist-guides/${guide.slug}`
+                          : "/tourist-guides"
+                      }
+                      className="home-info-card"
+                      onClick={scrollToTop}
+                    >
+                      <div className="home-info-media">
+                        <Media
+                          src={
+                            guide.imageUrl
+                          }
+                          alt={
+                            guide.name
+                          }
+                        />
+
+                        {guide.promoted && (
+                          <span className="home-card-badge home-featured-badge">
+                            Featured
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="home-info-body">
+                        <span className="home-card-type">
+                          {
+                            guide.guideType
+                          }
+                        </span>
+
+                        <h3>
+                          {
+                            guide.name
+                          }
+                        </h3>
+
+                        <p>
+                          {[
+                            guide.city,
+                            guide.experienceYears
+                              ? `${guide.experienceYears} years`
+                              : "",
+                          ]
+                            .filter(
+                              Boolean
+                            )
+                            .join(
+                              " • "
+                            )}
+                        </p>
+
+                        {guide.languages
+                          ?.length >
+                          0 && (
+                          <div className="home-language-row">
+                            {guide.languages
+                              .slice(
+                                0,
+                                3
+                              )
+                              .map(
+                                (
+                                  language
+                                ) => (
+                                  <span
+                                    key={
+                                      language
+                                    }
+                                  >
+                                    {
+                                      language
+                                    }
+                                  </span>
+                                )
+                              )}
+                          </div>
+                        )}
+
+                        <div className="home-info-footer">
+                          <span>
+                            ★{" "}
+                            {Number(
+                              guide.rating ||
+                                0
+                            ).toFixed(
+                              1
+                            )}
+                          </span>
+
+                          <strong>
+                            View guide
+
+                            <b aria-hidden="true">
+                              →
+                            </b>
+                          </strong>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="home-empty">
+                No approved guides
+                available.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+
+      {/* PARTNER */}
+
+      {partnerSection && (
+        <section className="home-width home-partner-section">
+          <div>
+            {partnerSection.eyebrow && (
+              <span className="home-kicker">
+                {
+                  partnerSection.eyebrow
+                }
+              </span>
+            )}
+
+            <h2>
+              {
+                partnerSection.title
+              }
+            </h2>
+          </div>
+
+          {partnerSection.primaryAction && (
+            <Link
+              to={
+                partnerSection
+                  .primaryAction.url
+              }
+              className="home-partner-button"
+              onClick={scrollToTop}
+            >
+              {
+                partnerSection
+                  .primaryAction.label
+              }
+
+              <span aria-hidden="true">
+                →
+              </span>
             </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="partner-strip-section">
-        <div>
-          <span className="section-kicker light">Tourism partners</span>
-          <h2>List your hotel, event, or guide service for travellers.</h2>
-        </div>
-        <Link to="/list-your-property" onClick={handleNavigateTop}>Become a Partner</Link>
-      </section>
-
+          )}
+        </section>
+      )}
     </main>
   );
 }
 
+
 const homeCss = `
-  .cinematic-home-page {
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at 12% 12%, rgba(20, 184, 166, 0.10), transparent 28rem),
-      radial-gradient(circle at 90% 18%, rgba(229, 165, 20, 0.12), transparent 26rem),
-      linear-gradient(135deg, #f8f4ea 0%, #ffffff 52%, #ecfdf5 100%);
-    color: #172033;
-    padding-bottom: 0;
-  }
+.triplanka-home {
+  --home-teal: #087568;
+  --home-teal-dark: #034943;
+  --home-teal-deep: #063f3a;
+  --home-gold: #e3ab2b;
+  --home-gold-bright: #ffc22b;
+  --home-text: #172724;
+  --home-muted: #667572;
+  --home-border: #dde8e5;
+
+  min-height: 100vh;
+  padding-bottom: 30px;
+
+  background: #ffffff;
+
+  color: var(--home-text);
+
+  font-family:
+    "Manrope",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+}
+
+
+.triplanka-home * {
+  box-sizing: border-box;
+}
+
+
+.triplanka-home a {
+  text-decoration: none;
+}
+
+
+.home-width {
+  width:
+    min(
+      1460px,
+      calc(100% - 84px)
+    );
+
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* =========================================
+   HERO
+   ========================================= */
+
+.home-cinematic-hero {
+  position: relative;
+
+  width: 100%;
+
+  min-height:
+    calc(100svh - 79px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background: #063f3a;
+}
+
+
+.home-hero-background {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  filter:
+    saturate(1.03)
+    contrast(1.04)
+    brightness(0.9);
+}
+
+
+.home-hero-fallback {
+  background:
+    linear-gradient(
+      135deg,
+      #063f3a,
+      #087568
+    );
+}
+
+
+.home-hero-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(
+        8,
+        65,
+        60,
+        0.15
+      ),
+      rgba(
+        3,
+        30,
+        28,
+        0.36
+      )
+      55%,
+      rgba(
+        2,
+        24,
+        22,
+        0.58
+      )
+    ),
+    linear-gradient(
+      180deg,
+      rgba(
+        0,
+        0,
+        0,
+        0.09
+      ),
+      rgba(
+        0,
+        0,
+        0,
+        0.34
+      )
+    );
+}
+
+
+.home-hero-center {
+  position: relative;
+
+  z-index: 3;
+
+  width:
+    min(
+      960px,
+      calc(100% - 48px)
+    );
+
+  margin: 0 auto;
+
+  padding:
+    70px 20px 96px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+
+.home-hero-kicker {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    8px 15px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.27
+    );
+
+  border-radius: 999px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.1
+    );
+
+  backdrop-filter:
+    blur(12px);
+
+  color: #eafff9;
+
+  font-size:
+    11px !important;
+
+  font-weight:
+    650 !important;
+}
+
+
+.home-hero-center h1 {
+  max-width: 900px;
+
+  margin:
+    22px auto 0;
+
+  color: #ffffff;
+
+  font-size:
+    clamp(
+      42px,
+      5vw,
+      68px
+    ) !important;
+
+  line-height:
+    1.06 !important;
+
+  font-weight:
+    750 !important;
+
+  letter-spacing:
+    -0.015em !important;
+
+  text-wrap: balance;
+
+  text-shadow:
+    0 18px 46px
+    rgba(
+      0,
+      0,
+      0,
+      0.3
+    );
+}
+
+
+.home-hero-accent {
+  width: 64px;
+  height: 4px;
+
+  margin:
+    22px auto 18px;
+
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #12a594,
+      #ffc22b
+    );
+}
+
+
+.home-hero-center > p {
+  max-width: 650px;
+
+  margin: 0 auto;
+
+  color:
+    rgba(
+      244,
+      255,
+      252,
+      0.88
+    );
+
+  font-size:
+    clamp(
+      15px,
+      1.2vw,
+      18px
+    ) !important;
+
+  line-height:
+    1.65 !important;
+
+  font-weight:
+    500 !important;
+
+  text-wrap: balance;
+}
+
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 11px;
+
+  margin-top: 28px;
+}
+
+
+.home-hero-actions a {
+  min-height: 45px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    0 20px;
+
+  border-radius: 12px;
+
+  font-size:
+    13px !important;
+
+  font-weight: 650;
+
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+
+.home-hero-actions a:hover {
+  transform:
+    translateY(-2px);
+}
+
+
+.home-hero-primary {
+  color: #15312d;
+
+  background: #ffc22b;
+
+  box-shadow:
+    0 13px 30px
+    rgba(
+      0,
+      0,
+      0,
+      0.16
+    );
+}
+
+
+.home-hero-primary:hover {
+  background: #ffca42;
+}
+
+
+.home-hero-secondary {
+  color: #075f56;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 12px 28px
+    rgba(
+      0,
+      0,
+      0,
+      0.14
+    );
+}
+
+
+.home-hero-ghost {
+  color: #ffffff;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.3
+    );
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.1
+    );
+
+  backdrop-filter:
+    blur(10px);
+}
+
+
+.home-scroll-cue {
+  position: absolute;
+
+  z-index: 4;
+
+  left: 50%;
+  bottom: 22px;
+
+  transform:
+    translateX(-50%);
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.7
+    );
+
+  font-size: 10px;
+
+  font-weight: 600;
+}
+
+
+.home-scroll-cue b {
+  width: 27px;
+  height: 27px;
+
+  display: grid;
+
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.22
+    );
+
+  border-radius: 50%;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+
+  color: #ffffff;
+}
+
+
+/* =========================================
+   SECTION HEADERS
+   ========================================= */
+
+.home-section {
+  padding-top: 66px;
+}
+
+
+.home-first-section {
+  padding-top: 78px;
+}
+
+
+.home-section-heading {
+  display: flex;
+
+  align-items: flex-end;
+  justify-content:
+    space-between;
+
+  gap: 30px;
+
+  margin-bottom: 26px;
+}
+
+
+.home-section-heading-copy {
+  max-width: 760px;
+}
+
+
+.home-kicker {
+  display: inline-flex;
+
+  padding:
+    7px 11px;
+
+  border:
+    1px solid
+    rgba(
+      8,
+      117,
+      104,
+      0.15
+    );
+
+  border-radius: 999px;
+
+  background: #edf8f5;
+
+  color:
+    var(--home-teal);
+
+  font-size:
+    11px !important;
+
+  font-weight:
+    500 !important;
+}
+
+
+.home-section-heading h2,
+.home-partner-section h2 {
+  margin:
+    13px 0 8px;
+
+  color: #152a27;
+
+  font-size:
+    clamp(
+      28px,
+      2.5vw,
+      40px
+    ) !important;
+
+  line-height:
+    1.1 !important;
+
+  font-weight:
+    700 !important;
+
+  letter-spacing:
+    -0.01em !important;
+}
+
+
+.home-section-heading p {
+  max-width: 680px;
+
+  margin: 0;
+
+  color:
+    var(--home-muted);
+
+  font-size:
+    13px !important;
+
+  line-height:
+    1.6 !important;
+
+  font-weight:
+    450 !important;
+}
+
+
+.home-section-action {
+  min-height: 43px;
+
+  flex: 0 0 auto;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding:
+    0 17px;
+
+  border:
+    1px solid
+    rgba(
+      8,
+      117,
+      104,
+      0.22
+    );
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color:
+    var(--home-teal);
+
+  font-size: 12px;
+
+  font-weight: 650;
+
+  box-shadow:
+    0 7px 18px
+    rgba(
+      15,
+      23,
+      42,
+      0.035
+    );
+
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
+}
+
+
+.home-section-action:hover {
+  transform:
+    translateY(-2px);
+
+  background: #f2faf8;
+}
+
+
+/* =========================================
+   DESTINATIONS
+   ========================================= */
+
+.home-place-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  grid-auto-rows: 285px;
+
+  gap: 17px;
+}
+
+
+.home-place-card {
+  position: relative;
+
+  min-width: 0;
+
+  overflow: hidden;
+
+  border-radius: 20px;
+
+  background:
+    var(--home-teal-deep);
+
+  box-shadow:
+    0 12px 30px
+    rgba(
+      15,
+      23,
+      42,
+      0.08
+    );
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+
+.home-place-card:hover {
+  transform:
+    translateY(-3px);
+
+  box-shadow:
+    0 18px 38px
+    rgba(
+      15,
+      23,
+      42,
+      0.12
+    );
+}
+
+
+.home-place-featured {
+  grid-column:
+    span 2;
+}
+
+
+.home-place-card > img,
+.home-place-card >
+.home-image-placeholder {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  transition:
+    transform 320ms ease;
+}
+
+
+.home-place-card:hover > img {
+  transform:
+    scale(1.035);
+}
+
+
+.home-card-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    linear-gradient(
+      180deg,
+      transparent
+      18%,
+      rgba(
+        3,
+        39,
+        36,
+        0.9
+      )
+    );
+}
+
+
+.home-place-content {
+  position: absolute;
+
+  z-index: 2;
+
+  left: 20px;
+  right: 20px;
+  bottom: 18px;
+
+  color: #ffffff;
+}
+
+
+.home-light-label {
+  color: #ffe397;
+
+  font-size:
+    10px !important;
+
+  font-weight: 600;
+}
+
+
+.home-place-content h3 {
+  margin:
+    6px 0 5px;
+
+  color: #ffffff;
+
+  font-size:
+    20px !important;
+
+  line-height:
+    1.16 !important;
+
+  font-weight:
+    700 !important;
+}
+
+
+.home-place-featured
+.home-place-content h3 {
+  font-size:
+    24px !important;
+}
+
+
+.home-place-content p {
+  margin: 0;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.76
+    );
+
+  font-size:
+    12px !important;
+
+  font-weight:
+    450 !important;
+}
+
+
+.home-place-content strong {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin-top: 10px;
+
+  color: #ffffff;
+
+  font-size: 11px;
+
+  font-weight: 650;
+}
+
+
+/* =========================================
+   TRIP PLANNER HOME CTA
+   ========================================= */
+
+.home-planner-panel {
+  position: relative;
+
+  margin-top: 66px;
+
+  padding: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(
+      0,
+      0.78fr
+    )
+    minmax(
+      480px,
+      1fr
+    );
+
+  gap: 0;
+
+  align-items: stretch;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(
+      8,
+      117,
+      104,
+      0.28
+    );
+
+  border-radius: 26px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 20px 48px
+    rgba(
+      6,
+      63,
+      58,
+      0.12
+    );
+}
+
+
+.home-planner-copy {
+  position: relative;
+
+  min-height: 470px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: flex-start;
+
+  padding:
+    52px 48px;
+
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(
+        255,
+        194,
+        43,
+        0.2
+      ),
+      transparent
+      230px
+    ),
+    linear-gradient(
+      145deg,
+      #075f56
+      0%,
+      #087568
+      54%,
+      #0b8f80
+      100%
+    );
+}
+
+
+.home-planner-copy::before {
+  content: "";
+
+  position: absolute;
+
+  width: 290px;
+  height: 290px;
+
+  right: -120px;
+  bottom: -130px;
+
+  border-radius: 50%;
+
+  border:
+    58px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.055
+    );
+}
+
+
+.home-planner-copy::after {
+  content: "";
+
+  position: absolute;
+
+  width: 110px;
+  height: 5px;
+
+  left: 48px;
+  bottom: 38px;
+
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #19b6a4,
+      #ffc22b
+    );
+}
+
+
+.home-planner-copy > * {
+  position: relative;
+
+  z-index: 2;
+}
+
+
+.home-planner-copy
+.home-kicker {
+  padding:
+    8px 13px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.24
+    );
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.1
+    );
+
+  color: #eafff9;
+
+  backdrop-filter:
+    blur(8px);
+}
+
+
+.home-planner-copy h2 {
+  max-width: 560px;
+
+  margin:
+    20px 0 12px;
+
+  color: #ffffff;
+
+  font-size:
+    clamp(
+      32px,
+      3vw,
+      46px
+    ) !important;
+
+  line-height:
+    1.08 !important;
+
+  font-weight:
+    700 !important;
+
+  letter-spacing:
+    -0.015em !important;
+}
+
+
+.home-planner-copy p {
+  max-width: 520px;
+
+  margin: 0;
+
+  color:
+    rgba(
+      240,
+      255,
+      251,
+      0.82
+    );
+
+  font-size:
+    14px !important;
 
-  .hero-cinema-section {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-  }
+  line-height:
+    1.65 !important;
 
-  .hero-video-shell {
-    position: relative;
-    min-height: calc(100vh - 79px) !important;
-    overflow: hidden;
-    border-radius: 0;
-    background: #062f2c;
-    box-shadow: none;
-    border: none;
-  }
+  font-weight:
+    450 !important;
+}
 
-  .hero-bg-video {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 1;
-    filter: saturate(1.08) contrast(1.03) brightness(0.96);
-  }
 
-  .hero-fallback-layer {
-    z-index: 0;
-  }
+.home-primary-button {
+  min-height: 48px;
 
-  .hero-video-layer,
-  .hero-slide,
-  .hero-slide img,
-  .hero-gradient {
-    position: absolute;
-    inset: 0;
-  }
+  display: inline-flex;
 
-  .hero-slide {
-    opacity: 0;
-    animation: sriLankaCinema 20s infinite;
-  }
+  align-items: center;
+  justify-content: center;
 
-  .hero-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.08);
-    filter: saturate(1.08) contrast(1.03);
-  }
+  margin-top: 28px;
 
-  .hero-gradient {
-    z-index: 2;
-    background:
-      radial-gradient(circle at 50% 44%, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.48) 74%),
-      linear-gradient(90deg, rgba(5, 48, 44, 0.60), rgba(5, 48, 44, 0.16), rgba(5, 48, 44, 0.60));
-  }
+  padding:
+    0 22px;
 
-  .moving-light {
-    position: absolute;
-    z-index: 3;
-    width: 220px;
-    height: 220px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(252, 211, 77, 0.16), transparent 70%);
-    filter: blur(4px);
-    animation: floatingGlow 12s ease-in-out infinite alternate;
-  }
+  border: none;
 
-  .light-one { top: 14%; left: 8%; }
-  .light-two { bottom: 8%; right: 10%; animation-delay: -4s; }
-
-  .wave-line {
-    position: absolute;
-    z-index: 4;
-    left: -10%;
-    width: 120%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-    opacity: 0.32;
-    animation: waveSweep 8s linear infinite;
-  }
+  border-radius: 12px;
 
-  .wave-one { bottom: 24%; }
-  .wave-two { bottom: 18%; animation-delay: -3s; opacity: 0.22; }
-
-  .hero-center-copy {
-    position: relative;
-    z-index: 5;
-    min-height: calc(100vh - 79px) !important;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    text-align: center;
-    padding: clamp(40px, 6vw, 72px) 24px !important;
-    color: #ffffff;
-  }
+  background: #ffc22b;
 
-  .hero-center-copy span {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(12px);
-    border-radius: 999px;
-    padding: 8px 18px;
-    color: #d1fae5;
-    font-size: 12px;
-    font-weight: 760;
-    text-transform: uppercase;
-    letter-spacing: 0;
-  }
+  color: #123b35;
 
-  .hero-center-copy h1 {
-    margin: 20px 0 10px;
-    max-width: 920px;
-    font-size: clamp(44px, 5.6vw, 76px);
-    line-height: 1.04;
-    letter-spacing: 0;
-    font-weight: 800;
-    color: #ffffff;
-    text-shadow: 0 16px 46px rgba(0,0,0,0.34);
-  }
+  font-size:
+    13px !important;
 
-  .hero-nowrap {
-    white-space: nowrap;
-    display: inline-block;
-  }
+  font-weight:
+    650 !important;
 
-  .hero-center-copy p {
-    max-width: 790px;
-    margin: 0;
-    color: #fff3bf;
-    font-size: clamp(18px, 1.8vw, 24px);
-    line-height: 1.55;
-    font-weight: 650;
-    letter-spacing: 0;
-    text-shadow: 0 10px 26px rgba(0,0,0,0.32);
-  }
+  box-shadow:
+    0 14px 28px
+    rgba(
+      0,
+      0,
+      0,
+      0.16
+    );
 
-  .hero-center-copy h1::after {
-    content: "";
-    display: block;
-    width: min(220px, 42vw);
-    height: 3px;
-    margin: 22px auto 0;
-    border-radius: 999px;
-    background: linear-gradient(90deg, transparent, #fbbf24, #14b8a6, transparent);
-    animation: phraseGlow 3.5s ease-in-out infinite alternate;
-  }
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
+}
 
-  .hero-center-actions {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 32px;
-  }
 
-  .hero-center-actions a {
-    min-height: 52px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 28px;
-    border-radius: 999px;
-    text-decoration: none;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    background: rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(12px);
-    font-size: 15px;
-    font-weight: 760;
-    transition: transform 0.18s ease, background 0.18s ease;
-  }
+.home-primary-button:hover {
+  transform:
+    translateY(-2px);
 
-  .hero-center-actions a:nth-child(1) {
-    color: #092f2b;
-    border-color: #fbbf24;
-    background: #fbbf24;
-  }
+  background: #ffcc48;
+}
 
-  .hero-center-actions a:nth-child(2) {
-    color: #ffffff;
-    border-color: rgba(20, 184, 166, 0.82);
-    background: rgba(15, 118, 110, 0.72);
-  }
 
-  .hero-center-actions a:nth-child(3) {
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.48);
-    background: rgba(255, 255, 255, 0.14);
-  }
+.home-planner-preview {
+  min-height: 470px;
 
-  .hero-center-actions a:hover {
-    transform: translateY(-3px);
-    background: rgba(255, 255, 255, 0.22);
-  }
+  display: flex;
 
-  .hero-center-actions a:nth-child(1):hover { background: #f59e0b; }
-  .hero-center-actions a:nth-child(2):hover { background: rgba(13, 148, 136, 0.86); }
-
-  .quick-start-section {
-    width: min(1180px, calc(100% - 36px));
-    margin: 58px auto 0;
-    padding: 34px;
-    border-radius: 34px;
-    background:
-      radial-gradient(circle at 10% 10%, rgba(20,184,166,0.12), transparent 22rem),
-      linear-gradient(135deg, rgba(255,255,255,0.94), rgba(248,244,234,0.94));
-    border: 1px solid rgba(15,118,110,0.14);
-    box-shadow: 0 22px 60px rgba(15,23,42,0.07);
-  }
+  flex-direction: column;
 
-  .quick-start-header {
-    display: grid;
-    grid-template-columns: minmax(0, 0.82fr) minmax(280px, 0.55fr);
-    gap: 30px;
-    align-items: end;
-    margin-bottom: 22px;
-  }
+  justify-content: center;
 
-  .quick-start-header h2 {
-    margin: 14px 0 0;
-    color: #083f3b;
-    font-size: clamp(30px, 4.2vw, 52px);
-    line-height: 1;
-    letter-spacing: -0.045em;
-  }
+  padding:
+    38px;
 
-  .quick-start-header p {
-    margin: 0;
-    color: #475569;
-    font-size: 16px;
-    line-height: 1.7;
-    font-weight: 720;
-  }
+  background:
+    linear-gradient(
+      145deg,
+      #f4fbf9,
+      #ffffff
+      58%,
+      #fff9e9
+    );
+}
 
-  .quick-start-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 22px;
-  }
 
-  .quick-start-card {
-    position: relative;
-    display: grid;
-    grid-template-rows: 190px 1fr;
-    min-height: 440px;
-    overflow: hidden;
-    border-radius: 30px;
-    text-decoration: none;
-    color: #172033;
-    background: rgba(255,255,255,0.94);
-    border: 1px solid rgba(15,118,110,0.16);
-    box-shadow: 0 24px 58px rgba(15,23,42,0.10);
-    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-  }
+.home-preview-header {
+  padding-bottom: 17px;
 
-  .quick-start-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg, #fbbf24, #14b8a6, #0f766e);
-    z-index: 4;
-  }
+  border-bottom:
+    1px solid
+    rgba(
+      8,
+      117,
+      104,
+      0.13
+    );
+}
 
-  .quick-start-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(20,184,166,0.52);
-    box-shadow: 0 34px 76px rgba(15,23,42,0.16);
-  }
 
-  .quick-card-visual {
-    position: relative;
-    overflow: hidden;
-    background: #063f3a;
-  }
+.home-preview-header span {
+  color:
+    var(--home-teal);
 
-  .quick-card-visual img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-    transform: scale(1.02);
-    transition: transform 0.38s ease, filter 0.38s ease;
-  }
+  font-size:
+    10px !important;
 
-  .quick-start-card:hover .quick-card-visual img {
-    transform: scale(1.09);
-    filter: saturate(1.12);
-  }
+  font-weight:
+    650 !important;
+}
 
-  .quick-card-shade {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(circle at 18% 12%, rgba(251, 191, 36, 0.24), transparent 16rem),
-      linear-gradient(180deg, rgba(6, 63, 58, 0.05) 0%, rgba(6, 63, 58, 0.78) 100%);
-  }
 
-  .quick-card-badge {
-    position: absolute;
-    top: 18px;
-    left: 18px;
-    z-index: 2;
-    display: inline-flex;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.88);
-    color: #063f3a;
-    font-size: 11px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    backdrop-filter: blur(10px);
-  }
+.home-preview-header h3 {
+  margin:
+    6px 0 0;
 
-  .quick-icon {
-    position: absolute;
-    right: 18px;
-    bottom: 18px;
-    z-index: 2;
-    width: 58px;
-    height: 58px;
-    display: grid;
-    place-items: center;
-    border-radius: 22px;
-    background: #fbbf24;
-    color: #063f3a;
-    font-size: 28px;
-    box-shadow: 0 14px 30px rgba(0,0,0,0.20), inset 0 0 0 2px rgba(255,255,255,0.56);
-  }
+  color: #172724;
 
-  .quick-card-content {
-    padding: 26px;
-    display: flex;
-    flex-direction: column;
-  }
+  font-size:
+    21px !important;
 
-  .quick-eyebrow {
-    color: #0f766e;
-    font-size: 12px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-  }
+  line-height:
+    1.2 !important;
 
-  .quick-start-card h3 {
-    margin: 10px 0 10px;
-    color: #083f3b;
-    font-size: clamp(25px, 2.4vw, 34px);
-    line-height: 1.02;
-    letter-spacing: -0.045em;
-  }
+  font-weight:
+    700 !important;
+}
 
-  .quick-start-card p {
-    margin: 0;
-    color: #4b5f78;
-    line-height: 1.65;
-    font-weight: 720;
-  }
 
-  .quick-chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 20px 0 22px;
-  }
+.home-preview-steps {
+  display: grid;
 
-  .quick-chip-row em {
-    display: inline-flex;
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #ecfdf5;
-    color: #0f766e;
-    border: 1px solid rgba(20,184,166,0.20);
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 900;
-  }
+  gap: 10px;
 
-  .quick-start-card strong {
-    margin-top: auto;
-    min-height: 46px;
-    width: fit-content;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 18px;
-    border-radius: 999px;
-    background: #063f3a;
-    color: #ffffff;
-    font-weight: 950;
-    box-shadow: 0 14px 30px rgba(6, 63, 58, 0.16);
-  }
+  margin-top: 18px;
+}
 
-  .quick-start-card.discover-first strong {
-    background: #fbbf24;
-    color: #092f2b;
-  }
 
-  .quick-start-card.already-know strong {
-    background: #0f766e;
-  }
+.home-preview-step {
+  min-height: 64px;
 
-  .journey-flow-strip {
-    margin-top: 20px;
-    padding: 18px;
-    border-radius: 24px;
-    background: #063f3a;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    color: #ffffff;
-  }
+  display: grid;
 
-  .flow-item {
-    position: relative;
-    min-height: 74px;
-    padding: 14px 18px;
-    border-radius: 18px;
-    background: rgba(255,255,255,0.09);
-    border: 1px solid rgba(255,255,255,0.12);
-  }
+  grid-template-columns:
+    42px
+    minmax(
+      0,
+      1fr
+    );
 
-  .flow-item strong,
-  .flow-item span {
-    display: block;
-  }
+  gap: 12px;
 
-  .flow-item strong {
-    color: #fde68a;
-    font-size: 22px;
-    font-weight: 950;
-  }
+  align-items: center;
 
-  .flow-item span {
-    margin-top: 4px;
-    color: #ccfbf1;
-    font-size: 13px;
-    font-weight: 730;
-  }
+  padding:
+    11px 13px;
 
-  .flow-item em {
-    position: absolute;
-    right: -16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 30px;
-    height: 30px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: #fbbf24;
-    color: #063f3a;
-    font-style: normal;
-    font-weight: 950;
-    z-index: 2;
-  }
+  border:
+    1px solid
+    rgba(
+      8,
+      117,
+      104,
+      0.12
+    );
 
-  .landing-showcase-section,
-  .partner-strip-section {
-    width: min(1180px, calc(100% - 36px));
-    margin-left: auto;
-    margin-right: auto;
-  }
+  border-radius: 14px;
 
-  .landing-showcase-section {
-    padding: 86px 0 0;
-  }
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.88
+    );
 
-  .first-showcase {
-    padding-top: 72px;
-  }
+  box-shadow:
+    0 6px 14px
+    rgba(
+      15,
+      23,
+      42,
+      0.035
+    );
+}
 
-  .tinted-showcase {
-    margin-top: 70px;
-    padding: 58px 34px 42px;
-    border-radius: 34px;
-    background:
-      radial-gradient(circle at 8% 10%, rgba(20,184,166,0.12), transparent 22rem),
-      linear-gradient(135deg, rgba(255,255,255,0.86), rgba(248,244,234,0.94));
-    border: 1px solid rgba(15,118,110,0.14);
-    box-shadow: 0 24px 70px rgba(15,23,42,0.08);
-  }
 
-  .showcase-heading {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 30px;
-    align-items: center;
-    margin-bottom: 36px;
-  }
+.home-preview-number {
+  width: 38px;
+  height: 38px;
 
-  .section-kicker {
-    display: inline-flex;
-    width: fit-content;
-    padding: 8px 13px;
-    border-radius: 999px;
-    background: #ccfbf1;
-    color: #0f766e;
-    font-size: 12px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-  }
+  display: grid;
 
-  .section-kicker.light {
-    background: rgba(255,255,255,0.13);
-    color: #ccfbf1;
-  }
+  place-items: center;
 
-  .showcase-heading h2,
-  .partner-strip-section h2 {
-    margin: 14px 0 0;
-    color: #083f3b;
-    font-size: clamp(34px, 4.5vw, 58px);
-    line-height: 1;
-    letter-spacing: -0.045em;
-  }
+  border-radius: 11px;
 
-  .showcase-heading p {
-    max-width: 720px;
-    margin: 14px 0 0;
-    color: #475569;
-    font-size: 17px;
-    line-height: 1.7;
-    font-weight: 700;
-  }
+  background:
+    linear-gradient(
+      145deg,
+      #087568,
+      #0b8f80
+    );
 
-  .outline-action {
-    min-width: 160px;
-    min-height: 48px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 24px;
-    border-radius: 999px;
-    border: 1px solid #14b8a6;
-    color: #0f766e;
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 950;
-    background: rgba(255,255,255,0.78);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  }
+  color: #ffffff;
 
-  .outline-action:hover {
-    transform: translateY(-3px);
-    background: #ecfdf5;
-    box-shadow: 0 16px 34px rgba(15, 118, 110, 0.14);
-  }
+  font-size:
+    12px !important;
 
-  .showcase-card-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 22px;
-  }
+  font-weight:
+    700 !important;
+}
 
-  .showcase-card {
-    position: relative;
-    display: flex;
-    min-height: 470px;
-    overflow: hidden;
-    border-radius: 28px;
-    background: #ffffff;
-    text-decoration: none;
-    color: #172033;
-    border: 1px solid rgba(15, 118, 110, 0.14);
-    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.10);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
 
-  .showcase-card:hover {
-    transform: translateY(-7px);
-    box-shadow: 0 34px 72px rgba(15, 23, 42, 0.16);
-  }
+.home-preview-step strong,
+.home-preview-step small {
+  display: block;
+}
 
-  .showcase-card img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.02);
-    transition: transform 0.36s ease;
-  }
 
-  .showcase-card:hover img {
-    transform: scale(1.08);
-  }
+.home-preview-step strong {
+  color: #243a36;
 
-  .showcase-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 22%, rgba(3, 31, 29, 0.92) 100%);
-  }
+  font-size:
+    13px !important;
+
+  line-height:
+    1.3;
+
+  font-weight:
+    650 !important;
+}
+
+
+.home-preview-step small {
+  margin-top: 3px;
+
+  color: #74837f;
+
+  font-size:
+    11px !important;
+
+  line-height:
+    1.4;
+
+  font-weight:
+    450 !important;
+}
+
+
+/* =========================================
+   HOTEL / EVENT / GUIDE SECTIONS
+   ========================================= */
+
+.home-soft-section {
+  margin-top: 66px;
+
+  padding:
+    58px 0;
+
+  border-top:
+    1px solid
+    #edf1ef;
+
+  border-bottom:
+    1px solid
+    #edf1ef;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f8faf9,
+      #fffdf8
+    );
+}
+
+
+.home-adaptive-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(
+        280px,
+        1fr
+      )
+    );
+
+  gap: 18px;
+}
+
+
+.home-info-card {
+  min-width: 0;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--home-border);
+
+  border-radius: 19px;
+
+  background: #ffffff;
+
+  color:
+    var(--home-text);
+
+  box-shadow:
+    0 10px 28px
+    rgba(
+      15,
+      23,
+      42,
+      0.05
+    );
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+
+.home-info-card:hover {
+  transform:
+    translateY(-3px);
+
+  box-shadow:
+    0 18px 38px
+    rgba(
+      15,
+      23,
+      42,
+      0.09
+    );
+}
+
+
+.home-info-media {
+  position: relative;
+
+  height: 205px;
+
+  overflow: hidden;
+
+  background: #eef6f4;
+}
+
+
+.home-info-media img,
+.home-info-media
+.home-image-placeholder {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  transition:
+    transform 320ms ease;
+}
+
+
+.home-info-card:hover
+.home-info-media img {
+  transform:
+    scale(1.035);
+}
+
+
+.home-image-placeholder {
+  display: grid;
+
+  place-items: center;
+
+  background:
+    linear-gradient(
+      135deg,
+      #e9f7f4,
+      #fff4d5
+    );
+}
+
+
+.home-placeholder-mark {
+  display: grid;
+
+  justify-items: center;
+
+  gap: 7px;
+
+  color:
+    var(--home-teal);
+}
+
+
+.home-placeholder-mark span {
+  font-size: 24px;
+}
+
+
+.home-placeholder-mark strong {
+  max-width: 220px;
+
+  text-align: center;
+
+  font-size: 12px;
+
+  font-weight: 650;
+}
+
+
+.home-card-badge {
+  position: absolute;
 
-  .showcase-card-body {
-    position: relative;
-    z-index: 2;
-    align-self: end;
-    width: 100%;
-    padding: 26px;
-    color: #ffffff;
+  top: 13px;
+  left: 13px;
+
+  padding:
+    7px 10px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.93
+    );
+
+  color:
+    var(--home-teal-dark);
+
+  font-size: 10px;
+
+  font-weight: 650;
+}
+
+
+.home-featured-badge {
+  background: #ffe69a;
+
+  color: #654800;
+}
+
+
+.home-info-body {
+  padding: 18px;
+}
+
+
+.home-card-type {
+  color:
+    var(--home-teal);
+
+  font-size: 10px;
+
+  font-weight: 650;
+}
+
+
+.home-info-body h3 {
+  margin:
+    6px 0 6px;
+
+  color: #172724;
+
+  font-size:
+    18px !important;
+
+  line-height:
+    1.23 !important;
+
+  font-weight:
+    700 !important;
+}
+
+
+.home-info-body > p {
+  margin: 0;
+
+  color:
+    var(--home-muted);
+
+  font-size:
+    12px !important;
+
+  line-height:
+    1.45 !important;
+
+  font-weight:
+    450 !important;
+}
+
+
+.home-card-action {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin-top: 15px;
+
+  color:
+    var(--home-teal);
+
+  font-size: 11px;
+
+  font-weight: 650;
+}
+
+
+.home-info-footer {
+  display: flex;
+
+  align-items: center;
+  justify-content:
+    space-between;
+
+  gap: 12px;
+
+  margin-top: 15px;
+
+  padding-top: 13px;
+
+  border-top:
+    1px solid
+    #edf1ef;
+}
+
+
+.home-info-footer span {
+  color: #60706d;
+
+  font-size: 11px;
+}
+
+
+.home-info-footer strong {
+  display: inline-flex;
+
+  gap: 7px;
+
+  color:
+    var(--home-teal);
+
+  font-size: 11px;
+
+  font-weight: 650;
+}
+
+
+.home-language-row {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-top: 11px;
+}
+
+
+.home-language-row span {
+  padding:
+    5px 8px;
+
+  border-radius: 999px;
+
+  background: #eef8f6;
+
+  color:
+    var(--home-teal);
+
+  font-size: 10px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================
+   PARTNER CTA
+   ========================================= */
+
+.home-partner-section {
+  margin-top: 24px;
+
+  padding:
+    30px 34px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content:
+    space-between;
+
+  gap: 28px;
+
+  border:
+    1px solid
+    rgba(
+      227,
+      171,
+      43,
+      0.24
+    );
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      110deg,
+      #fff8dc,
+      #ffffff,
+      #eef9f6
+    );
+}
+
+
+.home-partner-section h2 {
+  max-width: 850px;
+
+  margin-bottom: 0;
+}
+
+
+.home-partner-button {
+  min-height: 46px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  flex: 0 0 auto;
+
+  padding:
+    0 20px;
+
+  border-radius: 11px;
+
+  background:
+    var(--home-gold-bright);
+
+  color: #3f3000;
+
+  font-size: 12px;
+
+  font-weight: 650;
+
+  transition:
+    transform 180ms ease;
+}
+
+
+.home-partner-button:hover {
+  transform:
+    translateY(-2px);
+}
+
+
+/* =========================================
+   STATES
+   ========================================= */
+
+.home-empty {
+  min-height: 125px;
+
+  display: grid;
+
+  place-items: center;
+
+  padding: 24px;
+
+  border:
+    1px dashed
+    rgba(
+      8,
+      117,
+      104,
+      0.22
+    );
+
+  border-radius: 16px;
+
+  background: #fbfdfc;
+
+  color:
+    var(--home-muted);
+
+  font-size: 12px;
+}
+
+
+.home-state {
+  width:
+    min(
+      680px,
+      calc(
+        100% - 36px
+      )
+    );
+
+  min-height: 420px;
+
+  margin:
+    70px auto;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+
+.home-loader {
+  width: 44px;
+  height: 44px;
+
+  border:
+    4px solid
+    rgba(
+      8,
+      117,
+      104,
+      0.12
+    );
+
+  border-top-color:
+    var(--home-teal);
+
+  border-radius: 50%;
+
+  animation:
+    homeSpin
+    0.8s
+    linear
+    infinite;
+}
+
+
+.home-error-icon {
+  width: 46px;
+  height: 46px;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #fff3cd;
+}
+
+
+@keyframes homeSpin {
+  to {
+    transform:
+      rotate(
+        360deg
+      );
   }
+}
 
-  .showcase-card-body span {
-    display: inline-flex;
-    color: #fde68a;
-    font-size: 12px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+
+/* =========================================
+   TABLET
+   ========================================= */
+
+@media (
+  max-width: 920px
+) {
+
+  .home-width {
+    width:
+      calc(
+        100% - 30px
+      );
   }
 
-  .showcase-card-body h3 {
-    margin: 9px 0 10px;
-    font-size: clamp(24px, 2.2vw, 32px);
-    line-height: 1.04;
-    color: #ffffff;
-    text-shadow: 0 8px 24px rgba(0,0,0,0.30);
+  .home-hero-center {
+    width:
+      min(
+        820px,
+        calc(
+          100% - 34px
+        )
+      );
   }
 
-  .showcase-card-body p {
-    margin: 0;
-    color: #d1fae5;
-    line-height: 1.55;
-    font-weight: 750;
+  .home-hero-center h1 {
+    font-size:
+      clamp(
+        40px,
+        7vw,
+        58px
+      ) !important;
   }
 
-  .planner-showcase-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.72fr);
-    gap: 24px;
-    align-items: stretch;
+  .home-section-heading {
+    align-items:
+      flex-start;
   }
 
-  .planner-image-panel {
-    position: relative;
-    min-height: 470px;
-    overflow: hidden;
-    border-radius: 30px;
-    text-decoration: none;
-    color: #ffffff;
-    background: #063f3a;
-    border: 1px solid rgba(15, 118, 110, 0.16);
-    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.12);
+  .home-place-grid {
+    grid-template-columns:
+      1fr 1fr;
   }
 
-  .planner-image-panel img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.02);
-    transition: transform 0.35s ease;
+  .home-place-featured {
+    grid-column:
+      span 2;
   }
 
-  .planner-image-panel:hover img {
-    transform: scale(1.08);
+  .home-planner-panel {
+    grid-template-columns:
+      1fr;
   }
 
-  .planner-image-panel::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(circle at 22% 16%, rgba(251, 191, 36, 0.24), transparent 24rem),
-      linear-gradient(180deg, rgba(3, 31, 29, 0.06) 0%, rgba(3, 31, 29, 0.88) 100%);
+  .home-planner-copy {
+    min-height: 360px;
+
+    padding:
+      42px 36px;
   }
+
+  .home-planner-copy::after {
+    left: 36px;
 
-  .planner-image-overlay {
-    position: absolute;
-    z-index: 2;
-    left: 30px;
-    right: 30px;
     bottom: 30px;
   }
 
-  .planner-image-overlay span,
-  .mini-label {
-    display: inline-flex;
-    width: fit-content;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #fbbf24;
-    color: #092f2b;
-    font-size: 12px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+  .home-planner-preview {
+    min-height: auto;
+
+    padding:
+      34px 36px;
+  }
+}
+
+
+/* =========================================
+   MOBILE
+   ========================================= */
+
+@media (
+  max-width: 650px
+) {
+
+  .home-width {
+    width:
+      calc(
+        100% - 22px
+      );
   }
 
-  .planner-image-overlay h3 {
-    margin: 14px 0 10px;
-    max-width: 640px;
-    font-size: clamp(30px, 3.5vw, 48px);
-    line-height: 1;
-    color: #ffffff;
-    letter-spacing: -0.04em;
+  .home-cinematic-hero {
+    min-height:
+      calc(
+        100svh - 66px
+      );
   }
 
-  .planner-image-overlay p {
-    margin: 0;
-    max-width: 560px;
-    color: #d1fae5;
-    font-size: 17px;
-    line-height: 1.6;
-    font-weight: 780;
+  .home-hero-center {
+    width:
+      calc(
+        100% - 24px
+      );
+
+    padding:
+      46px 12px 64px;
   }
 
-  .planner-feature-card {
-    min-height: 470px;
-    padding: 34px;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(15, 118, 110, 0.16);
-    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.08);
+  .home-hero-center h1 {
+    font-size:
+      clamp(
+        36px,
+        11vw,
+        50px
+      ) !important;
   }
 
-  .planner-feature-card h3 {
-    margin: 16px 0 12px;
-    color: #083f3b;
-    font-size: clamp(28px, 3vw, 40px);
-    line-height: 1.04;
-    letter-spacing: -0.035em;
+  .home-hero-center > p {
+    font-size:
+      14px !important;
   }
 
-  .planner-feature-card > p {
-    margin: 0;
-    color: #475569;
-    line-height: 1.7;
-    font-weight: 730;
-  }
-
-  .planner-step-list {
-    display: grid;
-    gap: 12px;
-    margin: 22px 0 24px;
-  }
-
-  .planner-step {
-    display: grid;
-    grid-template-columns: 48px 1fr;
-    gap: 12px;
-    align-items: start;
-    padding: 14px;
-    border-radius: 18px;
-    background: #f8f4ea;
-    border: 1px solid rgba(15, 118, 110, 0.12);
-  }
-
-  .planner-step strong {
-    width: 42px;
-    height: 42px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: #063f3a;
-    color: #fbbf24;
-    font-weight: 950;
-  }
-
-  .planner-step h4 {
-    margin: 0 0 4px;
-    color: #083f3b;
-    font-size: 16px;
-  }
-
-  .planner-step p {
-    margin: 0;
-    color: #64748b;
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 700;
-  }
-
-  .solid-action {
-    min-height: 48px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 22px;
-    border-radius: 999px;
-    text-decoration: none;
-    color: #092f2b;
-    background: #fbbf24;
-    font-weight: 950;
-    box-shadow: 0 16px 34px rgba(251, 191, 36, 0.22);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-  }
-
-  .solid-action:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 42px rgba(251, 191, 36, 0.30);
-  }
-
-  .route-card {
-    min-height: 420px;
-  }
-
-  .route-badge {
-    position: absolute;
-    z-index: 2;
-    top: 18px;
-    left: 18px;
-    display: inline-flex;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: #fbbf24;
-    color: #092f2b;
-    font-size: 12px;
-    font-weight: 950;
-    box-shadow: 0 12px 28px rgba(0,0,0,0.15);
-  }
-
-  .hotel-card {
-    min-height: 380px;
-  }
-
-  .loading-card {
-    grid-column: 1 / -1;
-    min-height: 180px;
-    display: grid;
-    place-items: center;
-    border-radius: 24px;
-    background: #ffffff;
-    border: 1px solid rgba(15,118,110,0.14);
-    color: #64748b;
-    font-weight: 950;
-  }
-
-  .partner-strip-section {
-    margin-top: 78px;
-    padding: 34px;
-    border-radius: 30px;
-    background: linear-gradient(135deg, #063f3a, #0f766e);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    box-shadow: 0 25px 55px rgba(15, 118, 110, 0.22);
-  }
-
-  .partner-strip-section h2 {
-    color: #ffffff;
-    max-width: 760px;
-  }
-
-  .partner-strip-section a {
-    min-height: 48px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 22px;
-    border-radius: 999px;
-    text-decoration: none;
-    color: #092f2b;
-    background: #fbbf24;
-    font-weight: 950;
-    white-space: nowrap;
-  }
-
-
-  .event-showcase {
-    background:
-      radial-gradient(circle at 82% 10%, rgba(251, 191, 36, 0.16), transparent 22rem),
-      linear-gradient(135deg, rgba(255,255,255,0.90), rgba(240,253,250,0.88));
-  }
-
-  .guide-showcase {
-    margin-top: 70px;
-  }
-
-  .guide-card {
-    min-height: 420px;
-  }
-
-  .guide-badge {
-    background: #ccfbf1;
-    color: #063f3a;
-  }
-
-  .tourismhub-footer {
+  .home-hero-actions {
     width: 100%;
-    margin: 96px 0 0;
-    background: #087f9d;
-    color: #ffffff;
-    box-shadow: 0 -22px 55px rgba(8, 127, 157, 0.16);
-    border-radius: 0;
-    overflow: hidden;
   }
 
-  .footer-inner {
-    width: min(1240px, calc(100% - 48px));
-    margin: 0 auto;
-    padding: 56px 0 28px;
+  .home-hero-actions a {
+    width: 100%;
   }
 
-  .footer-top {
-    display: grid;
-    grid-template-columns: 1.45fr 0.85fr 0.85fr 0.75fr 1.15fr;
-    gap: 42px;
-    align-items: start;
+  .home-scroll-cue {
+    display: none;
   }
 
-  .footer-logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    color: #ffffff;
-    text-decoration: none;
-    font-size: 30px;
-    font-weight: 950;
-    letter-spacing: -0.04em;
+  .home-first-section {
+    padding-top: 52px;
   }
 
-  .footer-logo-mark {
-    width: 46px;
-    height: 46px;
-    display: grid;
-    place-items: center;
-    border-radius: 18px;
-    background: rgba(255,255,255,0.14);
-    border: 1px solid rgba(255,255,255,0.20);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  .home-section {
+    padding-top: 52px;
   }
 
-  .footer-brand-panel p {
-    max-width: 440px;
-    margin: 20px 0 24px;
-    color: rgba(255, 255, 255, 0.84);
-    line-height: 1.75;
-    font-size: 15px;
-    font-weight: 650;
+  .home-section-heading {
+    flex-direction:
+      column;
+
+    align-items:
+      stretch;
+
+    gap: 17px;
   }
 
-  .footer-hotlines {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    max-width: 410px;
+  .home-section-action {
+    width: 100%;
   }
 
-  .footer-hotlines div {
-    padding: 18px 18px 16px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.11);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+  .home-place-grid {
+    grid-template-columns:
+      1fr;
+
+    grid-auto-rows:
+      320px;
   }
 
-  .footer-hotlines strong,
-  .footer-hotlines span {
-    display: block;
+  .home-place-featured {
+    grid-column: auto;
   }
 
-  .footer-hotlines strong {
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    line-height: 1.35;
+  .home-place-featured
+  .home-place-content h3 {
+    font-size:
+      20px !important;
   }
 
-  .footer-hotlines span {
-    margin-top: 7px;
-    color: #fde68a;
-    font-size: 26px;
-    font-weight: 950;
-    letter-spacing: -0.03em;
+  .home-planner-panel {
+    margin-top: 52px;
+
+    border-radius: 21px;
   }
 
-  .footer-column h3 {
-    margin: 6px 0 18px;
-    color: #fde68a;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
+  .home-planner-copy {
+    min-height: 340px;
+
+    padding:
+      34px 22px;
   }
 
-  .footer-column a {
-    display: block;
-    width: fit-content;
-    margin: 11px 0;
-    color: rgba(255, 255, 255, 0.88);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 720;
-    line-height: 1.35;
-    transition: color 0.16s ease, transform 0.16s ease;
+  .home-planner-copy h2 {
+    font-size:
+      32px !important;
   }
 
-  .footer-column a:hover {
-    color: #fde68a;
-    transform: translateX(4px);
+  .home-planner-copy p {
+    font-size:
+      13px !important;
   }
 
-  .footer-official a {
-    color: rgba(255, 255, 255, 0.76);
+  .home-primary-button {
+    width: 100%;
   }
 
-  .footer-middle {
-    margin-top: 44px;
-    padding: 24px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
+  .home-planner-copy::after {
+    left: 22px;
+
+    bottom: 24px;
   }
 
-  .footer-middle strong,
-  .footer-middle span {
-    display: block;
+  .home-planner-preview {
+    padding:
+      28px 20px;
   }
 
-  .footer-middle strong {
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 950;
+  .home-preview-step {
+    grid-template-columns:
+      39px
+      minmax(
+        0,
+        1fr
+      );
   }
 
-  .footer-middle span {
-    margin-top: 5px;
-    color: rgba(255, 255, 255, 0.78);
-    font-weight: 650;
+  .home-soft-section {
+    margin-top: 52px;
+
+    padding:
+      46px 0;
   }
 
-  .footer-socials {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+  .home-adaptive-grid {
+    grid-template-columns:
+      1fr;
   }
 
-  .footer-socials span {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: #ffffff;
-    color: #087f9d;
-    font-size: 13px;
-    font-weight: 950;
-    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+  .home-info-media {
+    height: 220px;
   }
 
-  .footer-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding-top: 22px;
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 13px;
-    font-weight: 650;
+  .home-info-footer {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
   }
 
-  .footer-bottom p {
-    margin: 0;
+  .home-partner-section {
+    margin-top: 18px;
+
+    padding:
+      26px 20px;
+
+    flex-direction:
+      column;
+
+    align-items:
+      flex-start;
   }
 
-  .footer-legal-links {
-    display: flex;
-    gap: 18px;
-    flex-wrap: wrap;
+  .home-partner-button {
+    width: 100%;
   }
-
-  .footer-legal-links a {
-    color: rgba(255, 255, 255, 0.82);
-    text-decoration: none;
-    font-weight: 780;
-  }
-
-  .footer-legal-links a:hover {
-    color: #fde68a;
-  }
-
-  .back-to-top {
-    position: fixed;
-    left: 24px;
-    bottom: 28px;
-    z-index: 90;
-    min-width: 138px;
-    height: 58px;
-    border: 1px solid rgba(251, 191, 36, 0.86);
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 9px 18px 9px 10px;
-    background: linear-gradient(135deg, #063f3a 0%, #0f766e 55%, #e0a118 100%);
-    color: #ffffff;
-    cursor: pointer;
-    box-shadow: 0 18px 42px rgba(6, 63, 58, 0.32), 0 0 0 7px rgba(251, 191, 36, 0.14);
-    transform: translateX(-18px) scale(0.94);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
-  }
-
-  .back-to-top.visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateX(0) scale(1);
-    animation: backToTopPulse 1.9s ease-in-out infinite;
-  }
-
-  .back-to-top::before {
-    content: "";
-    position: absolute;
-    inset: -5px;
-    border-radius: inherit;
-    border: 1px solid rgba(251, 191, 36, 0.42);
-    pointer-events: none;
-  }
-
-  .back-icon-wrap {
-    position: relative;
-    z-index: 1;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: #fbbf24;
-    color: #063f3a;
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.58);
-    flex: 0 0 auto;
-  }
-
-  .back-arrow {
-    display: block;
-    font-size: 25px;
-    line-height: 1;
-    font-weight: 950;
-    transform: translateY(1px);
-  }
-
-  .back-label {
-    position: relative;
-    z-index: 1;
-    display: block;
-    font-size: 12px;
-    line-height: 1.05;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    white-space: nowrap;
-  }
-
-  .back-to-top:hover {
-    transform: translateY(-4px) scale(1.03);
-    box-shadow: 0 24px 54px rgba(6, 63, 58, 0.38), 0 0 0 10px rgba(251, 191, 36, 0.20);
-  }
-
-  @keyframes backToTopPulse {
-    0%, 100% { box-shadow: 0 18px 42px rgba(6, 63, 58, 0.32), 0 0 0 7px rgba(251, 191, 36, 0.14); }
-    50% { box-shadow: 0 22px 52px rgba(6, 63, 58, 0.40), 0 0 0 13px rgba(251, 191, 36, 0.08); }
-  }
-
-  @keyframes phraseGlow {
-    from { opacity: 0.62; transform: scaleX(0.82); }
-    to { opacity: 1; transform: scaleX(1); }
-  }
-
-  @keyframes sriLankaCinema {
-    0% { opacity: 0; transform: scale(1.08); }
-    8% { opacity: 1; }
-    28% { opacity: 1; }
-    36% { opacity: 0; transform: scale(1.16); }
-    100% { opacity: 0; transform: scale(1.16); }
-  }
-
-  @keyframes floatingGlow {
-    from { transform: translate3d(0, 0, 0) scale(1); }
-    to { transform: translate3d(28px, -24px, 0) scale(1.22); }
-  }
-
-  @keyframes waveSweep {
-    from { transform: translateX(-12%); }
-    to { transform: translateX(12%); }
-  }
-
-  @media (max-width: 1050px) {
-    .footer-top {
-      grid-template-columns: 1.2fr 1fr 1fr;
-      gap: 32px;
-    }
-
-    .footer-official {
-      grid-column: span 2;
-    }
-
-    .quick-start-header,
-    .quick-start-grid,
-    .journey-flow-strip {
-      grid-template-columns: 1fr;
-    }
-
-    .flow-item em {
-      display: none;
-    }
-
-    .footer-main {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .showcase-heading,
-    .partner-strip-section {
-      grid-template-columns: 1fr;
-    }
-
-    .showcase-card-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .planner-showcase-layout {
-      grid-template-columns: 1fr;
-    }
-
-    .partner-strip-section {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-  }
-
-  @media (max-width: 760px) {
-    .back-to-top {
-      left: 14px;
-      bottom: 18px;
-      min-width: 58px;
-      width: 58px;
-      height: 58px;
-      padding: 9px;
-      border-radius: 50%;
-    }
-
-    .back-icon-wrap {
-      width: 38px;
-      height: 38px;
-    }
-
-    .back-arrow {
-      font-size: 23px;
-    }
-
-    .back-label {
-      display: none;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .quick-start-section {
-      width: min(100% - 20px, 1180px);
-      padding: 24px 18px;
-      border-radius: 26px;
-    }
-
-    .quick-start-card {
-      min-height: auto;
-    }
-
-    .tourismhub-footer {
-      width: 100%;
-      margin-top: 64px;
-      border-radius: 0;
-    }
-
-    .footer-inner {
-      width: min(100% - 28px, 1240px);
-      padding: 38px 0 22px;
-    }
-
-    .footer-top {
-      grid-template-columns: 1fr;
-      gap: 30px;
-    }
-
-    .footer-hotlines {
-      grid-template-columns: 1fr;
-    }
-
-    .footer-middle,
-    .footer-bottom {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .hero-cinema-section { width: 100%; }
-    .hero-video-shell { border-radius: 0; min-height: calc(100svh - 65px); }
-    .hero-center-copy { min-height: calc(100svh - 65px); padding: 28px 18px; }
-    .showcase-card-grid { grid-template-columns: 1fr; }
-    .landing-showcase-section { padding-top: 58px; }
-    .tinted-showcase { padding: 34px 18px 26px; }
-    .showcase-card { min-height: 390px; }
-    .planner-image-panel,
-    .planner-feature-card { min-height: auto; }
-    .planner-image-panel { min-height: 390px; }
-    .planner-feature-card { padding: 24px; }
-    .outline-action,
-    .solid-action { width: 100%; }
-  }
+}
 `;
+
 
 export default HomePage;

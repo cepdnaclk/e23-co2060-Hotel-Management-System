@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
@@ -199,7 +200,7 @@ function PartnerDashboardPage() {
         <div style={styles.heroPattern} />
         <div style={styles.heroContent}>
           <div>
-            <span style={styles.badge}>TourismHub LK Partner Portal</span>
+            <span style={styles.badge}>TripLanka Partner Portal</span>
             <h1 style={styles.heroTitle}>Welcome back, {partnerName}</h1>
             <p style={styles.heroText}>
               Register properties, publish tourism events, become a verified guider, and manage your tourism business from one calm dashboard.
@@ -297,7 +298,7 @@ function PartnerDashboardPage() {
                 <div key={property.id} style={styles.propertyRow}>
                   <div style={styles.thumbWrap}>
                     {property.main_image ? (
-                      <img src={property.main_image} alt={property.name} style={styles.thumbImage} />
+                      <ContentImage src={property.main_image} alt={property.name} style={styles.thumbImage} />
                     ) : (
                       <span style={styles.thumbFallback}>Hotel</span>
                     )}
@@ -381,7 +382,7 @@ function PartnerDashboardPage() {
                 <div key={guide.id} style={styles.guideRow}>
                   <div style={styles.guideAvatar}>
                     {guide.image_url ? (
-                      <img src={guide.image_url} alt={guide.display_name} style={styles.thumbImage} />
+                      <ContentImage src={guide.image_url} alt={guide.display_name} style={styles.thumbImage} />
                     ) : (
                       <DashboardIcon name="guideFallback" size={22} />
                     )}

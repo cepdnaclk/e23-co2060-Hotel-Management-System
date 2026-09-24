@@ -1,7 +1,7 @@
 USE tourismhub_lk;
 
 -- =========================================================
--- TOURISMHUB LK
+-- TRIPLANKA
 -- DATABASE DRIVEN TRIP PLANNER
 -- =========================================================
 

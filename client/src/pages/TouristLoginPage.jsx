@@ -125,7 +125,7 @@ const styles = {
   imageSide: {
     minHeight: "520px",
     backgroundImage:
-      "url('https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1000&q=80')",
+      "url('/images/destinations/nine-arch-bridge/main.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "center",
     position: "relative",

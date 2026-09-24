@@ -189,7 +189,7 @@ function AdminDashboardPage() {
     <main className="admin-page admin-dashboard-modern-page">
       <section className="admin-dashboard-hero">
         <div className="admin-dashboard-hero-content">
-          <p className="eyebrow">TourismHub LK Admin</p>
+          <p className="eyebrow">TripLanka Admin</p>
           <h1>Admin Dashboard</h1>
           <p>
             Welcome {admin?.full_name || "Admin"}. Use this control center to review approvals,

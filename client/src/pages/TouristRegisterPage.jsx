@@ -398,7 +398,7 @@ function TouristRegisterPage() {
           <div style={styles.imageOverlay}>
             <h2>Explore. Plan. Book.</h2>
             <p>
-              TourismHub LK helps tourists discover approved hotels and travel
+              TripLanka helps tourists discover approved hotels and travel
               experiences around Sri Lanka.
             </p>
           </div>
@@ -558,7 +558,7 @@ const styles = {
   imageSide: {
     minHeight: "560px",
     backgroundImage:
-      "url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=80')",
+      "url('/images/destinations/nine-arch-bridge/main.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "center",
     position: "relative",

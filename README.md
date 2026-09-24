@@ -1,4 +1,4 @@
-# TourismHub LK
+# TripLanka
 
 ## Smart Hotel and Tourism Management System
 
@@ -9,7 +9,7 @@
 ![Status](https://img.shields.io/badge/Status-Academic_Project-success)
 ![Responsive](https://img.shields.io/badge/UI-Mobile_Responsive-orange)
 
-**TourismHub LK** is a mobile-responsive smart hotel and tourism management platform developed for the Sri Lankan tourism industry.
+**TripLanka** is a mobile-responsive smart hotel and tourism management platform developed for the Sri Lankan tourism industry.
 
 The platform connects tourists, hotel and tourism partners, tourist guides, event providers, reception staff and administrators through one integrated system.
 
@@ -23,7 +23,7 @@ Administrators can verify properties, manage users, approve events and guides, m
 
 ## Project Overview
 
-Tourism information, hotel booking, trip planning, tourist events and guide services are often available through separate platforms. TourismHub LK brings these services together and provides a connected workflow for tourists and tourism businesses.
+Tourism information, hotel booking, trip planning, tourist events and guide services are often available through separate platforms. TripLanka brings these services together and provides a connected workflow for tourists and tourism businesses.
 
 A typical tourist journey through the platform is:
 
@@ -310,7 +310,7 @@ Reception authentication uses a dedicated reception JWT. Reception API requests 
 
 ## System Architecture
 
-TourismHub LK follows a three-tier architecture.
+TripLanka follows a three-tier architecture.
 
 ```text
 React Frontend Applications
@@ -429,15 +429,14 @@ CREATE DATABASE tourismhub_lk;
 USE tourismhub_lk;
 ```
 
-Run the SQL files in the order used by the current project version.
-
-Example:
+For a **fresh installation**, the final database source is consolidated into only these two files:
 
 ```text
-1. Main schema file
-2. Seed-data file
-3. Additional module SQL files, when included
+1. database/schema.sql
+2. database/seed.sql
 ```
+
+`schema.sql` already includes the Home, Trip Planner, event-report, and complete guide-process structures. `seed.sql` includes the required final reference/configuration data. Historical migration files are kept only for safely upgrading an existing database and are not required after a fresh setup.
 
 Check the created tables:
 
@@ -456,9 +455,10 @@ Major database areas include:
 - Payment methods and transactions
 - Explore categories and destinations
 - Explore images and itineraries
-- Tourist events
-- Tourist guides
-- Guide-payment transactions
+- Trip Planner plans, days, items, routing cache and routing configuration
+- Home-page sections and quick actions
+- Tourist events and event reports
+- Tourist guides, guide requests, reviews, and guide-payment transactions
 
 ---
 
@@ -530,7 +530,7 @@ The current backend contains APIs for:
 
 ### Landing Page
 
-![TourismHub LK Landing Page](docs/screenshots/home-page.jpeg)
+![TripLanka Landing Page](docs/screenshots/home-page.jpeg)
 
 ### Explore Sri Lanka
 

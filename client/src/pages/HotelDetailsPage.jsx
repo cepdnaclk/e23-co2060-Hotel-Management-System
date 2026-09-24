@@ -1,6 +1,8 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api/api";
+import { IMAGE_PLACEHOLDER } from "../utils/assetUrl";
 
 function HotelDetailsPage() {
   const { id } = useParams();
@@ -62,7 +64,7 @@ function HotelDetailsPage() {
 
   const logoUrl =
     property.logo_url ||
-    "https://dummyimage.com/180x180/ffffff/111827.png&text=HOTEL";
+    IMAGE_PLACEHOLDER;
 
   const themeColor = property.theme_color || "#5b1235";
 
@@ -75,7 +77,7 @@ function HotelDetailsPage() {
           ← Hotels
         </Link>
 
-        <img src={logoUrl} alt={property.name} style={styles.logo} />
+        <ContentImage src={logoUrl} alt={property.name} style={styles.logo} />
 
         <div style={styles.navRight}>
           <Link to={`/hotels/${property.id}/rooms`} style={styles.menuText}>
@@ -97,7 +99,7 @@ function HotelDetailsPage() {
 
       <section style={styles.hero}>
         {mainImage ? (
-          <img src={mainImage} alt={property.name} style={styles.heroImage} />
+          <ContentImage src={mainImage} alt={property.name} style={styles.heroImage} />
         ) : (
           <div style={styles.emptyHeroImage}>
             No hotel main photo uploaded yet
@@ -105,7 +107,7 @@ function HotelDetailsPage() {
         )}
 
         <div style={styles.heroOverlay}>
-          <img src={logoUrl} alt={property.name} style={styles.heroLogo} />
+          <ContentImage src={logoUrl} alt={property.name} style={styles.heroLogo} />
 
           <p style={styles.heroQuote}>
             {property.quote || "Add hotel quote from property management"}
@@ -156,7 +158,7 @@ function HotelDetailsPage() {
 
         <div style={styles.introImages}>
           {introImageOne ? (
-            <img
+            <ContentImage
               src={introImageOne}
               alt={`${property.name} view 1`}
               style={styles.introImage1}
@@ -166,7 +168,7 @@ function HotelDetailsPage() {
           )}
 
           {introImageTwo ? (
-            <img
+            <ContentImage
               src={introImageTwo}
               alt={`${property.name} view 2`}
               style={styles.introImage2}
@@ -198,7 +200,7 @@ function HotelDetailsPage() {
                 <div key={room.id} style={styles.roomCard}>
                   <div style={styles.roomImageWrap}>
                     {room.main_image ? (
-                      <img
+                      <ContentImage
                         src={room.main_image}
                         alt={room.room_type}
                         style={styles.roomImage}

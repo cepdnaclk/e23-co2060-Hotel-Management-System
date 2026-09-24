@@ -186,7 +186,7 @@ function AdminRegisterPage() {
             type="email"
             value={form.email}
             onChange={handleChange}
-            placeholder="admin@tourismhub.lk"
+            placeholder="admin@triplanka.lk"
             required
           />
 

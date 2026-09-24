@@ -42,7 +42,7 @@ function SimplePage({ title, message }) {
     <div className="page">
       <div className="card" style={{ padding: "30px" }}>
         <h1>{title}</h1>
-        <p>{message || "Explore TourismHub LK travel information and services."}</p>
+        <p>{message || "Explore TripLanka travel information and services."}</p>
       </div>
     </div>
   );

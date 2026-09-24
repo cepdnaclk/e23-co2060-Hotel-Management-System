@@ -57,7 +57,7 @@ function AdminLoginPage() {
       <section className="admin-login-card">
         <div className="admin-login-badge">ADMIN PANEL</div>
 
-        <h1>TourismHub LK Admin</h1>
+        <h1>TripLanka Admin</h1>
 
         <p>
           Login separately to review property registrations and manage
@@ -73,7 +73,7 @@ function AdminLoginPage() {
             type="email"
             value={form.email}
             onChange={handleChange}
-            placeholder="admin@tourismhub.lk"
+            placeholder="admin@triplanka.lk"
             required
           />
 

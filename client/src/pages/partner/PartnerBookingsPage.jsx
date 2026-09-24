@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import api from "../../api/api";
@@ -116,7 +117,7 @@ function PartnerBookingsPage() {
               <div style={styles.cardTop}>
                 <div style={styles.logoBox}>
                   {booking.property_logo ? (
-                    <img
+                    <ContentImage
                       src={booking.property_logo}
                       alt={booking.property_name}
                       style={styles.logo}

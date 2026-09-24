@@ -1,7 +1,7 @@
 USE tourismhub_lk;
 
 -- =========================================================
--- TOURISMHUB LK
+-- TRIPLANKA
 -- SAFE EXISTING-DATABASE MIGRATION
 -- SET 19 — PERMANENT TRIP-PLANNER ROUTING RESILIENCE
 --

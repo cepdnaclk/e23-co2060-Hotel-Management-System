@@ -1,11 +1,10 @@
+import ContentImage from "../components/ContentImage";
+import { assetUrl as toImageUrl } from "../utils/assetUrl";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../api/api";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-const ASSET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const priceLimitMin = 0;
 const priceLimitMax = 50000;
@@ -100,15 +99,6 @@ function HotelsPage() {
     }));
   }, [searchParams]);
 
-  const toImageUrl = (imageUrl) => {
-    if (!imageUrl) return "";
-    const value = String(imageUrl).trim();
-
-    if (!value) return "";
-    if (value.startsWith("http://") || value.startsWith("https://")) return value;
-
-    return `${ASSET_BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
-  };
 
   const hotelHeroImages = useMemo(() => {
     return properties
@@ -644,7 +634,7 @@ function HotelsPage() {
           {loading ? (
             <div className="empty-result-card">
               <h3>Loading approved hotels...</h3>
-              <p>Please wait while TourismHub LK loads registered hotel data.</p>
+              <p>Please wait while TripLanka loads registered hotel data.</p>
             </div>
           ) : filteredProperties.length === 0 ? (
             <div className="empty-result-card">
@@ -681,7 +671,7 @@ function HotelCard({ property, toImageUrl, saved, onToggleTrip }) {
   return (
     <article className="hotel-result-card">
       {imageUrl ? (
-        <img src={imageUrl} alt={property.name} className="hotel-card-image" />
+        <ContentImage src={imageUrl} alt={property.name} className="hotel-card-image" />
       ) : (
         <div className="hotel-image-placeholder">
           <span>🏨</span>

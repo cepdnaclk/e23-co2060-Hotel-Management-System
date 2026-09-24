@@ -2903,7 +2903,7 @@ const analyzeTripPlannerRoute =
                     .warnings ||
                   []
                 ),
-                "The live road-routing service is temporarily unavailable. TourismHub LK is showing the latest matching saved road-route analysis.",
+                "The live road-routing service is temporarily unavailable. TripLanka is showing the latest matching saved road-route analysis.",
               ],
             });
 

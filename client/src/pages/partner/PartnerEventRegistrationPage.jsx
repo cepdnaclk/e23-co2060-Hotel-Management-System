@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import api from "../../api/api";
@@ -605,7 +606,7 @@ function PartnerEventRegistrationPage() {
           </div>
 
           {imagePreview ? (
-            <img src={imagePreview} alt="Event preview" style={styles.previewImage} />
+            <ContentImage src={imagePreview} alt="Event preview" style={styles.previewImage} />
           ) : (
             <div style={styles.previewPlaceholder}>No image selected</div>
           )}

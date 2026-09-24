@@ -88,10 +88,10 @@ function AboutUsPage() {
 
         <div className="about-hero-inner">
           <div className="about-hero-content">
-            <span className="about-eyebrow">About TourismHub LK</span>
+            <span className="about-eyebrow">About TripLanka</span>
             <h1>Connecting tourists, hotels, events, and trusted local guides in Sri Lanka.</h1>
             <p>
-              TourismHub LK is a smart hotel and tourism management system designed to make
+              TripLanka is a smart hotel and tourism management system designed to make
               travel planning easier, safer, and more organized. The platform brings tourists,
               partners, and admins together through one modern web-based solution.
             </p>
@@ -106,7 +106,7 @@ function AboutUsPage() {
             <div className="about-panel-top">
               <span>🌴</span>
               <div>
-                <strong>TourismHub LK</strong>
+                <strong>TripLanka</strong>
                 <small>Smart Hotel & Tourism Management System</small>
               </div>
             </div>
@@ -159,7 +159,7 @@ function AboutUsPage() {
           <div className="about-story-card highlighted-card">
             <h3>Our solution</h3>
             <p>
-              TourismHub LK combines major tourism services into one platform. Tourists get a
+              TripLanka combines major tourism services into one platform. Tourists get a
               simple travel experience, partners get a professional way to publish services, and
               admins can review submissions before they become visible to the public.
             </p>
@@ -170,7 +170,7 @@ function AboutUsPage() {
       <section className="about-section about-modules-section">
         <div className="about-section-heading centered-heading">
           <span>Platform features</span>
-          <h2>What TourismHub LK offers</h2>
+          <h2>What TripLanka offers</h2>
           <p>
             The system is designed as a complete travel support platform with tourist-facing,
             partner-facing, and admin-facing features.
@@ -256,7 +256,7 @@ function AboutUsPage() {
       <section className="about-section about-team-section">
         <div className="about-section-heading centered-heading">
           <span>Project team</span>
-          <h2>Meet the TourismHub LK project team</h2>
+          <h2>Meet the TripLanka project team</h2>
           <p>
             Each team member contributed across different areas of the system, including
             full-stack development, database design, integration, testing and documentation.

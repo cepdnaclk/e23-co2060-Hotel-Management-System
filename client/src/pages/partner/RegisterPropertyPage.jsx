@@ -1,3 +1,4 @@
+import ContentImage from "../../components/ContentImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import api from "../../api/api";
@@ -723,7 +724,7 @@ function RegisterPropertyPage() {
               >
                 {logoPreview ? (
                   <>
-                    <img src={logoPreview} alt="Property logo" style={styles.preview} />
+                    <ContentImage src={logoPreview} alt="Property logo" style={styles.preview} />
                     <button
                       type="button"
                       onClick={(e) => {
@@ -762,7 +763,7 @@ function RegisterPropertyPage() {
               >
                 {mainPhotoPreview ? (
                   <>
-                    <img
+                    <ContentImage
                       src={mainPhotoPreview}
                       alt="Main property"
                       style={styles.preview}
@@ -904,7 +905,7 @@ function RegisterPropertyPage() {
                 >
                   {room.image_preview ? (
                     <>
-                      <img
+                      <ContentImage
                         src={room.image_preview}
                         alt="Room preview"
                         style={{ ...styles.preview, maxWidth: 260 }}

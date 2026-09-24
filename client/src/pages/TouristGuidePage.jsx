@@ -1,10 +1,10 @@
+import ContentImage from "../components/ContentImage";
+import { assetUrl } from "../utils/assetUrl";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../api/api";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const guideTypes = [
   "All",
@@ -40,12 +40,6 @@ const sortOptions = [
   { value: "name", label: "Name A-Z" },
 ];
 
-const assetUrl = (url) => {
-  if (!url) return "";
-  const value = String(url);
-  if (value.startsWith("http")) return value;
-  return `${SERVER_BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
-};
 
 const cleanArray = (value) => {
   if (!value) return [];
@@ -366,7 +360,7 @@ function TouristGuidePage() {
 
           <aside className="guide-spotlight-card">
             {activeHero ? (
-              <img className="spotlight-photo" src={activeHero.image} alt={activeHero.title} />
+              <ContentImage className="spotlight-photo" src={activeHero.image} alt={activeHero.title} />
             ) : (
               <div className="spotlight-placeholder">🧭</div>
             )}
@@ -523,7 +517,7 @@ function TouristGuidePage() {
                   <article className="guide-card" key={guide.id}>
                     <div className="guide-card-media">
                       {image ? (
-                        <img src={image} alt={guide.display_name} />
+                        <ContentImage src={image} alt={guide.display_name} />
                       ) : (
                         <div className="guide-card-placeholder">{icon}</div>
                       )}

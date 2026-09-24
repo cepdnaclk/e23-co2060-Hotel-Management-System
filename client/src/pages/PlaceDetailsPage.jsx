@@ -1,3 +1,4 @@
+import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
@@ -145,7 +146,7 @@ export default function PlaceDetailsPage() {
       {notice ? <div className="detail-toast">{notice}</div> : null}
 
       <section className="detail-hero">
-        <img src={assetUrl(mainImage)} alt={place.name} />
+        <ContentImage src={assetUrl(mainImage)} alt={place.name} />
         <div className="detail-hero-overlay" />
         <div className="detail-hero-content">
           <Link to="/explore" className="back-link">← Back to Explore</Link>
@@ -209,7 +210,7 @@ export default function PlaceDetailsPage() {
               <div className="gallery-row">
                 {place.images.map((image) => (
                   <button key={image} type="button" onClick={() => setMainImage(image)}>
-                    <img src={assetUrl(image)} alt={place.name} />
+                    <ContentImage src={assetUrl(image)} alt={place.name} />
                   </button>
                 ))}
               </div>
@@ -248,7 +249,7 @@ export default function PlaceDetailsPage() {
                   const isFocused = event.slug === focusedEventSlug;
                   return (
                     <article className={isFocused ? "place-event-card focused-event" : "place-event-card"} key={event.slug}>
-                      <img src={getEventImage(event)} alt={event.title} />
+                      <ContentImage src={getEventImage(event)} alt={event.title} />
                       <div className="place-event-body">
                         <div className="event-badge-row">
                           <span>{event.category}</span>

@@ -1,3 +1,5 @@
+import ContentImage from "../components/ContentImage";
+import { assetUrl } from "../utils/assetUrl";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -22,15 +24,7 @@ import api from "../api/api";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
-const assetUrl = (url) => {
-  if (!url) return "";
-  const value = String(url);
-  if (value.startsWith("http")) return value;
-  return `${SERVER_BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
-};
 
 const cleanArray = (value) => {
   if (!value) return [];
@@ -226,7 +220,7 @@ function GuideProfilePage() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `${guideData.display_name || "Guide"} on TourismHub LK`,
+          title: `${guideData.display_name || "Guide"} on TripLanka`,
           url,
         });
       } else {
@@ -309,7 +303,7 @@ function GuideProfilePage() {
         <div className="profile-hero-grid">
           <div className="profile-photo-panel">
             {image ? (
-              <img src={image} alt={guideData.display_name} />
+              <ContentImage src={image} alt={guideData.display_name} />
             ) : (
               <div className="profile-photo-empty">{String(guideData.display_name || "G").slice(0, 1)}</div>
             )}

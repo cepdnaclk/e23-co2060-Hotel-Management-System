@@ -1,4 +1,4 @@
-# TourismHub LK Reception Client
+# TripLanka Reception Client
 
 This is the standalone frontend for hotel reception staff. It is intentionally separate from both the public/partner frontend (`client`) and administrator frontend (`admin-client`).
 
