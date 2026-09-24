@@ -169,6 +169,10 @@ function SiteFooter({ onNavigateTop }) {
                 My bookings
               </Link>
 
+              <Link to="/my-reports" onClick={onNavigateTop}>
+                My Reports
+              </Link>
+
               <Link to="/login" onClick={onNavigateTop}>
                 Login
               </Link>
@@ -592,6 +596,7 @@ function PublicLayout() {
                 >
                   🛒
                 </Link>
+                {user?.role === "tourist" && <Link to="/my-reports" className="booking-link">My Reports</Link>}
                 <span className="user-greeting notranslate" data-no-translate>Hi, {username}</span>
                 <button
                   type="button"

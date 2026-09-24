@@ -18,10 +18,14 @@ const adminEventRoutes = require("./routes/adminEvent.routes");
 const adminGuideRoutes = require("./routes/adminGuide.routes");
 const partnerGuideRoutes = require("./routes/partnerGuide.routes");
 const publicGuideRoutes = require("./routes/publicGuide.routes");
+const guideBookingRoutes = require("./routes/guideBooking.routes");
+const partnerGuideBookingRoutes = require("./routes/partnerGuideBooking.routes");
 const assistantRoutes = require("./routes/assistant.routes");
 const translationRoutes = require("./routes/translation.routes");
 const receptionRoutes = require("./routes/reception.routes");
 const tripPlannerRoutes = require("./routes/tripPlanner.routes");
+
+const { touristReports, adminReports } = require("./routes/eventReport.routes");
 
 const app = express();
 
@@ -87,15 +91,19 @@ app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/partner/events", partnerEventRoutes);
 app.use("/api/partner/guides", partnerGuideRoutes);
+app.use("/api/partner/guide-bookings", partnerGuideBookingRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/admin/events", adminEventRoutes);
 app.use("/api/admin/guides", adminGuideRoutes);
+app.use("/api/admin/reports", adminReports);
+app.use("/api/reports", touristReports);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/explore", adminExploreRoutes);
 app.use("/api/explore", exploreRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/tourist", touristEventRoutes);
 app.use("/api/guides", publicGuideRoutes);
+app.use("/api/guide-bookings", guideBookingRoutes);
 app.use("/api/assistant", assistantRoutes);
 app.use("/api/translate", translationRoutes);
 app.use("/api/reception", receptionRoutes);

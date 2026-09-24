@@ -43,6 +43,7 @@ const mapAdminEvent = (row) => ({
   guide_recommended: Boolean(row.guide_recommended),
   featured: Boolean(row.featured),
   status: normalizeStatus(row.status),
+  moderation_hold: Boolean(row.moderation_hold),
   rejection_reason: row.rejection_reason,
   submitted_at: row.submitted_at,
   approved_at: row.approved_at,
@@ -113,6 +114,7 @@ const getEventsForAdmin = async (req, res) => {
     const [events] = await pool.query(
       `SELECT
         e.*,
+        EXISTS (SELECT 1 FROM event_moderation m WHERE m.event_id = e.id AND m.is_hidden = 1) AS moderation_hold,
         u.full_name AS partner_name,
         u.email AS partner_email,
         u.phone AS partner_phone,
@@ -157,6 +159,7 @@ const getEventForAdmin = async (req, res) => {
     const [events] = await pool.query(
       `SELECT
         e.*,
+        EXISTS (SELECT 1 FROM event_moderation m WHERE m.event_id = e.id AND m.is_hidden = 1) AS moderation_hold,
         u.full_name AS partner_name,
         u.email AS partner_email,
         u.phone AS partner_phone,
@@ -195,13 +198,21 @@ const approveEvent = async (req, res) => {
     const { id } = req.params;
 
     const [events] = await connection.query(
-      `SELECT id, partner_id, title FROM tourist_events WHERE id = ? LIMIT 1`,
+      `SELECT id, partner_id, title FROM tourist_events WHERE id = ? LIMIT 1 FOR UPDATE`,
       [id]
     );
 
     if (!events.length) {
       await connection.rollback();
       return res.status(404).json({ success: false, message: "Event not found" });
+    }
+
+    const [holds] = await connection.query(
+      "SELECT event_id FROM event_moderation WHERE event_id = ? AND is_hidden = 1", [id]
+    );
+    if (holds.length) {
+      await connection.rollback();
+      return res.status(409).json({ success: false, message: "This event has a moderation hold. Review it in Reports and restore visibility before approving." });
     }
 
     await connection.query(
@@ -265,7 +276,7 @@ const rejectEvent = async (req, res) => {
     }
 
     const [events] = await connection.query(
-      `SELECT id, partner_id, title FROM tourist_events WHERE id = ? LIMIT 1`,
+      `SELECT id, partner_id, title FROM tourist_events WHERE id = ? LIMIT 1 FOR UPDATE`,
       [id]
     );
 

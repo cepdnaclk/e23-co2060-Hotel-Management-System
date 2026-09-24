@@ -5,10 +5,10 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/property-approvals", label: "Properties" },
   { to: "/event-approvals", label: "Events" },
+  { to: "/reports", label: "Reports" },
   { to: "/guide-approvals", label: "Guides" },
   { to: "/explore-manager", label: "Explore" },
   { to: "/revenue", label: "Revenue" },
-  { to: "/system-risk", label: "Risk" },
 ];
 
 function AdminNavbar() {

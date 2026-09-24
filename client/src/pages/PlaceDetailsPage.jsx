@@ -6,7 +6,7 @@ import {
   getExplorePlace,
   getTouristEventsByPlace,
 } from "../services/exploreService";
-import { getFallbackEventsByPlace, normaliseEvent } from "../data/eventData";
+import { normaliseEvent } from "../data/eventData";
 import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
 const getEventImage = (event) => event.imageUrl || event.image_url || event.image;
@@ -49,6 +49,8 @@ export default function PlaceDetailsPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+  const [eventsRetry, setEventsRetry] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [mainImage, setMainImage] = useState("");
@@ -73,20 +75,13 @@ export default function PlaceDetailsPage() {
   }, [id]);
 
   useEffect(() => {
-    const loadEvents = async () => {
-      try {
-        setEventsLoading(true);
-        const rows = await getTouristEventsByPlace(id);
-        setEvents(rows.map(normaliseEvent));
-      } catch (err) {
-        setEvents(getFallbackEventsByPlace(id).map(normaliseEvent));
-      } finally {
-        setEventsLoading(false);
-      }
-    };
-
-    loadEvents();
-  }, [id]);
+    let active = true;
+    setEventsLoading(true); setEventsError(""); setEvents([]);
+    getTouristEventsByPlace(id).then(rows => { if (active) setEvents(rows.map(normaliseEvent)); })
+      .catch(() => { if (active) setEventsError("Events could not be loaded. Please try again."); })
+      .finally(() => { if (active) setEventsLoading(false); });
+    return () => { active = false; };
+  }, [id, eventsRetry]);
 
   const sortedEvents = useMemo(() => {
     const mapped = events.map(normaliseEvent);
@@ -245,7 +240,7 @@ export default function PlaceDetailsPage() {
               <Link to={`/events?city=${encodeURIComponent(place.city)}`}>See all events →</Link>
             </div>
 
-            {eventsLoading ? <p>Loading nearby events and experiences...</p> : null}
+            {eventsError ? <div role="alert" className="no-events-box">{eventsError} <button type="button" onClick={() => setEventsRetry(n => n + 1)}>Try again</button></div> : eventsLoading ? <p role="status">Loading nearby events and experiences...</p> : null}
 
             {sortedEvents.length ? (
               <div className="place-event-grid">
@@ -267,6 +262,7 @@ export default function PlaceDetailsPage() {
                           <span>💰 {event.priceLabel}</span>
                         </div>
                         <div className="mini-actions">
+                          <Link to={`/events/${event.slug}`}>Details & report an issue</Link>
                           <a href={event.mapUrl} target="_blank" rel="noreferrer">Directions</a>
                           <Link to={`/hotels?city=${encodeURIComponent(event.city)}`}>Hotels nearby</Link>
                           <Link to={`/tourist-guides?city=${encodeURIComponent(event.city)}&type=${encodeURIComponent(event.category)}`}>Find guide</Link>
@@ -276,14 +272,14 @@ export default function PlaceDetailsPage() {
                   );
                 })}
               </div>
-            ) : (
+            ) : !eventsLoading && !eventsError ? (
               <div className="no-events-box">
                 <span>🎒</span>
                 <h3>No connected tourist events yet</h3>
                 <p>Use the normal experiences below, or browse all Events & Experiences.</p>
                 <Link to="/events">Browse events</Link>
               </div>
-            )}
+            ) : null}
 
             {place.experiences?.length ? (
               <div className="experience-list legacy-experiences">

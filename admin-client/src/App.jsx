@@ -10,11 +10,11 @@ import RegistrationFeesPage from "./pages/RegistrationFeesPage";
 import MonthlyFeesPage from "./pages/MonthlyFeesPage";
 import PaymentVersionsPage from "./pages/PaymentVersionsPage";
 import RevenuePage from "./pages/RevenuePage";
-import SystemVulnerabilityPage from "./pages/SystemVulnerabilityPage";
 import ExploreManagerPage from "./pages/ExploreManagerPage";
 import EventApprovalsPage from "./pages/EventApprovalsPage";
 import GuideApprovalsPage from "./pages/GuideApprovalsPage";
 import AdminNavbar from "./pages/AdminNavbar";
+import ReportsPage from "./pages/ReportsPage";
 
 function ProtectedAdminRoute({ children }) {
   const { isAdminLoggedIn, checkingAuth, admin } = useAdminAuth();
@@ -100,14 +100,6 @@ function App() {
         }
       />
 
-      <Route
-        path="/system-risk"
-        element={
-          <ProtectedAdminRoute>
-            <SystemVulnerabilityPage />
-          </ProtectedAdminRoute>
-        }
-      />
 
       <Route
         path="/explore-manager"
@@ -136,6 +128,7 @@ function App() {
         }
       />
 
+      <Route path="/reports" element={<ProtectedAdminRoute><ReportsPage /></ProtectedAdminRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import PasswordInput from "../components/PasswordInput";
 
 function TouristLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [form, setForm] = useState({
@@ -35,7 +36,8 @@ function TouristLoginPage() {
 
       login(response.data.user, response.data.token);
 
-      navigate("/hotels");
+      const from = location.state?.from;
+      navigate(typeof from === "string" && (from === "/my-reports" || /^\/events\/[^/]+$/.test(from)) ? from : "/hotels", { replace: true });
     } catch (error) {
       setError(error.response?.data?.message || "Login failed");
     } finally {
@@ -93,11 +95,6 @@ function TouristLoginPage() {
             </button>
           </form>
 
-          <div style={styles.demoBox}>
-            <strong>Demo Tourist Login</strong>
-            <p>Email: tourist@demo.lk</p>
-            <p>Password: Admin@123</p>
-          </div>
 
           <p style={styles.bottomText}>
             Don&apos;t have an account?{" "}
@@ -191,14 +188,6 @@ const styles = {
   link: {
     color: "#0b63ce",
     fontWeight: "800",
-  },
-  demoBox: {
-    background: "#f5f8fc",
-    padding: "14px",
-    borderRadius: "14px",
-    marginTop: "18px",
-    color: "#374151",
-    fontSize: "14px",
   },
 };
 

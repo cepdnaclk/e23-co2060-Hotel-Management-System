@@ -1,12 +1,5 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  Link,
-  useParams,
-} from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
   buildEventDirectionsUrl,
   buildEventMapEmbedUrl,
@@ -14,16 +7,15 @@ import {
 } from "../data/eventData";
 import {
   assetUrl,
-  getTouristEventBySlug,
+  getTouristEvent,
   getTouristEvents,
 } from "../services/exploreService";
 import {
-  getTripItemKey,
   readTripItems,
   SAVED_TRIP_EVENT,
   toggleTripItem,
 } from "../utils/tripBasket";
-
+import EventReportForm from "../components/EventReportForm";
 
 const getImage = (event) =>
   event?.imageUrl ||
@@ -191,124 +183,32 @@ const buildEventTripItem =
 
 
 function EventDetailsPage() {
-  const { id } =
-    useParams();
-
-  const [event, setEvent] =
-    useState(null);
-
-  const [similar, setSimilar] =
-    useState([]);
-
-  const [
-    savedTripItems,
-    setSavedTripItems,
-  ] = useState(
-    readTripItems
-  );
-
-  const [notice, setNotice] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
+  const { id } = useParams();
+  const [events, setEvents] = useState([]);
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let active = true;
+    setLoading(true); setError(""); setEvent(null); setEvents([]);
+    getTouristEvent(id).then(row => { if (active) setEvent(normaliseEvent(row)); })
+      .catch(err => { if (active) setError(err.response?.status === 404 ? "This event is no longer available." : "Could not load this event. Please try again."); })
+      .finally(() => { if (active) setLoading(false); });
+    getTouristEvents().then(rows => { if (active) setEvents(rows.map(normaliseEvent)); }).catch(() => {});
+    return () => { active = false; };
+  }, [id, retry]);
 
-    const loadEvent =
-      async () => {
-        try {
-          setLoading(true);
-          setError("");
-
-          const [
-            eventRow,
-            eventRows,
-          ] = await Promise.all([
-            getTouristEventBySlug(
-              id
-            ),
-            getTouristEvents().catch(
-              () => []
-            ),
-          ]);
-
-          if (!active) return;
-
-          const current =
-            normaliseDatabaseEvent(
-              eventRow
-            );
-
-          if (!current) {
-            setEvent(null);
-            setSimilar([]);
-            setError(
-              "This event is not available for tourists right now."
-            );
-            return;
-          }
-
-          setEvent(current);
-
-          const nextSimilar =
-            (Array.isArray(eventRows)
-              ? eventRows
-              : []
-            )
-              .map(
-                normaliseDatabaseEvent
-              )
-              .filter(
-                (item) =>
-                  item &&
-                  item.slug !==
-                    current.slug &&
-                  (
-                    item.city ===
-                      current.city ||
-                    item.category ===
-                      current.category
-                  )
-              )
-              .slice(0, 3);
-
-          setSimilar(
-            nextSimilar
-          );
-        } catch (err) {
-          if (!active) return;
-
-          console.error(
-            "Failed to load event details:",
-            err
-          );
-
-          setEvent(null);
-          setSimilar([]);
-          setError(
-            err?.response?.data?.message ||
-              "Event details could not be loaded from the server."
-          );
-        } finally {
-          if (active) {
-            setLoading(false);
-          }
-        }
-      };
-
-    loadEvent();
-
-    return () => {
-      active = false;
-    };
-  }, [id]);
-
+  const similar = useMemo(() => {
+    if (!event) return [];
+    return events
+      .map(normaliseEvent)
+      .filter((item) => item.slug !== event.slug && (item.city === event.city || item.category === event.category))
+      .slice(0, 3);
+  }, [event, events]);
 
   useEffect(() => {
     const refreshSavedItems =
@@ -420,35 +320,16 @@ function EventDetailsPage() {
       );
     };
 
-
-  if (loading) {
-    return (
-      <main className="event-detail-page">
-        <style>{css}</style>
-        <section className="not-found-card event-loading-card">
-          <span>🎟️</span>
-          <h1>Loading event</h1>
-          <p>Getting the latest approved event details.</p>
-        </section>
-      </main>
-    );
-  }
-
-
-  if (!event) {
+  if (loading || error || !event || event.slug !== id) {
     return (
       <main className="event-detail-page">
         <style>{css}</style>
         <section className="not-found-card">
           <span>🌴</span>
-          <h1>Event unavailable</h1>
-          <p>
-            {error ||
-              "This event may be unavailable. Please return to the Events page."}
-          </p>
-          <Link to="/events">
-            Back to Events
-          </Link>
+          <h1>{loading ? "Loading event…" : "Event unavailable"}</h1>
+          <p role={error ? "alert" : "status"}>{error || "Getting the latest approved event information."}</p>
+          {error && <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button>}
+          <Link to="/events">Back to Events</Link>
         </section>
       </main>
     );
@@ -571,6 +452,8 @@ function EventDetailsPage() {
               ))}
             </div>
           </section>
+
+          <EventReportForm key={event.event_id} event={event} />
 
           {similar.length ? (
             <section className="white-card">

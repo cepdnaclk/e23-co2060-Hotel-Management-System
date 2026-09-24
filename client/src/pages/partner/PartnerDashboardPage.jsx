@@ -256,6 +256,7 @@ function PartnerDashboardPage() {
           </div>
           <span style={{ ...styles.actionButton, background: "#4f46e5" }}>Go to Guider Registration</span>
         </Link>
+
       </section>
 
       <section style={styles.metricRibbon}>
@@ -362,7 +363,7 @@ function PartnerDashboardPage() {
           <div style={styles.panelHeader}>
             <div>
               <h2 style={styles.panelTitle}>My Guiders</h2>
-              <p style={styles.panelSubtitle}>Track guide profile approval and edit details.</p>
+              <p style={styles.panelSubtitle}>Edit each guide profile and manage that guide’s tourist requests.</p>
             </div>
             <Link to="/partner/guides" style={styles.smallLink}>+ Add Guider</Link>
           </div>
@@ -393,9 +394,16 @@ function PartnerDashboardPage() {
                     )}
                   </div>
                   <span style={styles.statusBadge(guide.status)}>{guide.status}</span>
-                  <Link to={`/partner/guides?edit=${guide.id}`} style={styles.editLink}>
-                    Edit
-                  </Link>
+                  <div style={styles.guideRowActions}>
+                    <Link to={`/partner/guides?edit=${guide.id}`} style={styles.editLink}>
+                      Edit
+                    </Link>
+                    {guide.status === "approved" && guide.registration_payment_status === "Paid" && (
+                      <Link to={`/partner/guides/${guide.id}/requests`} style={styles.requestLink}>
+                        Manage Requests
+                      </Link>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -664,7 +672,7 @@ const styles = {
   },
   guideRow: {
     display: "grid",
-    gridTemplateColumns: "58px 1fr auto auto",
+    gridTemplateColumns: "58px 1fr auto minmax(130px, auto)",
     alignItems: "center",
     gap: "12px",
     padding: "12px",
@@ -741,6 +749,23 @@ const styles = {
     borderRadius: "12px",
     padding: "10px 13px",
     fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  guideRowActions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "7px",
+    alignItems: "stretch",
+  },
+  requestLink: {
+    textDecoration: "none",
+    background: "#047857",
+    color: "#ffffff",
+    borderRadius: "12px",
+    padding: "10px 13px",
+    fontWeight: 900,
+    fontSize: "12px",
+    textAlign: "center",
     whiteSpace: "nowrap",
   },
   rejectReason: {

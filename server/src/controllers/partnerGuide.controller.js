@@ -507,7 +507,7 @@ const payGuidePromotionFee = async (req, res) => {
     const { id } = req.params;
 
     const [guides] = await connection.query(
-      `SELECT id, partner_id, promotion_fee, registration_payment_status
+      `SELECT id, partner_id, promotion_fee, registration_payment_status, status
        FROM partner_guides
        WHERE id = ? AND partner_id = ?
        LIMIT 1`,
@@ -529,6 +529,14 @@ const payGuidePromotionFee = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Please pay the guide registration fee before promoting this guide.",
+      });
+    }
+
+    if (guide.status !== "approved") {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Admin approval is required before promoting a guide.",
       });
     }
 

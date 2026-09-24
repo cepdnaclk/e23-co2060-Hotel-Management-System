@@ -62,18 +62,18 @@ const values = [
 const teamMembers = [
   {
     name: "Anushka W.L.K.",
-    role: "Frontend / Full-stack Development",
-    text: "Focused on user interfaces, page flow, API integration, and core platform development.",
+    role: "Project Lead / Full-stack Development",
+    text: "Led the project and contributed to UI/UX, core platform features, backend integration, database design, testing and documentation.",
   },
   {
     name: "Anusara K.A.A.I.",
-    role: "Database Design / Backend Support",
-    text: "Focused on database structure, backend support, and data organization for the system.",
+    role: "Full-stack / Database & Backend",
+    text: "Contributed to database design, hotel management features, authentication, APIs, booking logic and system integration.",
   },
   {
     name: "Lakshani R.M.K.S.",
-    role: "Testing / Documentation / Database Support",
-    text: "Focused on testing, documentation support, and database-related project work.",
+    role: "Full-stack / Events & Testing",
+    text: "Contributed to partner and event management features, admin functions, backend integration, validation, testing and documentation.",
   },
 ];
 
@@ -236,7 +236,7 @@ function AboutUsPage() {
             <p>
               The project is developed using a React frontend, Node.js and Express backend,
               and a MySQL database. The system is structured to support API integration,
-              partner dashboards, admin approvals, and future deployment.
+              partner dashboards, admin approvals, and responsive use across devices.
             </p>
           </div>
 
@@ -256,10 +256,10 @@ function AboutUsPage() {
       <section className="about-section about-team-section">
         <div className="about-section-heading centered-heading">
           <span>Project team</span>
-          <h2>Developed as a university semester project</h2>
+          <h2>Meet the TourismHub LK project team</h2>
           <p>
-            The project team worked on frontend development, backend support, database design,
-            testing, and documentation to build a complete tourism platform.
+            Each team member contributed across different areas of the system, including
+            full-stack development, database design, integration, testing and documentation.
           </p>
         </div>
 

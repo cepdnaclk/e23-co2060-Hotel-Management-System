@@ -183,12 +183,6 @@ function AdminDashboardPage() {
       to: "/explore-manager",
       iconName: "compass",
     },
-    {
-      title: "System Risk",
-      subtitle: "Review security risks, issues, and admin monitoring notes.",
-      to: "/system-risk",
-      iconName: "shield",
-    },
   ];
 
   return (

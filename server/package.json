@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/app.js",
-    "start": "node src/app.js"
+    "start": "node src/app.js",
+    "test:reports": "node --test test/eventReports.test.js",
+    "migrate:event-reports": "node scripts/migrate-event-reports.js",
+    "migrate:guide-process": "node scripts/migrate-guide-process.js"
   },
   "keywords": [],
   "author": "",

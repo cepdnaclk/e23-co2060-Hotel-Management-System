@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { ensureGuideProcessSchema } = require("../services/guideProcessSchema.service");
 
 const parseJson = (value, fallback = []) => {
   if (value === null || value === undefined) return fallback;
@@ -45,7 +46,10 @@ const mapGuide = (row) => ({
 
 const getPublicGuides = async (req, res) => {
   try {
-    const { search = "", city = "", type = "All" } = req.query;
+    const {
+      search = "", city = "", type = "All", language = "",
+      maxDayPrice = "", minExperience = "", sort = "recommended"
+    } = req.query;
     const params = [];
     const conditions = ["status = 'approved'", "registration_payment_status = 'Paid'"];
 
@@ -57,6 +61,21 @@ const getPublicGuides = async (req, res) => {
     if (type && type !== "All") {
       conditions.push("LOWER(guide_type) = ?");
       params.push(type.toLowerCase());
+    }
+
+    if (language.trim()) {
+      conditions.push("LOWER(CAST(languages AS CHAR)) LIKE ?");
+      params.push(`%${language.trim().toLowerCase()}%`);
+    }
+
+    if (maxDayPrice !== "" && Number(maxDayPrice) >= 0) {
+      conditions.push("price_per_day <= ?");
+      params.push(Number(maxDayPrice));
+    }
+
+    if (minExperience !== "" && Number(minExperience) >= 0) {
+      conditions.push("experience_years >= ?");
+      params.push(Number(minExperience));
     }
 
     if (search.trim()) {
@@ -72,6 +91,17 @@ const getPublicGuides = async (req, res) => {
       )`);
       params.push(like, like, like, like, like, like, like);
     }
+
+    const sortMap = {
+      rating: "rating DESC, total_reviews DESC, experience_years DESC",
+      experience: "experience_years DESC, rating DESC",
+      "price-low": "price_per_day ASC, rating DESC",
+      "price-high": "price_per_day DESC, rating DESC",
+      lowDayPrice: "price_per_day ASC, rating DESC",
+      highDayPrice: "price_per_day DESC, rating DESC",
+      name: "display_name ASC",
+    };
+    const secondarySort = sortMap[sort] || "promotion_sort_order DESC, promotion_paid_at DESC, rating DESC, experience_years DESC";
 
     const [rows] = await pool.query(
       `SELECT *,
@@ -90,10 +120,7 @@ const getPublicGuides = async (req, res) => {
            AND (promotion_expires_at IS NULL OR promotion_expires_at >= NOW())
           THEN 0 ELSE 1
         END,
-        promotion_sort_order DESC,
-        promotion_paid_at DESC,
-        rating DESC,
-        experience_years DESC,
+        ${secondarySort},
         updated_at DESC`,
       params
     );
@@ -146,7 +173,32 @@ const getPublicGuideBySlug = async (req, res) => {
   }
 };
 
+const getPublicGuideReviews = async (req, res) => {
+  try {
+    await ensureGuideProcessSchema();
+    const { slug } = req.params;
+    const { sort = "recent" } = req.query;
+    const orderBy = sort === "rating" ? "gr.rating DESC, gr.created_at DESC" : "gr.created_at DESC";
+    const [rows] = await pool.query(
+      `SELECT gr.id, gr.rating, gr.comment, gr.created_at, u.full_name AS tourist_name,
+              gb.tour_type, gb.booking_date
+       FROM guide_reviews gr
+       JOIN partner_guides pg ON pg.id = gr.guide_id
+       JOIN users u ON u.id = gr.tourist_id
+       JOIN guide_bookings gb ON gb.id = gr.booking_id
+       WHERE pg.slug = ? AND pg.status = 'approved'
+       ORDER BY ${orderBy}`,
+      [slug]
+    );
+    return res.json({ success: true, reviews: rows });
+  } catch (error) {
+    console.error("Get public guide reviews error:", error);
+    return res.status(500).json({ success: false, message: "Server error while loading guide reviews" });
+  }
+};
+
 module.exports = {
   getPublicGuides,
   getPublicGuideBySlug,
+  getPublicGuideReviews,
 };

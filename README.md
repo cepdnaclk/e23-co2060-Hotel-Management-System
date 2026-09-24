@@ -177,6 +177,10 @@ The event module supports:
 - Event detail pages
 - Partner event registration and management
 - Administrator event approval and rejection
+- Tourist event reports with private status tracking and response history
+- Admin investigation, resolution/dismissal and event moderation holds
+
+For the report database migration, setup and verification, see [EVENT_REPORTS_UPDATE.md](EVENT_REPORTS_UPDATE.md). Event attendance/booking is a separate future feature.
 
 ### Tourist Guides
 
@@ -222,7 +226,7 @@ The system provides shared preference controls for supported languages and curre
 | Place details and saved places | Completed |
 | Trip Planner | In progress |
 | Trip-plan PDF | In progress |
-| Tourist events | In progress |
+| Tourist events | Browsing, approval and reporting implemented; booking remains future work |
 | Event details | Completed |
 | Tourist-guide listing | In progress |
 | Guide profiles | Completed |
@@ -235,7 +239,7 @@ The system provides shared preference controls for supported languages and curre
 | Event and guide registration | Completed |
 | Admin dashboard and approvals | Completed |
 | Payment and revenue monitoring | Completed |
-| Complaint and report handling | In progress |
+| Complaint and report handling | Event reports implemented; live database acceptance testing required |
 | Reception login | Completed |
 | Reception dashboard and bookings | Completed |
 | Mobile responsiveness | In progress |
@@ -572,7 +576,7 @@ The current academic version has the following limitations:
 - Some advanced Trip Planner saving and PDF functions are still being refined
 - Final double-booking prevention requires further validation
 - Guide-listing and guide-promotion functions require further improvements
-- Complaint and report handling is partially implemented
+- Complaint/report handling currently covers tourist events; reports for hotels, bookings and guides are outside this update
 - Some complex pages require further mobile-responsive testing
 - The current system is primarily tested in a local development environment
 
@@ -583,7 +587,7 @@ The current academic version has the following limitations:
 - Complete double-booking prevention
 - Improve Trip Planner saving and PDF generation
 - Complete guide booking and promotion workflows
-- Complete event booking and complaint handling
+- Implement event booking if required, and extend reports to other service types
 - Add individual room-number assignment and housekeeping workflows for reception
 - Integrate a secure real payment gateway
 - Improve mobile responsiveness across all modules

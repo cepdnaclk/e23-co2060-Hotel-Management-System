@@ -1,0 +1,15 @@
+const express = require("express");
+const { protect } = require("../middleware/auth.middleware");
+const { allowRoles } = require("../middleware/role.middleware");
+const { createReport, listReports, getReport, updateReport } = require("../controllers/eventReport.controller");
+const touristReports = express.Router();
+touristReports.use(protect, allowRoles("tourist"));
+touristReports.post("/", createReport);
+touristReports.get("/", listReports);
+touristReports.get("/:id", getReport);
+const adminReports = express.Router();
+adminReports.use(protect, allowRoles("admin"));
+adminReports.get("/", listReports);
+adminReports.get("/:id", getReport);
+adminReports.patch("/:id", updateReport);
+module.exports = { touristReports, adminReports };

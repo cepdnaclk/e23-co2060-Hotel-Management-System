@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 
-function OnlinePaymentFuturePage() {
+function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
 
   const bookingId = searchParams.get("bookingId");
@@ -14,14 +14,13 @@ function OnlinePaymentFuturePage() {
         <h1 style={styles.title}>Online Payment</h1>
 
         <p style={styles.subtitle}>
-          This online payment gateway is planned for a future update.
+          Your booking payment has been recorded successfully.
         </p>
 
         <div style={styles.successBox}>
           <h2 style={styles.successTitle}>Payment Status Updated</h2>
           <p style={styles.successText}>
-            For this project demo, your payment status has been changed to{" "}
-            <strong>Paid</strong>.
+            Your payment status is now <strong>Paid</strong>.
           </p>
         </div>
 
@@ -40,10 +39,6 @@ function OnlinePaymentFuturePage() {
           </p>
         </div>
 
-        <p style={styles.note}>
-          In the real future version, this page can connect with a payment
-          gateway such as Visa, MasterCard, PayHere, Stripe, or bank payment.
-        </p>
 
         <div style={styles.actions}>
           <Link to="/my-bookings" style={styles.primaryButton}>
@@ -182,4 +177,4 @@ const styles = {
   },
 };
 
-export default OnlinePaymentFuturePage;
+export default PaymentSuccessPage;

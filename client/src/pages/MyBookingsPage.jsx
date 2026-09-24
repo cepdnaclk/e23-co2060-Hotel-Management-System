@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
-import DemoPaymentModal from "../components/DemoPaymentModal";
+import PaymentModal from "../components/PaymentModal";
 
 function MyBookingsPage() {
   const { isLoggedIn } = useAuth();
@@ -124,7 +124,7 @@ function MyBookingsPage() {
       setPaymentBooking(null);
 
       navigate(
-        `/online-payment-future?bookingId=${paidBooking.id}&reference=${
+        `/payment-success?bookingId=${paidBooking.id}&reference=${
           paidBooking.booking_reference || ""
         }`
       );
@@ -477,7 +477,7 @@ function MyBookingsPage() {
 
   return (
     <main style={styles.page}>
-      <DemoPaymentModal
+      <PaymentModal
         open={Boolean(paymentBooking)}
         title="Hotel booking payment"
         description="Select a gateway and enter card details to mark this hotel booking as paid."

@@ -45,6 +45,11 @@ export const getTouristEvents = async (params = {}) => {
   return res.data.events || [];
 };
 
+export const getTouristEvent = async (slug) => {
+  const res = await api.get(`/tourist/events/${encodeURIComponent(slug)}`);
+  return res.data.event;
+};
+
 export const getTouristEventsByPlace = async (placeId) => {
   const res = await api.get(`/tourist/events/by-place/${placeId}`);
   return res.data.events || [];

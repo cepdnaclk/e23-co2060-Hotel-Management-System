@@ -326,173 +326,88 @@ const monthOrder =
 
 
 function EventsPage() {
-  const [
-    searchParams,
-    setSearchParams,
-  ] = useSearchParams();
-
-  const [events, setEvents] =
-    useState([]);
-
-  const [
-    savedTripItems,
-    setSavedTripItems,
-  ] = useState(
-    readTripItems
-  );
-
-  const [notice, setNotice] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const [search, setSearch] =
-    useState(
-      searchParams.get("search") ||
-        ""
-    );
-
-  const [category, setCategory] =
-    useState(
-      searchParams.get("category") ||
-        "All"
-    );
-
-  const [city, setCity] =
-    useState(
-      searchParams.get("city") ||
-        "All Destinations"
-    );
-
-  const [month, setMonth] =
-    useState(
-      searchParams.get("month") ||
-        "All Months"
-    );
-
-  const [price, setPrice] =
-    useState(
-      searchParams.get("price") ||
-        "Any Price"
-    );
-
-  const [sort, setSort] =
-    useState(
-      searchParams.get("sort") ||
-        "Recommended"
-    );
-
-  const [
-    featuredOnly,
-    setFeaturedOnly,
-  ] = useState(
-    searchParams.get("featured") ===
-      "true"
-  );
-
-  const [guideOnly, setGuideOnly] =
-    useState(
-      searchParams.get("guide") ===
-        "true"
-    );
-
-  const [heroIndex, setHeroIndex] =
-    useState(0);
-
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [events, setEvents] = useState([]);
+  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [search, setSearch] = useState(searchParams.get("search") || searchParams.get("city") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "All");
+  const [city, setCity] = useState(searchParams.get("city") || "All Destinations");
+  const [month, setMonth] = useState(searchParams.get("month") || "All Months");
+  const [price, setPrice] = useState(searchParams.get("price") || "Any Price");
+  const [sort, setSort] = useState(searchParams.get("sort") || "Recommended");
+  const [featuredOnly, setFeaturedOnly] = useState(searchParams.get("featured") === "true");
+  const [guideOnly, setGuideOnly] = useState(searchParams.get("guide") === "true");
+  const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
-    let active = true;
+  let active = true;
 
-    const loadEvents =
-      async () => {
-        try {
-          setLoading(true);
-          setError("");
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-          const rows =
-            await getTouristEvents();
+      const rows = await getTouristEvents();
 
-          const nextEvents =
-            (Array.isArray(rows)
-              ? rows
-              : []
-            )
-              .map(
-                normaliseDatabaseEvent
-              )
-              .filter(Boolean);
+      const nextEvents = (Array.isArray(rows) ? rows : [])
+        .map(normaliseDatabaseEvent)
+        .filter(Boolean);
 
-          if (!active) return;
+      if (!active) return;
 
-          setEvents(
-            nextEvents
+      setEvents(nextEvents);
+
+      const savedItems = readTripItems();
+
+      if (nextEvents.length > 0) {
+        const reconciled = reconcileSavedEvents(
+          savedItems,
+          nextEvents
+        );
+
+        if (reconciled.changed) {
+          const written = writeTripItems(
+            reconciled.items
           );
 
-          const savedItems =
-            readTripItems();
-
-          if (
-            nextEvents.length > 0
-          ) {
-            const reconciled =
-              reconcileSavedEvents(
-                savedItems,
-                nextEvents
-              );
-
-            if (
-              reconciled.changed
-            ) {
-              const written =
-                writeTripItems(
-                  reconciled.items
-                );
-
-              setSavedTripItems(
-                written
-              );
-            } else {
-              setSavedTripItems(
-                savedItems
-              );
-            }
-          } else {
-            setSavedTripItems(
-              savedItems
-            );
-          }
-        } catch (err) {
-          if (!active) return;
-
-          console.error(
-            "Failed to load tourist events:",
-            err
-          );
-
-          setEvents([]);
-
-          setError(
-            err?.response?.data?.message ||
-              "Events could not be loaded from the server."
-          );
-        } finally {
-          if (active) {
-            setLoading(false);
-          }
+          setSavedTripItems(written);
+        } else {
+          setSavedTripItems(savedItems);
         }
-      };
+      } else {
+        setSavedTripItems(savedItems);
+      }
+    } catch (err) {
+      if (!active) return;
 
-    loadEvents();
+      console.error(
+        "Failed to load tourist events:",
+        err
+      );
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      setEvents([]);
 
+      setError(
+        err?.response?.data?.message ||
+          "Events could not be loaded. Please try again."
+      );
+    } finally {
+      if (active) {
+        setLoading(false);
+      }
+    }
+  };
+
+  loadEvents();
+
+  return () => {
+    active = false;
+  };
+}, [retry]);
 
   useEffect(() => {
     const refreshSavedItems =
@@ -1196,7 +1111,7 @@ function EventsPage() {
             ) : null}
             <div className="hero-feature-shade" />
             <div className="hero-feature-content">
-              <span className="live-pill">Changing every 4 seconds</span>
+              <span className="live-pill">{heroSlides.length > 1 ? "Event highlights" : "Discover Sri Lanka"}</span>
               <h2>{currentHeroEvent?.title || "Approved Events"}</h2>
               <p>{currentHeroEvent?.city || "Sri Lanka"} · {currentHeroEvent?.dateLabel || "Tourist friendly"}</p>
               <div className="hero-feature-footer">
@@ -1367,7 +1282,7 @@ function EventsPage() {
               </div>
             ) : null}
 
-            {error ? <div className="soft-alert">{error}</div> : loading ? <div className="soft-alert">Loading approved events...</div> : null}
+            {error ? <div role="alert" className="soft-alert">{error} <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button></div> : loading ? <div role="status" className="soft-alert">Loading approved events...</div> : null}
 
             {filteredEvents.length ? (
               <div className="event-results-grid">
@@ -1420,14 +1335,14 @@ function EventsPage() {
                   </article>
                 ))}
               </div>
-            ) : (
+            ) : !loading && !error ? (
               <div className="empty-results">
                 <span>🔎</span>
-                <h3>No events found for these filters.</h3>
-                <p>Try another city, category, month, or budget level.</p>
+                <h3>{events.length ? "No events found for these filters." : "No approved events available yet."}</h3>
+                <p>{events.length ? "Try another city, category, month, or budget level." : "Please check back soon for upcoming events."}</p>
                 <button type="button" onClick={clearFilters}>Show all events</button>
               </div>
-            )}
+            ) : null}
           </div>
         </section>
       </section>

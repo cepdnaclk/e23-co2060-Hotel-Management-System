@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AIAssistant from "./components/AIAssistant/AIAssistant";
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -15,6 +15,7 @@ import TouristLoginPage from "./pages/TouristLoginPage";
 
 import BookingPage from "./pages/BookingPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import MyReportsPage from "./pages/MyReportsPage";
 import TripPlannerPage from "./pages/TripPlannerPage";
 
 import ListYourPropertyPage from "./pages/partner/ListYourPropertyPage";
@@ -27,11 +28,13 @@ import PropertyManagementPage from "./pages/partner/PropertyManagementPage";
 import RegisterPropertyPage from "./pages/partner/RegisterPropertyPage";
 
 import PartnerBookingsPage from "./pages/partner/PartnerBookingsPage";
-import OnlinePaymentFuturePage from "./pages/OnlinePaymentFuturePage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import TouristGuidePage from "./pages/TouristGuidePage";
 import GuideProfilePage from "./pages/GuideProfilePage";
+import MyGuideBookingsPage from "./pages/MyGuideBookingsPage";
+import PartnerGuideBookingsPage from "./pages/partner/PartnerGuideBookingsPage";
 import AboutUsPage from "./pages/AboutUsPage";
 
 function SimplePage({ title, message }) {
@@ -39,7 +42,7 @@ function SimplePage({ title, message }) {
     <div className="page">
       <div className="card" style={{ padding: "30px" }}>
         <h1>{title}</h1>
-        <p>{message || "This page will be built in the next steps."}</p>
+        <p>{message || "Explore TourismHub LK travel information and services."}</p>
       </div>
     </div>
   );
@@ -61,11 +64,10 @@ function App() {
 
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/my-bookings" element={<MyBookingsPage />} />
+          <Route path="/my-reports" element={<MyReportsPage />} />
 
-          <Route
-            path="/online-payment-future"
-            element={<OnlinePaymentFuturePage />}
-          />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/online-payment-future" element={<Navigate to="/my-bookings" replace />} />
 
           {/* Navbar pages */}
           <Route path="/explore" element={<ExplorePage />} />
@@ -78,7 +80,7 @@ function App() {
             element={
               <SimplePage
                 title="Travel Essentials"
-                message="This page will include travel tips, emergency contacts, transport guidance, and tourist support information."
+                message="Travel tips, emergency contacts, transport guidance, and tourist support information for your journey."
               />
             }
           />
@@ -87,11 +89,12 @@ function App() {
           <Route path="/events/:id" element={<EventDetailsPage />} />
           <Route path="/tourist-guides" element={<TouristGuidePage />} />
           <Route path="/tourist-guides/:slug" element={<GuideProfilePage />} />
+          <Route path="/my-guide-bookings" element={<MyGuideBookingsPage />} />
           <Route path="/about" element={<AboutUsPage />} />
 
           <Route
             path="/transport"
-            element={<SimplePage title="Transport Page" />}
+            element={<SimplePage title="Transport" message="Practical transport information for travelling between destinations across Sri Lanka." />}
           />
 
           {/* Partner pages */}
@@ -100,6 +103,8 @@ function App() {
           <Route path="/partner/login" element={<PartnerLoginPage />} />
           <Route path="/partner/dashboard" element={<PartnerDashboardPage />} />
           <Route path="/partner/bookings" element={<PartnerBookingsPage />} />
+          <Route path="/partner/guide-bookings" element={<Navigate to="/partner/guides" replace />} />
+          <Route path="/partner/guides/:guideId/requests" element={<PartnerGuideBookingsPage />} />
 
           <Route
             path="/partner/event-registration"

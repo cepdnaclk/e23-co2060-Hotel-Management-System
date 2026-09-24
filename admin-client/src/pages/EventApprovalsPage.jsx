@@ -245,6 +245,7 @@ function EventApprovalsPage() {
                     </td>
                     <td>
                       <span className={statusClass(event.status)}>{event.status}</span>
+                      {event.moderation_hold && <p>Hidden by moderation · Review in Reports</p>}
                     </td>
                     <td className="action-row">
                       <button type="button" onClick={() => setSelectedEvent(event)}>
@@ -293,6 +294,7 @@ function EventApprovalsPage() {
               </button>
             </div>
 
+            {error && <div role="alert" className="admin-error">{error}</div>}
             {selectedEvent.image_url && (
               <img className="event-review-image" src={selectedEvent.image_url} alt={selectedEvent.title} />
             )}
@@ -325,6 +327,7 @@ function EventApprovalsPage() {
 
               <div className="review-box">
                 <h3>Approval Status</h3>
+                {selectedEvent.moderation_hold && <p className="admin-error">Hidden by moderation. Review the report in Reports before restoring this event.</p>}
                 <p><strong>Status:</strong> <span className={statusClass(selectedEvent.status)}>{selectedEvent.status}</span></p>
                 <p><strong>Submitted:</strong> {formatDate(selectedEvent.submitted_at)}</p>
                 <p><strong>Approved:</strong> {formatDate(selectedEvent.approved_at)}</p>
