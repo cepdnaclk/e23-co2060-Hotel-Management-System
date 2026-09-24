@@ -126,7 +126,7 @@ function ReceptionLoginPage() {
 }
 
 const styles = `
-.reception-login-page{min-height:100vh;background:linear-gradient(135deg,#062f2d 0%,#087969 54%,#f6f1df 54%,#ffffff 100%);font-family:Inter,system-ui,Arial,sans-serif;color:#102033;display:grid;place-items:center;padding:34px}
+.reception-login-page{min-height:100vh;background:linear-gradient(135deg,#062f2d 0%,#087969 54%,#f6f1df 54%,#ffffff 100%);font-family:"Manrope","Segoe UI",Arial,sans-serif;color:#102033;display:grid;place-items:center;padding:34px}
 .reception-login-shell{width:min(1120px,100%);display:grid;grid-template-columns:1fr 480px;gap:34px;align-items:center}
 .reception-login-brand{color:#fff;padding:28px}
 .reception-login-brand span{display:inline-flex;border:1px solid rgba(255,255,255,.34);border-radius:999px;padding:10px 16px;font-weight:1000;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:#fff4bd}
