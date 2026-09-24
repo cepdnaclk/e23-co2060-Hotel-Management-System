@@ -1,5 +1,5 @@
 /* Scoped report styles shared by the tourist and admin report screens. */
-.report-ui{color:#173b38;font-family:Inter,system-ui,sans-serif;line-height:1.6;min-width:0}
+.report-ui{color:#173b38;font-family:"Manrope", "Segoe UI", Arial, sans-serif;line-height:1.6;min-width:0}
 .report-ui *{box-sizing:border-box}
 .report-page{max-width:1160px;margin:32px auto 70px;padding:0 20px}
 .report-ui .report-hero{padding:32px;border-radius:24px;background:linear-gradient(115deg,#07584e,#10796e);color:white;margin-bottom:22px}
