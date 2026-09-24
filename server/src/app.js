@@ -23,6 +23,7 @@ const partnerGuideBookingRoutes = require("./routes/partnerGuideBooking.routes")
 const assistantRoutes = require("./routes/assistant.routes");
 const translationRoutes = require("./routes/translation.routes");
 const receptionRoutes = require("./routes/reception.routes");
+const tripPlannerRoutes = require("./routes/tripPlanner.routes");
 
 const { touristReports, adminReports } = require("./routes/eventReport.routes");
 
@@ -106,6 +107,7 @@ app.use("/api/guide-bookings", guideBookingRoutes);
 app.use("/api/assistant", assistantRoutes);
 app.use("/api/translate", translationRoutes);
 app.use("/api/reception", receptionRoutes);
+app.use("/api/trip-planner",tripPlannerRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

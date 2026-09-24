@@ -7,17 +7,323 @@ import {
   eventPriceFilters,
   normaliseEvent,
 } from "../data/eventData";
-import { assetUrl, getTouristEvents } from "../services/exploreService";
-import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
+import {
+  assetUrl,
+  getTouristEvents,
+} from "../services/exploreService";
+import {
+  getTripItemKey,
+  readTripItems,
+  SAVED_TRIP_EVENT,
+  toggleTripItem,
+  writeTripItems,
+} from "../utils/tripBasket";
 
-const getEventImage = (event) => event?.imageUrl || event?.image_url || event?.image || "";
-const getEventKey = (event) => event.slug || event.id || event.event_id || event.title;
-const monthOrder = eventMonths.slice(1);
 
-const getEventLink = (event) => event.slug ? `/events/${event.slug}` : "/events";
+const getEventImage = (event) =>
+  event?.imageUrl ||
+  event?.image_url ||
+  event?.image ||
+  "";
+
+
+const getNumericEventId = (event) => {
+  const candidates = [
+    event?.databaseId,
+    event?.touristEventId,
+    event?.tourist_event_id,
+    event?.event_id,
+    event?.eventId,
+    event?.sourceId,
+    event?.source_id,
+  ];
+
+  for (const value of candidates) {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      continue;
+    }
+
+    const numeric = Number(value);
+
+    if (
+      Number.isInteger(numeric) &&
+      numeric > 0
+    ) {
+      return numeric;
+    }
+  }
+
+  return null;
+};
+
+
+const normaliseDatabaseEvent = (row) => {
+  if (!row) return null;
+
+  const databaseId =
+    getNumericEventId(row) ||
+    (() => {
+      const numeric = Number(row?.id);
+      return Number.isInteger(numeric) && numeric > 0
+        ? numeric
+        : null;
+    })();
+
+  if (!databaseId) {
+    return null;
+  }
+
+  const event = normaliseEvent(row);
+
+  return {
+    ...event,
+    databaseId,
+    eventId: databaseId,
+    event_id: databaseId,
+    touristEventId: databaseId,
+    tourist_event_id: databaseId,
+    sourceId: databaseId,
+  };
+};
+
+
+const getEventKey = (event) =>
+  event?.databaseId ||
+  event?.slug ||
+  event?.event_id ||
+  event?.title;
+
+
+const getEventLink = (event) =>
+  event?.slug
+    ? `/events/${encodeURIComponent(event.slug)}`
+    : "/events";
+
 
 const uniqueClean = (items) =>
-  [...new Set(items.filter(Boolean).map((item) => String(item).trim()).filter(Boolean))];
+  [
+    ...new Set(
+      items
+        .filter(Boolean)
+        .map((item) =>
+          String(item).trim()
+        )
+        .filter(Boolean)
+    ),
+  ];
+
+
+const buildEventTripItem = (event) => {
+  const databaseId =
+    getNumericEventId(event);
+
+  if (!databaseId) {
+    return null;
+  }
+
+  return {
+    id: `event-${databaseId}`,
+    sourceId: databaseId,
+    touristEventId: databaseId,
+    tourist_event_id: databaseId,
+    eventId: databaseId,
+    event_id: databaseId,
+    databaseId,
+    slug: event.slug || "",
+    tripItemType: "event",
+    name: event.title,
+    city: event.city || "",
+    district: event.district || "",
+    venue: event.venue || "",
+    region: event.category || "Event",
+    image: assetUrl(
+      getEventImage(event)
+    ),
+    duration:
+      event.duration ||
+      event.timeLabel ||
+      "Event",
+    bestTime:
+      event.dateLabel ||
+      event.monthName ||
+      "Check event date",
+    budget:
+      event.priceType ||
+      "Event",
+    estimatedCost:
+      Number(event.price || 0),
+    shortDescription:
+      event.shortDescription ||
+      "Selected event for this Sri Lanka trip.",
+    link: getEventLink(event),
+    eventDate:
+      event.dateLabel ||
+      "",
+    eventMonth:
+      event.monthName ||
+      "",
+  };
+};
+
+
+const reconcileSavedEvents = (
+  savedItems,
+  databaseEvents
+) => {
+  const eventsById = new Map();
+  const eventsBySlug = new Map();
+  const eventsByNameAndCity = new Map();
+
+  databaseEvents.forEach((event) => {
+    const id =
+      getNumericEventId(event);
+
+    if (id) {
+      eventsById.set(
+        String(id),
+        event
+      );
+    }
+
+    if (event.slug) {
+      eventsBySlug.set(
+        String(event.slug).toLowerCase(),
+        event
+      );
+    }
+
+    const nameKey = `${String(
+      event.title || ""
+    )
+      .trim()
+      .toLowerCase()}|${String(
+      event.city || ""
+    )
+      .trim()
+      .toLowerCase()}`;
+
+    if (
+      nameKey !== "|"
+    ) {
+      eventsByNameAndCity.set(
+        nameKey,
+        event
+      );
+    }
+  });
+
+  let changed = false;
+  const nextItems = [];
+
+  savedItems.forEach((item) => {
+    if (
+      String(
+        item?.tripItemType ||
+          item?.type ||
+          ""
+      ).toLowerCase() !==
+      "event"
+    ) {
+      nextItems.push(item);
+      return;
+    }
+
+    const existingId =
+      getNumericEventId(item);
+
+    let match =
+      existingId
+        ? eventsById.get(
+            String(existingId)
+          )
+        : null;
+
+    if (!match) {
+      const slug =
+        String(
+          item?.slug ||
+            item?.eventSlug ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const linkMatch =
+        String(
+          item?.link ||
+            ""
+        ).match(
+          /\/events\/([^?#/]+)/i
+        );
+
+      const linkSlug =
+        linkMatch?.[1]
+          ? decodeURIComponent(
+              linkMatch[1]
+            ).toLowerCase()
+          : "";
+
+      match =
+        eventsBySlug.get(slug) ||
+        eventsBySlug.get(linkSlug) ||
+        null;
+    }
+
+    if (!match) {
+      const nameKey = `${String(
+        item?.name || ""
+      )
+        .trim()
+        .toLowerCase()}|${String(
+        item?.city || ""
+      )
+        .trim()
+        .toLowerCase()}`;
+
+      match =
+        eventsByNameAndCity.get(
+          nameKey
+        ) ||
+        null;
+    }
+
+    if (!match) {
+      changed = true;
+      return;
+    }
+
+    const corrected =
+      buildEventTripItem(match);
+
+    if (!corrected) {
+      changed = true;
+      return;
+    }
+
+    if (
+      JSON.stringify(item) !==
+      JSON.stringify(corrected)
+    ) {
+      changed = true;
+    }
+
+    nextItems.push(corrected);
+  });
+
+  return {
+    changed,
+    items: nextItems,
+  };
+};
+
+
+const monthOrder =
+  eventMonths.slice(1);
+
 
 function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,207 +344,734 @@ function EventsPage() {
   const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
-    let active = true;
-    setLoading(true); setError(""); setEvents([]);
-    getTouristEvents().then(rows => { if (active) setEvents(rows.map(normaliseEvent)); })
-      .catch(() => { if (active) setError("Events could not be loaded. Please try again."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [retry]);
+  let active = true;
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const rows = await getTouristEvents();
+
+      const nextEvents = (Array.isArray(rows) ? rows : [])
+        .map(normaliseDatabaseEvent)
+        .filter(Boolean);
+
+      if (!active) return;
+
+      setEvents(nextEvents);
+
+      const savedItems = readTripItems();
+
+      if (nextEvents.length > 0) {
+        const reconciled = reconcileSavedEvents(
+          savedItems,
+          nextEvents
+        );
+
+        if (reconciled.changed) {
+          const written = writeTripItems(
+            reconciled.items
+          );
+
+          setSavedTripItems(written);
+        } else {
+          setSavedTripItems(savedItems);
+        }
+      } else {
+        setSavedTripItems(savedItems);
+      }
+    } catch (err) {
+      if (!active) return;
+
+      console.error(
+        "Failed to load tourist events:",
+        err
+      );
+
+      setEvents([]);
+
+      setError(
+        err?.response?.data?.message ||
+          "Events could not be loaded. Please try again."
+      );
+    } finally {
+      if (active) {
+        setLoading(false);
+      }
+    }
+  };
+
+  loadEvents();
+
+  return () => {
+    active = false;
+  };
+}, [retry]);
 
   useEffect(() => {
-    const refreshSavedItems = () => setSavedTripItems(readTripItems());
-    window.addEventListener("storage", refreshSavedItems);
-    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+    const refreshSavedItems =
+      () =>
+        setSavedTripItems(
+          readTripItems()
+        );
+
+    window.addEventListener(
+      "storage",
+      refreshSavedItems
+    );
+
+    window.addEventListener(
+      SAVED_TRIP_EVENT,
+      refreshSavedItems
+    );
 
     return () => {
-      window.removeEventListener("storage", refreshSavedItems);
-      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+      window.removeEventListener(
+        "storage",
+        refreshSavedItems
+      );
+
+      window.removeEventListener(
+        SAVED_TRIP_EVENT,
+        refreshSavedItems
+      );
     };
   }, []);
 
+
   useEffect(() => {
-    if (!notice) return undefined;
-    const timer = window.setTimeout(() => setNotice(""), 2500);
-    return () => window.clearTimeout(timer);
+    if (!notice) {
+      return undefined;
+    }
+
+    const timer =
+      window.setTimeout(
+        () =>
+          setNotice(""),
+        2500
+      );
+
+    return () =>
+      window.clearTimeout(
+        timer
+      );
   }, [notice]);
 
+
   useEffect(() => {
-    setSearch(searchParams.get("search") || "");
-    setCategory(searchParams.get("category") || "All");
-    setCity(searchParams.get("city") || "All Destinations");
-    setMonth(searchParams.get("month") || "All Months");
-    setPrice(searchParams.get("price") || "Any Price");
-    setSort(searchParams.get("sort") || "Recommended");
-    setFeaturedOnly(searchParams.get("featured") === "true");
-    setGuideOnly(searchParams.get("guide") === "true");
+    setSearch(
+      searchParams.get("search") ||
+        ""
+    );
+
+    setCategory(
+      searchParams.get("category") ||
+        "All"
+    );
+
+    setCity(
+      searchParams.get("city") ||
+        "All Destinations"
+    );
+
+    setMonth(
+      searchParams.get("month") ||
+        "All Months"
+    );
+
+    setPrice(
+      searchParams.get("price") ||
+        "Any Price"
+    );
+
+    setSort(
+      searchParams.get("sort") ||
+        "Recommended"
+    );
+
+    setFeaturedOnly(
+      searchParams.get("featured") ===
+        "true"
+    );
+
+    setGuideOnly(
+      searchParams.get("guide") ===
+        "true"
+    );
   }, [searchParams]);
 
-  const safeEvents = useMemo(() => events.map(normaliseEvent), [events]);
 
-  const cityOptions = useMemo(() => ["All Destinations", ...uniqueClean(safeEvents.map((event) => event.city))], [safeEvents]);
+  const safeEvents =
+    useMemo(
+      () => events,
+      [events]
+    );
 
-  const categoryCounts = useMemo(() => {
-    const counts = { All: safeEvents.length };
-    safeEvents.forEach((event) => {
-      counts[event.category] = (counts[event.category] || 0) + 1;
-    });
-    return counts;
-  }, [safeEvents]);
 
-  const heroSlides = useMemo(() => {
-    const featured = safeEvents.filter((event) => event.featured && getEventImage(event));
-    const normal = safeEvents.filter((event) => !event.featured && getEventImage(event));
-    return [...featured, ...normal].slice(0, 8);
-  }, [safeEvents]);
+  const cityOptions =
+    useMemo(
+      () => [
+        "All Destinations",
+        ...uniqueClean(
+          safeEvents.map(
+            (event) =>
+              event.city
+          )
+        ),
+      ],
+      [safeEvents]
+    );
+
+
+  const categoryCounts =
+    useMemo(() => {
+      const counts = {
+        All: safeEvents.length,
+      };
+
+      safeEvents.forEach(
+        (event) => {
+          counts[event.category] =
+            (counts[
+              event.category
+            ] || 0) + 1;
+        }
+      );
+
+      return counts;
+    }, [safeEvents]);
+
+
+  const heroSlides =
+    useMemo(() => {
+      const featured =
+        safeEvents.filter(
+          (event) =>
+            event.featured &&
+            getEventImage(event)
+        );
+
+      const normal =
+        safeEvents.filter(
+          (event) =>
+            !event.featured &&
+            getEventImage(event)
+        );
+
+      return [
+        ...featured,
+        ...normal,
+      ].slice(0, 8);
+    }, [safeEvents]);
+
 
   useEffect(() => {
-    if (heroSlides.length <= 1) return undefined;
+    if (
+      heroSlides.length <= 1
+    ) {
+      return undefined;
+    }
 
-    const timer = window.setInterval(() => {
-      setHeroIndex((current) => (current + 1) % heroSlides.length);
-    }, 4000);
+    const timer =
+      window.setInterval(
+        () => {
+          setHeroIndex(
+            (current) =>
+              (current + 1) %
+              heroSlides.length
+          );
+        },
+        4000
+      );
 
-    return () => window.clearInterval(timer);
+    return () =>
+      window.clearInterval(
+        timer
+      );
   }, [heroSlides.length]);
+
 
   useEffect(() => {
     setHeroIndex(0);
   }, [category]);
 
-  const syncParams = (next = {}) => {
-    const nextSearch = next.search ?? search;
-    const nextCategory = next.category ?? category;
-    const nextCity = next.city ?? city;
-    const nextMonth = next.month ?? month;
-    const nextPrice = next.price ?? price;
-    const nextSort = next.sort ?? sort;
-    const nextFeatured = next.featuredOnly ?? featuredOnly;
-    const nextGuide = next.guideOnly ?? guideOnly;
-    const params = new URLSearchParams();
 
-    if (nextSearch.trim()) params.set("search", nextSearch.trim());
-    if (nextCategory !== "All") params.set("category", nextCategory);
-    if (nextCity !== "All Destinations") params.set("city", nextCity);
-    if (nextMonth !== "All Months") params.set("month", nextMonth);
-    if (nextPrice !== "Any Price") params.set("price", nextPrice);
-    if (nextSort !== "Recommended") params.set("sort", nextSort);
-    if (nextFeatured) params.set("featured", "true");
-    if (nextGuide) params.set("guide", "true");
+  const syncParams =
+    (next = {}) => {
+      const nextSearch =
+        next.search ?? search;
 
-    setSearchParams(params);
-  };
+      const nextCategory =
+        next.category ?? category;
 
-  const filteredEvents = useMemo(() => {
-    const query = search.trim().toLowerCase();
+      const nextCity =
+        next.city ?? city;
 
-    return safeEvents
-      .filter((event) => {
-        const matchesSearch = !query || buildEventSearchText(event).includes(query);
-        const matchesCategory = category === "All" || event.category === category;
-        const matchesCity = city === "All Destinations" || event.city === city;
-        const matchesMonth = month === "All Months" || event.monthName === month;
-        const matchesPrice = price === "Any Price" || event.priceType === price;
-        const matchesFeatured = !featuredOnly || event.featured;
-        const matchesGuide = !guideOnly || event.guideRecommended;
-        return matchesSearch && matchesCategory && matchesCity && matchesMonth && matchesPrice && matchesFeatured && matchesGuide;
-      })
-      .sort((a, b) => {
-        if (sort === "Lowest price") return Number(a.price || 0) - Number(b.price || 0);
-        if (sort === "Highest price") return Number(b.price || 0) - Number(a.price || 0);
-        if (sort === "Month order") return monthOrder.indexOf(a.monthName) - monthOrder.indexOf(b.monthName);
-        if (sort === "Name A-Z") return String(a.title || "").localeCompare(String(b.title || ""));
-        return Number(b.featured) - Number(a.featured) || Number(b.guideRecommended) - Number(a.guideRecommended);
-      });
-  }, [category, city, featuredOnly, guideOnly, month, price, safeEvents, search, sort]);
+      const nextMonth =
+        next.month ?? month;
 
-  const featuredEvents = useMemo(() => safeEvents.filter((event) => event.featured).slice(0, 3), [safeEvents]);
-  const currentHeroEvent = heroSlides[heroIndex] || featuredEvents[0] || safeEvents[0];
-  const heroImage = assetUrl(getEventImage(currentHeroEvent));
-  const currentMonthName = new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    timeZone: "Asia/Colombo",
-  }).format(new Date());
-  const thisMonthCount = safeEvents.filter((event) => event.monthName === currentMonthName).length;
-  const freeCount = safeEvents.filter((event) => Number(event.price || 0) === 0 || event.priceType === "Free").length;
-  const guideCount = safeEvents.filter((event) => event.guideRecommended).length;
+      const nextPrice =
+        next.price ?? price;
+
+      const nextSort =
+        next.sort ?? sort;
+
+      const nextFeatured =
+        next.featuredOnly ??
+        featuredOnly;
+
+      const nextGuide =
+        next.guideOnly ??
+        guideOnly;
+
+      const params =
+        new URLSearchParams();
+
+      if (nextSearch.trim()) {
+        params.set(
+          "search",
+          nextSearch.trim()
+        );
+      }
+
+      if (
+        nextCategory !== "All"
+      ) {
+        params.set(
+          "category",
+          nextCategory
+        );
+      }
+
+      if (
+        nextCity !==
+        "All Destinations"
+      ) {
+        params.set(
+          "city",
+          nextCity
+        );
+      }
+
+      if (
+        nextMonth !==
+        "All Months"
+      ) {
+        params.set(
+          "month",
+          nextMonth
+        );
+      }
+
+      if (
+        nextPrice !==
+        "Any Price"
+      ) {
+        params.set(
+          "price",
+          nextPrice
+        );
+      }
+
+      if (
+        nextSort !==
+        "Recommended"
+      ) {
+        params.set(
+          "sort",
+          nextSort
+        );
+      }
+
+      if (nextFeatured) {
+        params.set(
+          "featured",
+          "true"
+        );
+      }
+
+      if (nextGuide) {
+        params.set(
+          "guide",
+          "true"
+        );
+      }
+
+      setSearchParams(
+        params
+      );
+    };
+
+
+  const filteredEvents =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
+
+      return safeEvents
+        .filter(
+          (event) => {
+            const matchesSearch =
+              !query ||
+              buildEventSearchText(
+                event
+              ).includes(query);
+
+            const matchesCategory =
+              category === "All" ||
+              event.category ===
+                category;
+
+            const matchesCity =
+              city ===
+                "All Destinations" ||
+              event.city === city;
+
+            const matchesMonth =
+              month === "All Months" ||
+              event.monthName ===
+                month;
+
+            const matchesPrice =
+              price === "Any Price" ||
+              event.priceType ===
+                price;
+
+            const matchesFeatured =
+              !featuredOnly ||
+              event.featured;
+
+            const matchesGuide =
+              !guideOnly ||
+              event.guideRecommended;
+
+            return (
+              matchesSearch &&
+              matchesCategory &&
+              matchesCity &&
+              matchesMonth &&
+              matchesPrice &&
+              matchesFeatured &&
+              matchesGuide
+            );
+          }
+        )
+        .sort(
+          (a, b) => {
+            if (
+              sort ===
+              "Lowest price"
+            ) {
+              return (
+                Number(a.price || 0) -
+                Number(b.price || 0)
+              );
+            }
+
+            if (
+              sort ===
+              "Highest price"
+            ) {
+              return (
+                Number(b.price || 0) -
+                Number(a.price || 0)
+              );
+            }
+
+            if (
+              sort ===
+              "Month order"
+            ) {
+              return (
+                monthOrder.indexOf(
+                  a.monthName
+                ) -
+                monthOrder.indexOf(
+                  b.monthName
+                )
+              );
+            }
+
+            if (
+              sort ===
+              "Name A-Z"
+            ) {
+              return String(
+                a.title || ""
+              ).localeCompare(
+                String(
+                  b.title || ""
+                )
+              );
+            }
+
+            return (
+              Number(b.featured) -
+                Number(a.featured) ||
+              Number(
+                b.guideRecommended
+              ) -
+                Number(
+                  a.guideRecommended
+                )
+            );
+          }
+        );
+    }, [
+      category,
+      city,
+      featuredOnly,
+      guideOnly,
+      month,
+      price,
+      safeEvents,
+      search,
+      sort,
+    ]);
+
+
+  const featuredEvents =
+    useMemo(
+      () =>
+        safeEvents
+          .filter(
+            (event) =>
+              event.featured
+          )
+          .slice(0, 3),
+      [safeEvents]
+    );
+
+
+  const currentHeroEvent =
+    heroSlides[heroIndex] ||
+    featuredEvents[0] ||
+    safeEvents[0];
+
+
+  const heroImage =
+    assetUrl(
+      getEventImage(
+        currentHeroEvent
+      )
+    );
+
+
+  const currentMonthName =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        month: "long",
+        timeZone:
+          "Asia/Colombo",
+      }
+    ).format(new Date());
+
+
+  const thisMonthCount =
+    safeEvents.filter(
+      (event) =>
+        event.monthName ===
+        currentMonthName
+    ).length;
+
+
+  const freeCount =
+    safeEvents.filter(
+      (event) =>
+        Number(
+          event.price || 0
+        ) === 0 ||
+        event.priceType ===
+          "Free"
+    ).length;
+
+
 
   const activeFilters = [
-    search.trim() ? `Search: ${search.trim()}` : "",
-    category !== "All" ? category : "",
-    city !== "All Destinations" ? city : "",
-    month !== "All Months" ? month : "",
-    price !== "Any Price" ? price : "",
-    featuredOnly ? "Featured only" : "",
-    guideOnly ? "Guide recommended" : "",
+    search.trim()
+      ? `Search: ${search.trim()}`
+      : "",
+    category !== "All"
+      ? category
+      : "",
+    city !==
+    "All Destinations"
+      ? city
+      : "",
+    month !== "All Months"
+      ? month
+      : "",
+    price !== "Any Price"
+      ? price
+      : "",
+    featuredOnly
+      ? "Featured only"
+      : "",
+    guideOnly
+      ? "Guide recommended"
+      : "",
   ].filter(Boolean);
 
-  const resultTitle = activeFilters.length ? "Matching event experiences" : "Curated event experiences";
 
-  const savedTripIds = useMemo(
-    () => new Set(savedTripItems.map((item) => String(item.id))),
-    [savedTripItems]
-  );
+  const resultTitle =
+    activeFilters.length
+      ? "Matching event experiences"
+      : "Curated event experiences";
 
-  const buildEventTripItem = (event) => ({
-    id: `event-${getEventKey(event)}`,
-    sourceId: event.id || event.event_id || event.slug,
-    tripItemType: "event",
-    name: event.title,
-    city: event.city || "",
-    district: event.district || "",
-    venue: event.venue || "",
-    region: event.category || "Event",
-    image: assetUrl(getEventImage(event)),
-    duration: event.duration || event.timeLabel || "Event",
-    bestTime: event.dateLabel || event.monthName || "Check event date",
-    budget: event.priceType || "Event",
-    estimatedCost: Number(event.price || 0),
-    shortDescription: event.shortDescription || "Selected event for this Sri Lanka trip.",
-    link: getEventLink(event),
-    eventDate: event.dateLabel || "",
-    eventMonth: event.monthName || "",
-  });
 
-  const handleToggleEventTrip = (event) => {
-    const item = buildEventTripItem(event);
-    const result = toggleTripItem(item);
-    setSavedTripItems(result.items);
-    setNotice(
-      result.saved
-        ? `${event.title} added to your trip basket.`
-        : `${event.title} removed from your trip basket.`
+  const savedTripKeys =
+    useMemo(
+      () =>
+        new Set(
+          savedTripItems.map(
+            getTripItemKey
+          )
+        ),
+      [savedTripItems]
     );
-  };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    syncParams();
-  };
 
-  const clearFilters = () => {
-    setSearch("");
-    setCategory("All");
-    setCity("All Destinations");
-    setMonth("All Months");
-    setPrice("Any Price");
-    setSort("Recommended");
-    setFeaturedOnly(false);
-    setGuideOnly(false);
-    setSearchParams({});
-  };
+  const isEventSaved =
+    (event) => {
+      const item =
+        buildEventTripItem(
+          event
+        );
 
-  const updateFilter = (key, value) => {
-    const next = { [key]: value };
-    if (key === "featuredOnly") setFeaturedOnly(value);
-    if (key === "guideOnly") setGuideOnly(value);
-    if (key === "category") setCategory(value);
-    if (key === "city") setCity(value);
-    if (key === "month") setMonth(value);
-    if (key === "price") setPrice(value);
-    if (key === "sort") setSort(value);
-    syncParams(next);
-  };
+      return item
+        ? savedTripKeys.has(
+            getTripItemKey(
+              item
+            )
+          )
+        : false;
+    };
+
+
+  const handleToggleEventTrip =
+    (event) => {
+      const item =
+        buildEventTripItem(
+          event
+        );
+
+      if (!item) {
+        setNotice(
+          "This event is not available for trip planning yet."
+        );
+
+        return;
+      }
+
+      const result =
+        toggleTripItem(
+          item
+        );
+
+      setSavedTripItems(
+        result.items
+      );
+
+      setNotice(
+        result.saved
+          ? `${event.title} added to your trip basket.`
+          : `${event.title} removed from your trip basket.`
+      );
+    };
+
+
+  const handleSubmit =
+    (event) => {
+      event.preventDefault();
+      syncParams();
+    };
+
+
+  const clearFilters =
+    () => {
+      setSearch("");
+      setCategory("All");
+      setCity(
+        "All Destinations"
+      );
+      setMonth(
+        "All Months"
+      );
+      setPrice(
+        "Any Price"
+      );
+      setSort(
+        "Recommended"
+      );
+      setFeaturedOnly(false);
+      setGuideOnly(false);
+      setSearchParams({});
+    };
+
+
+  const updateFilter =
+    (key, value) => {
+      const next = {
+        [key]: value,
+      };
+
+      if (
+        key ===
+        "featuredOnly"
+      ) {
+        setFeaturedOnly(
+          value
+        );
+      }
+
+      if (
+        key ===
+        "guideOnly"
+      ) {
+        setGuideOnly(
+          value
+        );
+      }
+
+      if (
+        key ===
+        "category"
+      ) {
+        setCategory(
+          value
+        );
+      }
+
+      if (
+        key === "city"
+      ) {
+        setCity(value);
+      }
+
+      if (
+        key === "month"
+      ) {
+        setMonth(value);
+      }
+
+      if (
+        key === "price"
+      ) {
+        setPrice(value);
+      }
+
+      if (
+        key === "sort"
+      ) {
+        setSort(value);
+      }
+
+      syncParams(next);
+    };
 
   return (
     <main className="events-page">
@@ -490,10 +1323,10 @@ function EventsPage() {
                         <Link className="primary-action" to={getEventLink(event)}>View details</Link>
                         <button
                           type="button"
-                          className={savedTripIds.has(`event-${getEventKey(event)}`) ? "event-trip-btn saved" : "event-trip-btn"}
+                          className={isEventSaved(event) ? "event-trip-btn saved" : "event-trip-btn"}
                           onClick={() => handleToggleEventTrip(event)}
                         >
-                          {savedTripIds.has(`event-${getEventKey(event)}`) ? "Saved to trip" : "+ Add to trip"}
+                          {isEventSaved(event) ? "Saved to trip" : "+ Add to trip"}
                         </button>
                         <Link to={`/hotels?city=${encodeURIComponent(event.city || "")}`}>Find hotels</Link>
                         {event.mapUrl ? <a href={event.mapUrl} target="_blank" rel="noreferrer">Directions</a> : null}
