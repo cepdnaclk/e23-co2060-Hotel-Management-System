@@ -1,543 +1,1650 @@
 import ContentImage from "../components/ContentImage";
+
 import { assetUrl } from "../utils/assetUrl";
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+
 import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  Link,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
+import {
+  ArrowLeft,
   BadgeCheck,
   CalendarDays,
-  Clock,
+  Clock3,
   Copy,
-  CreditCard,
-  HeartHandshake,
+  Heart,
+  Hotel,
   Languages,
   Mail,
   MapPin,
   MessageCircle,
-  Phone,
-  RefreshCcw,
   ShieldCheck,
-  Sparkles,
   Star,
   Users,
+  WalletCards,
 } from "lucide-react";
-import api from "../api/api";
-import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
-import { useAuth } from "../context/AuthContext";
 
+import api from "../api/api";
+
+import {
+  readTripItems,
+  SAVED_TRIP_EVENT,
+  toggleTripItem,
+} from "../utils/tripBasket";
+
+import {
+  useAuth,
+} from "../context/AuthContext";
+
+import "../styles/guideProfile.css";
 
 
 const cleanArray = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean);
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+
   if (typeof value === "string") {
     try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      const parsed =
+        JSON.parse(value);
+
+      if (
+        Array.isArray(
+          parsed
+        )
+      ) {
+        return parsed.filter(
+          Boolean
+        );
+      }
     } catch {
       return value
         .split(",")
-        .map((item) => item.trim())
+        .map((item) =>
+          item.trim()
+        )
         .filter(Boolean);
     }
   }
+
   return [];
 };
 
+
 const formatLkr = (amount) => {
-  const value = Number(amount || 0);
-  if (!value) return "Ask price";
-  return `Rs. ${value.toLocaleString("en-LK")}`;
+  const value = Number(
+    amount || 0
+  );
+
+  if (!value) {
+    return "Ask price";
+  }
+
+  return `LKR ${value.toLocaleString(
+    "en-LK"
+  )}`;
 };
 
-const getGuideLocation = (guide) =>
-  [guide.city, guide.district].filter(Boolean).join(", ") ||
+
+const getGuideLocation = (
+  guide
+) =>
+  [
+    guide.city,
+    guide.district,
+  ]
+    .filter(Boolean)
+    .join(", ") ||
   guide.base_location ||
   "Sri Lanka";
 
-const makeOfferCards = (guide) => {
-  const services = cleanArray(guide.services);
-  const specialities = cleanArray(guide.specialities);
-  const baseTitle = guide.guide_type || "Local";
-  const city = guide.city || "Sri Lanka";
 
-  const cards = [
-    {
-      title: `${baseTitle} highlights in ${city}`,
-      meta: `${formatLkr(guide.price_per_hour)} per hour`,
-      duration: "Flexible hours",
-      tags: [baseTitle, "Private", "Custom route"],
-      description:
-        guide.short_description ||
-        `Explore ${city} with a verified local guide and a route shaped around your pace.`,
-    },
-    {
-      title: `Full day with ${guide.display_name || "your guide"}`,
-      meta: `${formatLkr(guide.price_per_day)} per day`,
-      duration: "Full day",
-      tags: ["Day trip", "Local insight", "Hotel support"],
-      description:
-        services.slice(0, 2).join(", ") ||
-        "Plan a comfortable full-day experience with local context, timing help, and practical travel support.",
-    },
-    {
-      title: "Personalized Sri Lanka experience",
-      meta: "Request offer",
-      duration: "Built for you",
-      tags: specialities.slice(0, 3).length
-        ? specialities.slice(0, 3)
-        : ["Personalized", "Private", "Flexible"],
-      description:
-        "Share your interests, travel dates, group size, and comfort level to request a tailor-made guide plan.",
-    },
-  ];
+export default function GuideProfilePage() {
+  const { slug } =
+    useParams();
 
-  return cards;
-};
+  const navigate =
+    useNavigate();
 
-function GuideProfilePage() {
-  const { slug } = useParams();
-  const navigate = useNavigate();
-  const { isLoggedIn, user } = useAuth();
-  const [guide, setGuide] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [reviewSort, setReviewSort] = useState("recent");
-  const [reviews, setReviews] = useState([]);
-  const [bookingMessage, setBookingMessage] = useState("");
-  const [bookingSending, setBookingSending] = useState(false);
-  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
-  const [tripNotice, setTripNotice] = useState("");
-  const [inquiry, setInquiry] = useState({
-    date: "",
-    guests: "2",
-    interest: "Personalized tour",
-    duration_type: "full_day",
-    hours: "3",
-    start_time: "09:00",
-    pickup_location: "",
-    message: "",
-  });
+  const {
+    isLoggedIn,
+    user,
+  } =
+    useAuth();
+
+  const [
+    guide,
+    setGuide,
+  ] =
+    useState(null);
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
+
+  const [
+    error,
+    setError,
+  ] =
+    useState("");
+
+  const [
+    copied,
+    setCopied,
+  ] =
+    useState(false);
+
+  const [
+    reviewSort,
+    setReviewSort,
+  ] =
+    useState("recent");
+
+  const [
+    reviews,
+    setReviews,
+  ] =
+    useState([]);
+
+  const [
+    bookingMessage,
+    setBookingMessage,
+  ] =
+    useState("");
+
+  const [
+    bookingSending,
+    setBookingSending,
+  ] =
+    useState(false);
+
+  const [
+    savedTripItems,
+    setSavedTripItems,
+  ] =
+    useState(
+      readTripItems
+    );
+
+  const [
+    tripNotice,
+    setTripNotice,
+  ] =
+    useState("");
+
+  const [
+    inquiry,
+    setInquiry,
+  ] =
+    useState({
+      date: "",
+      guests: "2",
+      interest:
+        "Personalized tour",
+      duration_type:
+        "full_day",
+      hours: "3",
+      start_time:
+        "09:00",
+      pickup_location:
+        "",
+      message: "",
+    });
+
 
   useEffect(() => {
-    const loadGuide = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const response = await api.get(`/guides/${slug}`);
-        setGuide(response.data.guide || null);
-      } catch (err) {
-        setError(err.response?.data?.message || "Guide profile not found");
-      } finally {
-        setLoading(false);
-      }
-    };
+    let active = true;
+
+    const loadGuide =
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
+
+          const response =
+            await api.get(
+              `/guides/${slug}`
+            );
+
+          if (active) {
+            setGuide(
+              response.data
+                .guide || null
+            );
+          }
+        } catch (err) {
+          if (active) {
+            setError(
+              err.response?.data
+                ?.message ||
+                "Guide profile not found"
+            );
+          }
+        } finally {
+          if (active) {
+            setLoading(false);
+          }
+        }
+      };
 
     loadGuide();
-  }, [slug]);
-
-  useEffect(() => {
-    const loadReviews = async () => {
-      try {
-        const response = await api.get(`/guides/${slug}/reviews`, { params: { sort: reviewSort } });
-        setReviews(response.data.reviews || []);
-      } catch {
-        setReviews([]);
-      }
-    };
-    loadReviews();
-  }, [slug, reviewSort]);
-
-  useEffect(() => {
-    const refreshSavedItems = () => setSavedTripItems(readTripItems());
-    window.addEventListener("storage", refreshSavedItems);
-    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
 
     return () => {
-      window.removeEventListener("storage", refreshSavedItems);
-      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+      active = false;
+    };
+  }, [slug]);
+
+
+  useEffect(() => {
+    let active = true;
+
+    const loadReviews =
+      async () => {
+        try {
+          const response =
+            await api.get(
+              `/guides/${slug}/reviews`,
+              {
+                params: {
+                  sort:
+                    reviewSort,
+                },
+              }
+            );
+
+          if (active) {
+            setReviews(
+              response.data
+                .reviews || []
+            );
+          }
+        } catch {
+          if (active) {
+            setReviews([]);
+          }
+        }
+      };
+
+    loadReviews();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    slug,
+    reviewSort,
+  ]);
+
+
+  useEffect(() => {
+    const refreshSavedItems =
+      () =>
+        setSavedTripItems(
+          readTripItems()
+        );
+
+    window.addEventListener(
+      "storage",
+      refreshSavedItems
+    );
+
+    window.addEventListener(
+      SAVED_TRIP_EVENT,
+      refreshSavedItems
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        refreshSavedItems
+      );
+
+      window.removeEventListener(
+        SAVED_TRIP_EVENT,
+        refreshSavedItems
+      );
     };
   }, []);
 
+
   useEffect(() => {
-    if (!tripNotice) return undefined;
-    const timer = window.setTimeout(() => setTripNotice(""), 2500);
-    return () => window.clearTimeout(timer);
+    if (!tripNotice) {
+      return undefined;
+    }
+
+    const timer =
+      window.setTimeout(
+        () =>
+          setTripNotice(""),
+        2500
+      );
+
+    return () =>
+      window.clearTimeout(
+        timer
+      );
   }, [tripNotice]);
 
-  const guideData = guide || {};
-  const image = assetUrl(guideData.image_url);
-  const languages = useMemo(() => cleanArray(guideData.languages), [guideData.languages]);
-  const services = useMemo(() => cleanArray(guideData.services), [guideData.services]);
-  const specialities = useMemo(() => cleanArray(guideData.specialities), [guideData.specialities]);
-  const offers = useMemo(() => makeOfferCards(guideData), [guideData]);
-  const rating = Number(guideData.rating || 4.8).toFixed(1);
-  const reviewCount = Number(guideData.total_reviews || 0);
-  const whatsappHref = guideData.whatsapp_number
-    ? `https://wa.me/${String(guideData.whatsapp_number).replace(/[^0-9]/g, "")}`
-    : "";
-  const emailSubject = encodeURIComponent(`Guide inquiry for ${guideData.display_name || "Sri Lanka"}`);
-  const emailBody = encodeURIComponent(
-    `Hi ${guideData.display_name || "there"},\n\nI would like to request a guide experience.\nDate: ${inquiry.date || "Not selected"}\nGuests: ${inquiry.guests}\nInterest: ${inquiry.interest}\n\nThank you.`
-  );
-  const guideBookingAmount = inquiry.duration_type === "hourly"
-    ? Number(guideData.price_per_hour || 0) * Number(inquiry.hours || 1)
-    : Number(guideData.price_per_day || 0);
 
-  const isGuideSaved = useMemo(
-    () => (guideData.id ? savedTripItems.some((item) => String(item.id) === `guide-${guideData.id}`) : false),
-    [savedTripItems, guideData.id]
-  );
+  const guideData =
+    guide || {};
 
-  const handleToggleGuideTrip = () => {
-    const price = Number(guideData.price_per_day || guideData.price_per_hour || 0);
-    const item = {
-      id: `guide-${guideData.id}`,
-      sourceId: guideData.id,
-      tripItemType: "guide",
-      name: guideData.display_name || guideData.full_name || "Tourist guide",
-      city: guideData.city || "",
-      district: guideData.district || "",
-      region: guideData.guide_type || "Guide",
-      image,
-      duration: "Guide support",
-      bestTime: guideData.availability || "By booking",
-      budget: price >= 30000 ? "High" : price >= 15000 ? "Medium" : "Low",
-      estimatedCost: price,
-      shortDescription: guideData.short_description || guideData.bio || "Selected tourist guide for this trip.",
-      link: guideData.slug ? `/tourist-guides/${guideData.slug}` : "/tourist-guides",
-      guideLanguages: languages,
+
+  const displayName =
+    guideData.display_name ||
+    guideData.full_name ||
+    "Tourist guide";
+
+
+  const image =
+    assetUrl(
+      guideData.image_url
+    );
+
+
+  const languages =
+    useMemo(
+      () =>
+        cleanArray(
+          guideData.languages
+        ),
+      [guideData.languages]
+    );
+
+
+  const services =
+    useMemo(
+      () =>
+        cleanArray(
+          guideData.services
+        ),
+      [guideData.services]
+    );
+
+
+  const specialities =
+    useMemo(
+      () =>
+        cleanArray(
+          guideData.specialities
+        ),
+      [
+        guideData.specialities,
+      ]
+    );
+
+
+  const ratingValue =
+    Number(
+      guideData.rating || 0
+    );
+
+
+  const reviewCount =
+    Number(
+      guideData.total_reviews ||
+        reviews.length ||
+        0
+    );
+
+
+  const whatsappHref =
+    guideData.whatsapp_number
+      ? `https://wa.me/${String(
+          guideData.whatsapp_number
+        ).replace(
+          /[^0-9]/g,
+          ""
+        )}`
+      : "";
+
+
+  const emailSubject =
+    encodeURIComponent(
+      `Guide inquiry for ${displayName}`
+    );
+
+
+  const emailBody =
+    encodeURIComponent(
+      `Hi ${displayName},\n\nI would like to request a guide experience.\nDate: ${
+        inquiry.date ||
+        "Not selected"
+      }\nGuests: ${
+        inquiry.guests
+      }\nInterest: ${
+        inquiry.interest
+      }\n\nThank you.`
+    );
+
+
+  const guideBookingAmount =
+    inquiry.duration_type ===
+    "hourly"
+      ? Number(
+          guideData.price_per_hour ||
+            0
+        ) *
+        Number(
+          inquiry.hours || 1
+        )
+      : Number(
+          guideData.price_per_day ||
+            0
+        );
+
+
+  const isGuideSaved =
+    useMemo(
+      () =>
+        guideData.id
+          ? savedTripItems.some(
+              (item) =>
+                String(
+                  item.id
+                ) ===
+                `guide-${guideData.id}`
+            )
+          : false,
+      [
+        savedTripItems,
+        guideData.id,
+      ]
+    );
+
+
+  const handleToggleGuideTrip =
+    () => {
+      const price =
+        Number(
+          guideData.price_per_day ||
+            guideData.price_per_hour ||
+            0
+        );
+
+      const item = {
+        id:
+          `guide-${guideData.id}`,
+
+        sourceId:
+          guideData.id,
+
+        partnerGuideId:
+          guideData.id,
+
+        tripItemType:
+          "guide",
+
+        name:
+          displayName,
+
+        city:
+          guideData.city ||
+          "",
+
+        district:
+          guideData.district ||
+          "",
+
+        region:
+          guideData.guide_type ||
+          "Guide",
+
+        image,
+
+        duration:
+          "Guide support",
+
+        bestTime:
+          guideData.availability ||
+          "By booking",
+
+        budget:
+          price >= 30000
+            ? "High"
+            : price >=
+                15000
+              ? "Medium"
+              : "Low",
+
+        estimatedCost:
+          price,
+
+        shortDescription:
+          guideData.short_description ||
+          guideData.bio ||
+          "Selected tourist guide for this trip.",
+
+        link:
+          guideData.slug
+            ? `/tourist-guides/${guideData.slug}`
+            : "/tourist-guides",
+
+        guideLanguages:
+          languages,
+      };
+
+      const result =
+        toggleTripItem(
+          item
+        );
+
+      setSavedTripItems(
+        result.items
+      );
+
+      setTripNotice(
+        result.saved
+          ? `${item.name} added to your trip basket.`
+          : `${item.name} removed from your trip basket.`
+      );
     };
 
-    const result = toggleTripItem(item);
-    setSavedTripItems(result.items);
-    setTripNotice(result.saved ? `${item.name} added to your trip basket.` : `${item.name} removed from your trip basket.`);
-  };
 
-  const shareProfile = async () => {
-    const url = window.location.href;
+  const shareProfile =
+    async () => {
+      const url =
+        window.location.href;
 
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `${guideData.display_name || "Guide"} on TripLanka`,
-          url,
-        });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1800);
+      try {
+        if (
+          navigator.share
+        ) {
+          await navigator.share(
+            {
+              title:
+                `${displayName} on TripLanka`,
+              url,
+            }
+          );
+        } else {
+          await navigator.clipboard.writeText(
+            url
+          );
+
+          setCopied(true);
+
+          window.setTimeout(
+            () =>
+              setCopied(
+                false
+              ),
+            1800
+          );
+        }
+      } catch {
+        setCopied(false);
       }
-    } catch {
-      setCopied(false);
-    }
-  };
+    };
 
-  const submitGuideBooking = async () => {
-    setBookingMessage("");
-    if (!isLoggedIn || user?.role !== "tourist") {
-      navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-      return;
-    }
-    if (!inquiry.date) {
-      setBookingMessage("Please select a booking date.");
-      return;
-    }
-    try {
-      setBookingSending(true);
-      const response = await api.post("/guide-bookings", {
-        guide_id: guideData.id,
-        booking_date: inquiry.date,
-        start_time: inquiry.duration_type === "hourly" ? inquiry.start_time : null,
-        duration_type: inquiry.duration_type,
-        hours: inquiry.duration_type === "hourly" ? Number(inquiry.hours) : null,
-        guests: Number(inquiry.guests),
-        tour_type: inquiry.interest,
-        pickup_location: inquiry.pickup_location,
-        message: inquiry.message,
-      });
-      setBookingMessage(`${response.data.message} Reference: ${response.data.booking?.booking_reference || "created"}`);
-    } catch (err) {
-      setBookingMessage(err.response?.data?.message || "Could not send guide booking request.");
-    } finally {
-      setBookingSending(false);
-    }
-  };
+
+  const submitGuideBooking =
+    async () => {
+      setBookingMessage(
+        ""
+      );
+
+      if (
+        !isLoggedIn ||
+        user?.role !==
+          "tourist"
+      ) {
+        navigate(
+          `/login?next=${encodeURIComponent(
+            window.location
+              .pathname
+          )}`
+        );
+
+        return;
+      }
+
+      if (!inquiry.date) {
+        setBookingMessage(
+          "Please select a booking date."
+        );
+
+        return;
+      }
+
+      try {
+        setBookingSending(
+          true
+        );
+
+        const response =
+          await api.post(
+            "/guide-bookings",
+            {
+              guide_id:
+                guideData.id,
+
+              booking_date:
+                inquiry.date,
+
+              start_time:
+                inquiry.duration_type ===
+                "hourly"
+                  ? inquiry.start_time
+                  : null,
+
+              duration_type:
+                inquiry.duration_type,
+
+              hours:
+                inquiry.duration_type ===
+                "hourly"
+                  ? Number(
+                      inquiry.hours
+                    )
+                  : null,
+
+              guests:
+                Number(
+                  inquiry.guests
+                ),
+
+              tour_type:
+                inquiry.interest,
+
+              pickup_location:
+                inquiry.pickup_location,
+
+              message:
+                inquiry.message,
+            }
+          );
+
+        setBookingMessage(
+          `${
+            response.data
+              .message
+          } Reference: ${
+            response.data
+              .booking
+              ?.booking_reference ||
+            "created"
+          }`
+        );
+      } catch (err) {
+        setBookingMessage(
+          err.response?.data
+            ?.message ||
+            "Could not send guide booking request."
+        );
+      } finally {
+        setBookingSending(
+          false
+        );
+      }
+    };
+
 
   if (loading) {
     return (
-      <main className="guide-profile-page">
-        <style>{profileCss}</style>
-        <div className="profile-state-card">Loading guide profile...</div>
+      <main className="tl-guide-profile-page">
+        <section className="tl-guide-profile-state">
+          Loading guide
+          profile...
+        </section>
       </main>
     );
   }
 
-  if (error || !guide) {
+
+  if (
+    error ||
+    !guide
+  ) {
     return (
-      <main className="guide-profile-page">
-        <style>{profileCss}</style>
-        <div className="profile-state-card">
-          <h1>Guide profile unavailable</h1>
-          <p>{error || "This guide profile is not available right now."}</p>
-          <Link to="/tourist-guides">Back to Tourist Guides</Link>
-        </div>
+      <main className="tl-guide-profile-page">
+        <section className="tl-guide-profile-state">
+          <h1>
+            Guide profile
+            unavailable
+          </h1>
+
+          <p>
+            {error ||
+              "This guide profile is not available right now."}
+          </p>
+
+          <Link to="/tourist-guides">
+            Back to Guides
+          </Link>
+        </section>
       </main>
     );
   }
+
 
   return (
-    <main className="guide-profile-page">
-      <style>{profileCss}</style>
-      {tripNotice ? <div className="guide-profile-trip-toast">{tripNotice}</div> : null}
-
-      <section className="guide-profile-hero">
-        <div className="guide-profile-breadcrumb">
-          <Link to="/tourist-guides">Tourist Guides</Link>
-          <span>/</span>
-          <span>{guideData.city || "Sri Lanka"}</span>
-          <span>/</span>
-          <strong>{guideData.display_name}</strong>
+    <main className="tl-guide-profile-page">
+      {tripNotice ? (
+        <div className="tl-guide-profile-toast">
+          {tripNotice}
         </div>
+      ) : null}
 
-        <div className="profile-hero-grid">
-          <div className="profile-photo-panel">
+
+      <section className="tl-guide-profile-hero">
+        <div className="tl-guide-profile-hero-inner">
+          <div className="tl-guide-profile-photo">
             {image ? (
-              <ContentImage src={image} alt={guideData.display_name} />
+              <ContentImage
+                src={image}
+                alt={displayName}
+              />
             ) : (
-              <div className="profile-photo-empty">{String(guideData.display_name || "G").slice(0, 1)}</div>
+              <div className="tl-guide-profile-photo-empty">
+                {displayName
+                  .slice(0, 1)
+                  .toUpperCase()}
+              </div>
             )}
-            {guideData.is_promoted && <span className="profile-top-ad">Top ad</span>}
+
+            {guideData.is_promoted ? (
+              <span>
+                <SparklesFallback />
+                Featured
+              </span>
+            ) : null}
           </div>
 
-          <div className="profile-hero-copy">
-            <span className="profile-kicker">{guideData.guide_type || "Local guide"}</span>
-            <h1>{guideData.display_name}</h1>
-            <p className="profile-tagline">
-              {guideData.short_description ||
-                `Private and personalized guide support around ${getGuideLocation(guideData)}.`}
-            </p>
 
-            <div className="profile-rating-row">
-              <span><Star size={17} fill="currentColor" /> {rating}</span>
-              <span>{reviewCount ? `${reviewCount} reviews` : "New verified guide"}</span>
-              <span>Responds quickly</span>
+          <div className="tl-guide-profile-copy">
+            <Link
+              to="/tourist-guides"
+              className="tl-guide-profile-back"
+            >
+              <ArrowLeft
+                size={15}
+              />
+
+              Guides
+            </Link>
+
+            <span className="tl-guide-profile-type">
+              {guideData.guide_type ||
+                "Local guide"}
+            </span>
+
+            <h1>
+              {displayName}
+            </h1>
+
+            {guideData.short_description ? (
+              <p className="tl-guide-profile-tagline">
+                {
+                  guideData.short_description
+                }
+              </p>
+            ) : null}
+
+
+            <div className="tl-guide-profile-facts">
+              <span>
+                <MapPin
+                  size={15}
+                />
+
+                {getGuideLocation(
+                  guideData
+                )}
+              </span>
+
+              {ratingValue >
+              0 ? (
+                <span>
+                  <Star
+                    size={15}
+                    fill="currentColor"
+                  />
+
+                  {ratingValue.toFixed(
+                    1
+                  )}
+
+                  {reviewCount >
+                  0
+                    ? ` · ${reviewCount} reviews`
+                    : ""}
+                </span>
+              ) : (
+                <span>
+                  <BadgeCheck
+                    size={15}
+                  />
+                  New guide
+                </span>
+              )}
+
+              {Number(
+                guideData.experience_years ||
+                  0
+              ) > 0 ? (
+                <span>
+                  <Clock3
+                    size={15}
+                  />
+
+                  {
+                    guideData.experience_years
+                  }{" "}
+                  years experience
+                </span>
+              ) : null}
+
+              <span>
+                <BadgeCheck
+                  size={15}
+                />
+                Approved guide
+              </span>
             </div>
 
-            <div className="profile-facts">
-              <span><MapPin size={17} /> Lives in {guideData.city || "Sri Lanka"}</span>
-              <span><Languages size={17} /> Speaks {languages.length ? languages.join(", ") : "languages on request"}</span>
-              <span><BadgeCheck size={17} /> Verified local guide</span>
-              <span><Clock size={17} /> Response time less than 24 hours</span>
-            </div>
 
-            <div className="profile-main-actions">
-              <a className="primary" href="#guide-booking"><CalendarDays size={18} /> Request booking</a>
-              {whatsappHref && <a href={whatsappHref} target="_blank" rel="noreferrer"><MessageCircle size={18} /> Contact me</a>}
-              {guideData.email && <a href={`mailto:${guideData.email}?subject=${emailSubject}&body=${emailBody}`}><Mail size={18} /> Email</a>}
-              <button type="button" onClick={shareProfile}><Copy size={18} /> {copied ? "Copied" : "Share profile"}</button>
+            <div className="tl-guide-profile-actions">
+              <a
+                href="#guide-booking"
+                className="primary"
+              >
+                <CalendarDays
+                  size={16}
+                />
+
+                Request booking
+              </a>
+
+              <button
+                type="button"
+                className={
+                  isGuideSaved
+                    ? "is-saved"
+                    : ""
+                }
+                onClick={
+                  handleToggleGuideTrip
+                }
+              >
+                <Heart
+                  size={16}
+                  fill={
+                    isGuideSaved
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+
+                {isGuideSaved
+                  ? "Saved to trip"
+                  : "Save to trip"}
+              </button>
+
+              {whatsappHref ? (
+                <a
+                  href={
+                    whatsappHref
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle
+                    size={16}
+                  />
+
+                  WhatsApp
+                </a>
+              ) : null}
+
+              {guideData.email ? (
+                <a
+                  href={`mailto:${guideData.email}?subject=${emailSubject}&body=${emailBody}`}
+                >
+                  <Mail
+                    size={16}
+                  />
+
+                  Email
+                </a>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={
+                  shareProfile
+                }
+              >
+                <Copy
+                  size={16}
+                />
+
+                {copied
+                  ? "Copied"
+                  : "Share"}
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="profile-content-grid">
-        <div className="profile-main-column">
-          <section className="profile-section about-section">
-            <div className="section-heading">
-              <span>Nice to meet you</span>
-              <h2>About {guideData.display_name}</h2>
-            </div>
-            <p>{guideData.bio || guideData.short_description || "This verified guide has not added a full bio yet."}</p>
-            <div className="profile-mini-facts">
-              <span><MapPin size={16} /> {getGuideLocation(guideData)}</span>
-              <span><Users size={16} /> {Number(guideData.experience_years || 0)} years experience</span>
-              <span><CalendarDays size={16} /> {guideData.availability || "Available with prior booking"}</span>
-            </div>
-          </section>
 
-          <section className="profile-section">
-            <div className="section-heading">
-              <span>Book one of my offers</span>
-              <h2>Private guide experiences in {guideData.city || "Sri Lanka"}</h2>
-            </div>
-            <div className="offer-grid">
-              {offers.map((offer) => (
-                <article className="offer-card" key={offer.title}>
-                  <div className="offer-icon"><Sparkles size={22} /></div>
-                  <div>
-                    <h3>{offer.title}</h3>
-                    <p>{offer.description}</p>
-                    <div className="offer-meta">
-                      <span>{offer.meta}</span>
-                      <span>{offer.duration}</span>
-                    </div>
-                    <div className="offer-tags">
-                      {offer.tags.map((tag) => <span key={tag}>{tag}</span>)}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+      <section className="tl-guide-profile-layout">
+        <div className="tl-guide-profile-main">
+          <section className="tl-guide-profile-card">
+            <div className="tl-guide-profile-heading">
+              <span>
+                ABOUT
+              </span>
 
-          <section className="profile-section personalize-section">
-            <div>
-              <span>Customizable</span>
-              <h2>Request a personalized guide plan</h2>
-              <p>
-                Tell the guide what you enjoy, your dates, pickup point, group size, and pace. They can shape a
-                private Sri Lanka experience around your travel style.
-              </p>
+              <h2>
+                About{" "}
+                {displayName}
+              </h2>
             </div>
-            <a href="#guide-booking">Request personalized offer</a>
-          </section>
 
-          <section className="profile-section">
-            <div className="section-heading">
-              <span>Guide style</span>
-              <h2>Services and specialities</h2>
-            </div>
-            <div className="profile-chip-board">
-              {[...specialities, ...services].length ? (
-                [...specialities, ...services].map((item) => <span key={item}>{item}</span>)
-              ) : (
-                <span>Personal local guiding</span>
-              )}
-            </div>
-          </section>
+            <p className="tl-guide-profile-about">
+              {guideData.bio ||
+                guideData.short_description ||
+                "This guide has not added a full bio yet."}
+            </p>
 
-          <section className="profile-section reviews-section">
-            <div className="reviews-top">
-              <div className="section-heading">
-                <span>Guest feedback</span>
-                <h2>Reviews</h2>
+
+            <div className="tl-guide-profile-summary">
+              <div>
+                <MapPin
+                  size={16}
+                />
+
+                <span>
+                  Location
+                </span>
+
+                <strong>
+                  {getGuideLocation(
+                    guideData
+                  )}
+                </strong>
               </div>
+
+              <div>
+                <Users
+                  size={16}
+                />
+
+                <span>
+                  Experience
+                </span>
+
+                <strong>
+                  {Number(
+                    guideData.experience_years ||
+                      0
+                  )}{" "}
+                  years
+                </strong>
+              </div>
+
+              <div>
+                <CalendarDays
+                  size={16}
+                />
+
+                <span>
+                  Availability
+                </span>
+
+                <strong>
+                  {guideData.availability ||
+                    "By booking"}
+                </strong>
+              </div>
+            </div>
+          </section>
+
+
+          <section className="tl-guide-profile-card">
+            <div className="tl-guide-profile-heading">
+              <span>
+                GUIDE DETAILS
+              </span>
+
+              <h2>
+                Languages and
+                expertise
+              </h2>
+            </div>
+
+
+            <div className="tl-guide-profile-detail-grid">
+              <div>
+                <h3>
+                  <Languages
+                    size={17}
+                  />
+                  Languages
+                </h3>
+
+                <div className="tl-guide-profile-chips">
+                  {languages.length ? (
+                    languages.map(
+                      (item) => (
+                        <span
+                          key={
+                            item
+                          }
+                        >
+                          {item}
+                        </span>
+                      )
+                    )
+                  ) : (
+                    <span>
+                      Ask guide
+                    </span>
+                  )}
+                </div>
+              </div>
+
+
+              <div>
+                <h3>
+                  <BadgeCheck
+                    size={17}
+                  />
+                  Services
+                </h3>
+
+                <div className="tl-guide-profile-chips">
+                  {services.length ? (
+                    services.map(
+                      (item) => (
+                        <span
+                          key={
+                            item
+                          }
+                        >
+                          {item}
+                        </span>
+                      )
+                    )
+                  ) : (
+                    <span>
+                      Local guiding
+                    </span>
+                  )}
+                </div>
+              </div>
+
+
+              <div>
+                <h3>
+                  <ShieldCheck
+                    size={17}
+                  />
+                  Specialities
+                </h3>
+
+                <div className="tl-guide-profile-chips">
+                  {specialities.length ? (
+                    specialities.map(
+                      (item) => (
+                        <span
+                          key={
+                            item
+                          }
+                        >
+                          {item}
+                        </span>
+                      )
+                    )
+                  ) : (
+                    <span>
+                      Personalized
+                      tours
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
+
+          <section className="tl-guide-profile-card">
+            <div className="tl-guide-profile-reviews-top">
+              <div className="tl-guide-profile-heading">
+                <span>
+                  REVIEWS
+                </span>
+
+                <h2>
+                  Traveller
+                  feedback
+                </h2>
+              </div>
+
               <label>
-                Sort by
-                <select value={reviewSort} onChange={(event) => setReviewSort(event.target.value)}>
-                  <option value="recent">Most recent</option>
-                  <option value="relevant">Most relevant</option>
-                  <option value="rating">Highest rating</option>
+                <span>
+                  Sort by
+                </span>
+
+                <select
+                  value={
+                    reviewSort
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setReviewSort(
+                      event.target
+                        .value
+                    )
+                  }
+                >
+                  <option value="recent">
+                    Most recent
+                  </option>
+
+                  <option value="relevant">
+                    Most relevant
+                  </option>
+
+                  <option value="rating">
+                    Highest rating
+                  </option>
                 </select>
               </label>
             </div>
 
-            <div className="review-summary">
-              <strong><Star size={20} fill="currentColor" /> {rating}</strong>
-              <span>{reviewCount ? `${reviewCount} public review${reviewCount === 1 ? "" : "s"}` : "No public reviews yet"}</span>
+
+            <div className="tl-guide-profile-review-summary">
+              {ratingValue >
+              0 ? (
+                <strong>
+                  <Star
+                    size={17}
+                    fill="currentColor"
+                  />
+
+                  {ratingValue.toFixed(
+                    1
+                  )}
+                </strong>
+              ) : (
+                <strong>
+                  New guide
+                </strong>
+              )}
+
+              <span>
+                {reviewCount >
+                0
+                  ? `${reviewCount} public review${
+                      reviewCount ===
+                      1
+                        ? ""
+                        : "s"
+                    }`
+                  : "No public reviews yet"}
+              </span>
             </div>
 
+
             {reviews.length ? (
-              <div className="review-list">
-                {reviews.map((review) => (
-                  <article className="review-item" key={review.id}>
-                    <div><strong>{review.tourist_name}</strong><span>{"★".repeat(Number(review.rating || 0))}</span></div>
-                    <p>{review.comment || "Great guide experience."}</p>
-                    <small>{review.tour_type || "Guide experience"} · {new Date(review.created_at).toLocaleDateString("en-LK")}</small>
-                  </article>
-                ))}
+              <div className="tl-guide-profile-review-list">
+                {reviews.map(
+                  (review) => (
+                    <article
+                      key={
+                        review.id
+                      }
+                    >
+                      <div>
+                        <strong>
+                          {
+                            review.tourist_name
+                          }
+                        </strong>
+
+                        <span>
+                          {"★".repeat(
+                            Number(
+                              review.rating ||
+                                0
+                            )
+                          )}
+                        </span>
+                      </div>
+
+                      {review.comment ? (
+                        <p>
+                          {
+                            review.comment
+                          }
+                        </p>
+                      ) : null}
+
+                      <small>
+                        {review.tour_type ||
+                          "Guide experience"}
+
+                        {review.created_at
+                          ? ` · ${new Date(
+                              review.created_at
+                            ).toLocaleDateString(
+                              "en-LK"
+                            )}`
+                          : ""}
+                      </small>
+                    </article>
+                  )
+                )}
               </div>
             ) : (
-              <div className="review-empty"><h3>No reviews yet</h3><p>Completed and reviewed guide experiences will appear here.</p></div>
+              <div className="tl-guide-profile-review-empty">
+                No reviews yet.
+              </div>
             )}
           </section>
         </div>
 
-        <aside className="profile-booking-panel">
-          <div className="booking-panel-card" id="guide-booking">
-            <h2>Book {guideData.display_name}</h2>
-            <p>Send a booking request. Payment becomes available after the guide approves it.</p>
+
+        <aside className="tl-guide-profile-booking">
+          <div
+            className="tl-guide-booking-card"
+            id="guide-booking"
+          >
+            <span className="tl-guide-booking-kicker">
+              BOOK GUIDE
+            </span>
+
+            <h2>
+              Request{" "}
+              {displayName}
+            </h2>
+
+            <p>
+              Send a booking
+              request. Payment
+              is handled after
+              the guide accepts
+              it.
+            </p>
+
 
             <label>
-              Date
+              <span>
+                Date
+              </span>
+
               <input
                 type="date"
-                value={inquiry.date}
-                onChange={(event) => setInquiry((current) => ({ ...current, date: event.target.value }))}
+                value={
+                  inquiry.date
+                }
+                onChange={(
+                  event
+                ) =>
+                  setInquiry(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      date:
+                        event
+                          .target
+                          .value,
+                    })
+                  )
+                }
               />
             </label>
+
+
             <label>
-              Booking type
-              <select value={inquiry.duration_type} onChange={(event) => setInquiry((current) => ({ ...current, duration_type: event.target.value }))}>
-                <option value="full_day">Full day</option>
-                <option value="hourly">Hourly</option>
+              <span>
+                Booking type
+              </span>
+
+              <select
+                value={
+                  inquiry.duration_type
+                }
+                onChange={(
+                  event
+                ) =>
+                  setInquiry(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      duration_type:
+                        event
+                          .target
+                          .value,
+                    })
+                  )
+                }
+              >
+                <option value="full_day">
+                  Full day
+                </option>
+
+                <option value="hourly">
+                  Hourly
+                </option>
               </select>
             </label>
-            {inquiry.duration_type === "hourly" && <>
-              <label>Start time<input type="time" value={inquiry.start_time} onChange={(event) => setInquiry((current) => ({ ...current, start_time: event.target.value }))} /></label>
-              <label>Hours<input type="number" min="1" max="12" value={inquiry.hours} onChange={(event) => setInquiry((current) => ({ ...current, hours: event.target.value }))} /></label>
-            </>}
+
+
+            {inquiry.duration_type ===
+            "hourly" ? (
+              <div className="tl-guide-booking-two-column">
+                <label>
+                  <span>
+                    Start time
+                  </span>
+
+                  <input
+                    type="time"
+                    value={
+                      inquiry.start_time
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setInquiry(
+                        (
+                          current
+                        ) => ({
+                          ...current,
+                          start_time:
+                            event
+                              .target
+                              .value,
+                        })
+                      )
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>
+                    Hours
+                  </span>
+
+                  <input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={
+                      inquiry.hours
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setInquiry(
+                        (
+                          current
+                        ) => ({
+                          ...current,
+                          hours:
+                            event
+                              .target
+                              .value,
+                        })
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            ) : null}
+
+
             <label>
-              Guests
+              <span>
+                Guests
+              </span>
+
               <input
                 type="number"
                 min="1"
-                value={inquiry.guests}
-                onChange={(event) => setInquiry((current) => ({ ...current, guests: event.target.value }))}
+                value={
+                  inquiry.guests
+                }
+                onChange={(
+                  event
+                ) =>
+                  setInquiry(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      guests:
+                        event
+                          .target
+                          .value,
+                    })
+                  )
+                }
               />
             </label>
+
+
             <label>
-              Interest
+              <span>
+                Interest
+              </span>
+
               <select
-                value={inquiry.interest}
-                onChange={(event) => setInquiry((current) => ({ ...current, interest: event.target.value }))}
+                value={
+                  inquiry.interest
+                }
+                onChange={(
+                  event
+                ) =>
+                  setInquiry(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      interest:
+                        event
+                          .target
+                          .value,
+                    })
+                  )
+                }
               >
-                <option>Personalized tour</option>
-                <option>City highlights</option>
-                <option>Full day trip</option>
-                <option>Adventure or nature</option>
-                <option>Airport or hotel support</option>
+                <option>
+                  Personalized
+                  tour
+                </option>
+
+                <option>
+                  City highlights
+                </option>
+
+                <option>
+                  Full day trip
+                </option>
+
+                <option>
+                  Adventure or
+                  nature
+                </option>
+
+                <option>
+                  Airport or hotel
+                  support
+                </option>
               </select>
             </label>
 
+
             <label>
-              Pickup location
-              <input value={inquiry.pickup_location} placeholder="Hotel, station or landmark" onChange={(event) => setInquiry((current) => ({ ...current, pickup_location: event.target.value }))} />
-            </label>
-            <label>
-              Message
-              <textarea rows="3" value={inquiry.message} placeholder="Tell the guide what you would like to do" onChange={(event) => setInquiry((current) => ({ ...current, message: event.target.value }))} />
+              <span>
+                Pickup location
+              </span>
+
+              <input
+                value={
+                  inquiry.pickup_location
+                }
+                placeholder="Hotel, station or landmark"
+                onChange={(
+                  event
+                ) =>
+                  setInquiry(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      pickup_location:
+                        event
+                          .target
+                          .value,
+                    })
+                  )
+                }
+              />
             </label>
 
-            <div className="booking-price-grid">
+
+            <label>
+              <span>
+                Message
+              </span>
+
+              <textarea
+                rows="3"
+                value={
+                  inquiry.message
+                }
+                placeholder="Tell the guide what you would like to do"
+                onChange={(
+                  event
+                ) =>
+                  setInquiry(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      message:
+                        event
+                          .target
+                          .value,
+                    })
+                  )
+                }
+              />
+            </label>
+
+
+            <div className="tl-guide-booking-prices">
               <div>
-                <span>Day price</span>
-                <strong>{formatLkr(guideData.price_per_day)}</strong>
+                <span>
+                  Day price
+                </span>
+
+                <strong>
+                  {formatLkr(
+                    guideData.price_per_day
+                  )}
+                </strong>
               </div>
+
               <div>
-                <span>Hour price</span>
-                <strong>{formatLkr(guideData.price_per_hour)}</strong>
+                <span>
+                  Hour price
+                </span>
+
+                <strong>
+                  {formatLkr(
+                    guideData.price_per_hour
+                  )}
+                </strong>
               </div>
             </div>
 
-            {bookingMessage && <div className="guide-payment-success">{bookingMessage}</div>}
-            <button className="booking-primary" type="button" onClick={submitGuideBooking} disabled={bookingSending || guideBookingAmount <= 0}>
-              {bookingSending ? "Sending request..." : `Send booking request`}
-            </button>
-            <Link className="booking-secondary" to="/my-guide-bookings">My guide bookings</Link>
-            {whatsappHref && (
-              <a className="booking-secondary" href={whatsappHref} target="_blank" rel="noreferrer">
-                WhatsApp guide
-              </a>
-            )}
-            <Link className="booking-secondary" to={`/hotels?city=${encodeURIComponent(guideData.city || "")}`}>
-              Hotels nearby
-            </Link>
+
+            {bookingMessage ? (
+              <div className="tl-guide-booking-message">
+                {
+                  bookingMessage
+                }
+              </div>
+            ) : null}
+
+
             <button
               type="button"
-              className={isGuideSaved ? "booking-trip saved" : "booking-trip"}
-              onClick={handleToggleGuideTrip}
+              className="tl-guide-booking-primary"
+              onClick={
+                submitGuideBooking
+              }
+              disabled={
+                bookingSending ||
+                guideBookingAmount <=
+                  0
+              }
             >
-              {isGuideSaved ? "Saved to trip" : "Add to trip"}
+              {bookingSending
+                ? "Sending request..."
+                : "Send booking request"}
             </button>
-          </div>
 
-          <div className="trust-stack">
-            <div><ShieldCheck size={20} /><span>Verified by admin before public listing</span></div>
-            <div><RefreshCcw size={20} /><span>Discuss changes directly with your guide</span></div>
-            <div><CreditCard size={20} /><span>Pay securely after the guide accepts your request</span></div>
-            <div><HeartHandshake size={20} /><span>Private, flexible, locally hosted travel support</span></div>
+
+            <Link
+              className="tl-guide-booking-secondary"
+              to="/my-guide-bookings"
+            >
+              My guide bookings
+            </Link>
+
+
+            <Link
+              className="tl-guide-booking-secondary"
+              to={`/hotels?city=${encodeURIComponent(
+                guideData.city ||
+                  ""
+              )}`}
+            >
+              <Hotel
+                size={14}
+              />
+
+              Hotels nearby
+            </Link>
+
+
+            <div className="tl-guide-booking-note">
+              <ShieldCheck
+                size={16}
+              />
+
+              <span>
+                This public
+                guide profile
+                was approved
+                before listing.
+              </span>
+            </div>
           </div>
         </aside>
       </section>
@@ -545,24 +1652,14 @@ function GuideProfilePage() {
   );
 }
 
-const profileCss = `
-.guide-profile-page{min-height:100vh;background:linear-gradient(135deg,#f7fbf7 0%,#fffdf4 48%,#edf8f6 100%);color:#0f2437;font-family:Inter,system-ui,Arial,sans-serif}
-.profile-state-card{width:min(780px,calc(100% - 32px));margin:70px auto;background:#fff;border:1px solid #dbece7;border-radius:24px;padding:32px;box-shadow:0 22px 60px rgba(6,78,69,.08)}
-.profile-state-card h1{margin:0 0 10px;color:#064e45}.profile-state-card a{display:inline-flex;margin-top:12px;background:#064e45;color:#fff;text-decoration:none;border-radius:14px;padding:12px 16px;font-weight:900}
-.guide-profile-hero{padding:34px 24px 42px;background:linear-gradient(135deg,#063f38 0%,#087568 52%,#0b8796 100%);color:#fff}
-.guide-profile-breadcrumb{width:min(1180px,100%);margin:0 auto 24px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;color:rgba(255,255,255,.78);font-size:13px;font-weight:800}.guide-profile-breadcrumb a{color:#fff;text-decoration:none}.guide-profile-breadcrumb strong{color:#ffe88a}
-.profile-hero-grid{width:min(1180px,100%);margin:0 auto;display:grid;grid-template-columns:390px 1fr;gap:34px;align-items:center}.profile-photo-panel{position:relative;min-height:520px;border-radius:34px;overflow:hidden;background:#0a6358;box-shadow:0 32px 80px rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.22)}.profile-photo-panel img{width:100%;height:100%;min-height:520px;object-fit:cover;display:block}.profile-photo-empty{height:520px;display:grid;place-items:center;font-size:110px;font-weight:1000;background:linear-gradient(135deg,#0a7c6e,#ffc527)}.profile-top-ad{position:absolute;right:18px;bottom:18px;background:#ffc527;color:#063f38;border-radius:999px;padding:10px 14px;font-weight:1000;font-size:12px}
-.profile-kicker{display:inline-flex;width:max-content;background:#ffe88a;color:#063f38;border-radius:999px;padding:10px 14px;font-size:12px;font-weight:1000;text-transform:uppercase;letter-spacing:.12em}.profile-hero-copy h1{font-size:clamp(48px,7vw,92px);line-height:.92;margin:22px 0 14px;letter-spacing:-.06em}.profile-tagline{font-size:20px;line-height:1.65;max-width:760px;color:rgba(255,255,255,.9);font-weight:750;margin:0 0 20px}
-.profile-rating-row,.profile-facts,.profile-main-actions{display:flex;flex-wrap:wrap;gap:10px}.profile-rating-row span,.profile-facts span{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:9px 12px;font-weight:900}.profile-rating-row{margin-bottom:16px}.profile-facts{margin-bottom:24px}.profile-main-actions a,.profile-main-actions button{border:none;display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:15px;padding:13px 16px;background:#fff;color:#064e45;font-weight:1000;cursor:pointer}.profile-main-actions .primary{background:#ffc527;color:#063f38}
-.profile-content-grid{width:min(1180px,calc(100% - 32px));margin:34px auto 86px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}.profile-main-column{display:grid;gap:22px}.profile-section,.booking-panel-card,.trust-stack{background:#fff;border:1px solid #dbece7;border-radius:28px;box-shadow:0 22px 60px rgba(6,78,69,.08)}.profile-section{padding:28px}.section-heading span,.personalize-section span{display:block;color:#c47a00;font-size:12px;font-weight:1000;letter-spacing:.13em;text-transform:uppercase}.section-heading h2,.personalize-section h2{margin:8px 0 0;color:#063f38;font-size:32px;line-height:1.05;letter-spacing:-.04em}.about-section p,.personalize-section p{color:#435368;font-weight:700;line-height:1.8;font-size:16px}.profile-mini-facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.profile-mini-facts span{display:inline-flex;align-items:center;gap:7px;background:#f4fbf8;border:1px solid #dbece7;border-radius:999px;padding:9px 12px;color:#064e45;font-weight:900;font-size:13px}
-.offer-grid{display:grid;gap:14px;margin-top:20px}.offer-card{display:grid;grid-template-columns:48px 1fr;gap:16px;border:1px solid #dbece7;background:#fbfefd;border-radius:22px;padding:18px}.offer-icon{width:48px;height:48px;border-radius:16px;background:#fff2bd;color:#8a5600;display:grid;place-items:center}.offer-card h3{margin:0 0 8px;color:#064e45;font-size:20px}.offer-card p{margin:0;color:#435368;line-height:1.6;font-weight:700}.offer-meta,.offer-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.offer-meta span{background:#064e45;color:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000}.offer-tags span,.profile-chip-board span{background:#f8f5ec;color:#25364a;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900}
-.personalize-section{display:flex;gap:20px;justify-content:space-between;align-items:center;background:#fff7d8;border-color:#f5d76e}.personalize-section a{flex:0 0 auto;background:#064e45;color:#fff;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.profile-chip-board{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
-.reviews-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.reviews-top label{display:grid;gap:7px;color:#64748b;font-size:12px;font-weight:1000;text-transform:uppercase}.reviews-top select{border:1px solid #dbece7;border-radius:14px;padding:10px 12px;font-weight:850;color:#102033;background:#fff}.review-summary{display:flex;align-items:center;gap:12px;margin-top:18px;background:#f6fbf8;border:1px solid #dbece7;border-radius:18px;padding:14px}.review-summary strong{display:inline-flex;align-items:center;gap:7px;color:#9a5b00}.review-summary span{font-weight:850;color:#435368}.review-empty{margin-top:14px;border:1px dashed #bddbd3;border-radius:20px;padding:20px;color:#64748b}.review-empty h3{margin:0 0 8px;color:#064e45}.review-empty p{margin:0;line-height:1.6;font-weight:750}.review-list{display:grid;gap:12px;margin-top:14px}.review-item{border:1px solid #dbece7;border-radius:18px;padding:16px;background:#fbfefd}.review-item div{display:flex;justify-content:space-between;gap:12px}.review-item div span{color:#c47a00}.review-item p{color:#435368;line-height:1.6}.review-item small{color:#64748b;font-weight:800}
-.profile-booking-panel{position:sticky;top:92px;display:grid;gap:16px}.booking-panel-card{padding:22px}.booking-panel-card h2{margin:0 0 8px;color:#063f38;font-size:25px;letter-spacing:-.035em}.booking-panel-card p{margin:0 0 18px;color:#64748b;font-weight:750;line-height:1.55}.booking-panel-card label{display:grid;gap:7px;margin-bottom:13px;color:#334155;font-size:12px;font-weight:1000;text-transform:uppercase}.booking-panel-card input,.booking-panel-card select,.booking-panel-card textarea{width:100%;border:1px solid #d5e7e2;border-radius:14px;padding:12px 13px;font-weight:850;color:#102033;background:#fff}.booking-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.booking-price-grid div{background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px}.booking-price-grid span{display:block;color:#64748b;font-size:11px;font-weight:1000;text-transform:uppercase}.booking-price-grid strong{display:block;margin-top:6px;color:#064e45;font-size:14px}.guide-payment-success{background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:15px;padding:12px 13px;font-size:13px;font-weight:900;line-height:1.45;margin-bottom:12px}.booking-primary,.booking-secondary,.booking-trip,.booking-pay-btn{display:flex;justify-content:center;text-decoration:none;border-radius:15px;padding:13px 16px;font-weight:1000}.booking-primary{background:#064e45;color:#fff;border:none;width:100%;cursor:pointer}.booking-primary:disabled{opacity:.58;cursor:not-allowed}.booking-pay-btn{width:100%;border:none;background:#0b63ce;color:#fff;margin-top:9px;cursor:pointer}.booking-pay-btn:disabled{opacity:.58;cursor:not-allowed}.booking-secondary{margin-top:9px;background:#fff;border:1px solid #d5e7e2;color:#064e45}.booking-trip{width:100%;border:none;margin-top:9px;background:#ffc527;color:#063f38;cursor:pointer;font-family:inherit;font-size:inherit}.booking-trip.saved{background:#e8fff5;color:#05614f;border:1px solid #64c8a8}
-.guide-profile-trip-toast{position:fixed;right:22px;bottom:98px;z-index:78;background:#064e45;color:#fff;border-radius:16px;padding:14px 18px;box-shadow:0 18px 40px rgba(0,0,0,.18);font-weight:900}
-.trust-stack{padding:16px;display:grid;gap:10px}.trust-stack div{display:flex;gap:10px;align-items:flex-start;background:#f6fbf8;border:1px solid #dbece7;border-radius:16px;padding:12px;color:#064e45}.trust-stack span{color:#334155;font-weight:800;line-height:1.45;font-size:13px}
-@media(max-width:980px){.profile-hero-grid,.profile-content-grid{grid-template-columns:1fr}.profile-photo-panel,.profile-photo-panel img,.profile-photo-empty{min-height:420px}.profile-booking-panel{position:static}.personalize-section{align-items:flex-start;flex-direction:column}}
-@media(max-width:620px){.guide-profile-hero{padding:24px 14px 34px}.profile-content-grid{width:calc(100% - 24px);margin-top:24px}.profile-photo-panel,.profile-photo-panel img,.profile-photo-empty{min-height:340px}.profile-section{padding:21px}.profile-main-actions a,.profile-main-actions button{width:100%;justify-content:center}.profile-rating-row span,.profile-facts span{width:100%;border-radius:16px}.reviews-top{flex-direction:column}.booking-price-grid{grid-template-columns:1fr}.profile-hero-copy h1{font-size:44px}}
-`;
 
-export default GuideProfilePage;
+function SparklesFallback() {
+  return (
+    <span
+      aria-hidden="true"
+      className="tl-guide-profile-featured-icon"
+    >
+      ✦
+    </span>
+  );
+}
