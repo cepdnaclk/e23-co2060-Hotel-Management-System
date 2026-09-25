@@ -1,0 +1,751 @@
+/* =========================================================
+   TRIPLANKA EXPLORE — ITINERARIES
+   SET 9.6 FINAL
+========================================================= */
+
+.explore-page-final .explore-itinerary-section {
+  margin-top: 4px;
+  margin-bottom: 48px;
+}
+
+.explore-page-final .explore-itinerary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.explore-page-final .explore-itinerary-card {
+  min-width: 0;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+
+  border: 1px solid #dce8e4;
+  border-radius: 17px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 9px 28px
+    rgba(23, 62, 55, 0.045);
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.explore-page-final .explore-itinerary-card:hover {
+  transform: translateY(-2px);
+
+  border-color: #c6ddd6;
+
+  box-shadow:
+    0 15px 36px
+    rgba(23, 62, 55, 0.075);
+}
+
+
+/* =========================================================
+   COVER
+========================================================= */
+
+.explore-page-final .explore-itinerary-cover {
+  height: 218px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background: #eaf1ef;
+}
+
+.explore-page-final .explore-itinerary-cover img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  transition: transform 240ms ease;
+}
+
+.explore-page-final
+.explore-itinerary-card:hover
+.explore-itinerary-cover img {
+  transform: scale(1.025);
+}
+
+.explore-page-final .explore-itinerary-cover-empty {
+  width: 100%;
+  height: 100%;
+
+  display: grid;
+
+  place-items: center;
+
+  color: #0b8d80;
+
+  background:
+    linear-gradient(
+      135deg,
+      #e9f7f3,
+      #f7fbf9
+    );
+}
+
+.explore-page-final .explore-itinerary-cover::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(7, 41, 36, 0.03) 20%,
+      rgba(7, 41, 36, 0.44) 100%
+    );
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   COVER META
+========================================================= */
+
+.explore-page-final .explore-itinerary-cover-meta {
+  position: absolute;
+
+  top: 13px;
+  left: 13px;
+  right: 13px;
+
+  z-index: 3;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 8px;
+}
+
+.explore-page-final
+.explore-itinerary-cover-meta
+> span {
+  width: auto;
+  height: auto;
+
+  min-height: 29px;
+
+  padding: 0 9px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 5px;
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.48);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 255, 255, 0.94);
+
+  color: #0c7168;
+
+  font-size: 9px;
+
+  font-weight: 750;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.explore-page-final .explore-itinerary-cover-title {
+  position: absolute;
+
+  left: 16px;
+  right: 16px;
+  bottom: 15px;
+
+  z-index: 3;
+
+  color: #ffffff;
+}
+
+.explore-page-final
+.explore-itinerary-cover-title
+small {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color:
+    rgba(255, 255, 255, 0.8);
+
+  font-size: 8.5px;
+
+  font-weight: 750;
+
+  letter-spacing: 0.07em;
+}
+
+.explore-page-final
+.explore-itinerary-cover-title
+strong {
+  display: block;
+
+  overflow: hidden;
+
+  color: #ffffff;
+
+  font-size: 18px;
+
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  letter-spacing: -0.025em;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+.explore-page-final .explore-itinerary-body {
+  flex: 1;
+
+  padding: 17px;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+.explore-page-final
+.explore-itinerary-body
+> p {
+  min-height: 35px;
+
+  margin: 0 0 15px;
+
+  display: -webkit-box;
+
+  overflow: hidden;
+
+  color: #687a75;
+
+  font-size: 10.75px;
+
+  line-height: 1.6;
+
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+
+/* =========================================================
+   ROUTE HEADER
+========================================================= */
+
+.explore-page-final
+.explore-itinerary-route-heading {
+  margin-bottom: 9px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+}
+
+.explore-page-final
+.explore-itinerary-route-heading
+> span {
+  width: auto;
+  height: auto;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  border-radius: 0;
+
+  background: transparent;
+
+  color: #2c4d46;
+
+  font-size: 9.75px;
+
+  font-weight: 750;
+}
+
+.explore-page-final
+.explore-itinerary-route-heading
+small {
+  color: #8b9995;
+
+  font-size: 8.75px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   ROUTE
+========================================================= */
+
+.explore-page-final .explore-itinerary-route {
+  position: relative;
+
+  display: grid;
+
+  gap: 7px;
+}
+
+
+/*
+   IMPORTANT FIX
+
+   This selector is intentionally more specific than the old:
+
+   .explore-itinerary-route a
+
+   rule inside explorePage.css.
+*/
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop {
+  width: 100%;
+
+  min-width: 0;
+
+  min-height: 58px;
+
+  padding: 8px 10px;
+
+  display: grid;
+
+  grid-template-columns:
+    30px
+    minmax(0, 1fr)
+    18px;
+
+  align-items: center;
+
+  gap: 10px;
+
+  border: 1px solid #e0ebe7;
+
+  border-radius: 10px;
+
+  background: #fafcfb;
+
+  color: #304c45;
+
+  text-decoration: none;
+
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop:hover {
+  border-color: #bcdcd4;
+
+  background: #f1f9f7;
+
+  box-shadow:
+    0 4px 12px
+    rgba(24, 77, 68, 0.035);
+}
+
+
+/* =========================================================
+   STOP NUMBER
+========================================================= */
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop
+> .explore-itinerary-stop-number {
+  width: 28px;
+  height: 28px;
+
+  min-width: 28px;
+
+  padding: 0;
+  margin: 0;
+
+  display: grid;
+
+  place-items: center;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background: #e5f6f2;
+
+  color: #087a70;
+
+  font-size: 9px;
+
+  line-height: 1;
+
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   STOP COPY
+   Overrides old "a span" styling
+========================================================= */
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop
+> .explore-itinerary-stop-copy {
+  width: auto;
+  height: auto;
+
+  min-width: 0;
+
+  padding: 0;
+  margin: 0;
+
+  display: block;
+
+  border: 0;
+
+  border-radius: 0;
+
+  background: transparent;
+
+  color: inherit;
+
+  line-height: normal;
+}
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop
+> .explore-itinerary-stop-copy
+> strong {
+  width: 100%;
+
+  display: block;
+
+  overflow: hidden;
+
+  color: #29443e;
+
+  font-size: 10.75px;
+
+  line-height: 1.35;
+
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop
+> .explore-itinerary-stop-copy
+> small {
+  width: 100%;
+
+  margin-top: 4px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  overflow: hidden;
+
+  color: #82908c;
+
+  font-size: 8.75px;
+
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   STOP ARROW
+========================================================= */
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop
+> svg {
+  justify-self: end;
+
+  color: #8a9b96;
+
+  transition:
+    transform 150ms ease,
+    color 150ms ease;
+}
+
+.explore-page-final
+.explore-itinerary-route
+> a.explore-itinerary-stop:hover
+> svg {
+  color: #0b8d80;
+
+  transform: translateX(2px);
+}
+
+
+/* =========================================================
+   EXTRA STOPS
+========================================================= */
+
+.explore-page-final .explore-itinerary-more {
+  min-height: 0 !important;
+
+  margin: 8px 0 0 !important;
+
+  display: block !important;
+
+  color: #7d8d88 !important;
+
+  font-size: 9px !important;
+
+  font-weight: 650;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.explore-page-final .explore-itinerary-actions {
+  margin-top: auto;
+
+  padding-top: 17px;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.25fr)
+    minmax(0, 0.75fr);
+
+  gap: 7px;
+}
+
+.explore-page-final
+.explore-itinerary-plan-button,
+.explore-page-final
+.explore-itinerary-secondary-action {
+  min-height: 42px;
+
+  padding: 0 12px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  border-radius: 9px;
+
+  font-size: 9.75px;
+
+  font-weight: 750;
+
+  text-decoration: none;
+}
+
+.explore-page-final
+.explore-itinerary-plan-button {
+  border: 1px solid #0b625b;
+
+  background: #0f8177;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.explore-page-final
+.explore-itinerary-plan-button:hover:not(:disabled) {
+  background: #0a6d65;
+}
+
+.explore-page-final
+.explore-itinerary-plan-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.explore-page-final
+.explore-itinerary-plan-button:disabled {
+  border-color: #ccd9d5;
+
+  background: #e9eeec;
+
+  color: #9aa7a3;
+
+  cursor: not-allowed;
+}
+
+.explore-page-final
+.explore-itinerary-secondary-action {
+  border: 1px solid #d5e3df;
+
+  background: #ffffff;
+
+  color: #42605a;
+}
+
+.explore-page-final
+.explore-itinerary-secondary-action:hover {
+  background: #f4faf8;
+
+  border-color: #c5dcd6;
+}
+
+
+/* =========================================================
+   SECTION HEADER
+========================================================= */
+
+.explore-page-final
+.explore-itinerary-section
+.explore-section-heading {
+  margin-bottom: 19px;
+}
+
+.explore-page-final
+.explore-itinerary-section
+.explore-section-heading
+span {
+  color: #0f766e;
+}
+
+.explore-page-final
+.explore-itinerary-section
+.explore-section-heading
+h2 {
+  color: #172d28;
+
+  font-weight: 700;
+
+  letter-spacing: -0.03em;
+}
+
+
+/* =========================================================
+   SKELETON
+========================================================= */
+
+.explore-page-final .explore-itinerary-skeleton {
+  min-height: 560px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1120px) {
+  .explore-page-final
+  .explore-itinerary-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (max-width: 700px) {
+  .explore-page-final
+  .explore-itinerary-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .explore-page-final
+  .explore-itinerary-cover {
+    height: 225px;
+  }
+}
+
+
+@media (max-width: 480px) {
+  .explore-page-final
+  .explore-itinerary-cover {
+    height: 205px;
+  }
+
+  .explore-page-final
+  .explore-itinerary-body {
+    padding: 14px;
+  }
+
+  .explore-page-final
+  .explore-itinerary-actions {
+    grid-template-columns:
+      1fr;
+  }
+
+  .explore-page-final
+  .explore-itinerary-route
+  > a.explore-itinerary-stop {
+    min-height: 56px;
+
+    grid-template-columns:
+      28px
+      minmax(0, 1fr)
+      16px;
+
+    gap: 8px;
+  }
+}

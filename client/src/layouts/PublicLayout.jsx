@@ -5665,6 +5665,270 @@ const layoutCss = `
     }
   }
 
+
+  /* =========================================================
+     SET 9.7 — FINAL RESPONSIVE FOOTER FIX
+     Final footer rules are intentionally placed at the end of
+     layoutCss so older footer desktop rules cannot override them.
+  ========================================================= */
+
+  .public-site-footer,
+  .public-site-footer * {
+    min-width: 0;
+  }
+
+  .public-site-footer a,
+  .public-site-footer p,
+  .public-site-footer span,
+  .public-site-footer strong {
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 1120px) {
+    .public-site-footer .public-footer-inner {
+      width: min(100% - 44px, 1360px);
+      padding-top: 42px;
+    }
+
+    .public-site-footer .public-footer-top {
+      grid-template-columns: 1fr;
+      gap: 34px;
+    }
+
+    .public-site-footer .public-footer-brand > p {
+      max-width: 660px;
+    }
+
+    .public-site-footer .public-footer-links-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 26px 22px;
+    }
+  }
+
+  @media (max-width: 820px) {
+    .public-site-footer {
+      margin-top: 56px;
+    }
+
+    .public-site-footer .public-footer-inner {
+      width: min(100% - 32px, 1360px);
+      padding: 38px 0 96px;
+    }
+
+    .public-site-footer .public-footer-top {
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+
+    .public-site-footer .public-footer-brand {
+      width: 100%;
+    }
+
+    .public-site-footer .public-footer-brand > p {
+      max-width: 620px;
+      margin: 15px 0 17px;
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+
+    .public-site-footer .public-footer-contact-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .public-site-footer .public-footer-contact {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .public-site-footer .public-footer-links-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 26px 22px;
+    }
+
+    .public-site-footer .public-footer-column-wide {
+      grid-column: 1 / -1;
+    }
+
+    .public-site-footer .public-footer-column-wide a {
+      max-width: 100%;
+    }
+
+    .public-site-footer .public-footer-highlight {
+      margin-top: 30px;
+      padding: 17px 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .public-site-footer .public-footer-socials {
+      width: 100%;
+    }
+
+    .public-site-footer .public-footer-bottom {
+      padding-top: 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 9px;
+    }
+
+    .public-site-footer .public-footer-bottom > div {
+      gap: 14px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .public-site-footer {
+      margin-top: 48px;
+    }
+
+    .public-site-footer .public-footer-inner {
+      width: calc(100% - 24px);
+      padding: 32px 0 108px;
+    }
+
+    .public-site-footer .public-footer-top {
+      gap: 26px;
+    }
+
+    .public-site-footer .public-footer-logo {
+      gap: 9px;
+      max-width: 100%;
+    }
+
+    .public-site-footer .public-footer-logo-mark {
+      width: 43px;
+      height: 43px;
+      flex-basis: 43px;
+      border-radius: 13px;
+    }
+
+    .public-site-footer .public-footer-logo-copy > strong {
+      font-size: 20px;
+    }
+
+    .public-site-footer .public-footer-logo-copy > small {
+      font-size: 8px;
+      letter-spacing: 1.15px;
+    }
+
+    .public-site-footer .public-footer-brand > p {
+      margin: 14px 0 16px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .public-site-footer .public-footer-contact-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .public-site-footer .public-footer-contact {
+      min-height: 48px;
+      padding: 9px 10px;
+      gap: 8px;
+      border-radius: 11px;
+    }
+
+    .public-site-footer .public-footer-contact span {
+      font-size: 8px;
+    }
+
+    .public-site-footer .public-footer-contact strong {
+      font-size: 15px;
+    }
+
+    .public-site-footer .public-footer-links-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px 18px;
+    }
+
+    .public-site-footer .public-footer-column h3 {
+      margin-bottom: 10px;
+      font-size: 9px;
+    }
+
+    .public-site-footer .public-footer-column a {
+      width: 100%;
+      margin-bottom: 8px;
+      font-size: 11.5px;
+      line-height: 1.45;
+    }
+
+    .public-site-footer .public-footer-column-wide {
+      grid-column: 1 / -1;
+      padding-top: 2px;
+    }
+
+    .public-site-footer .public-footer-highlight {
+      margin-top: 27px;
+      padding: 15px 0;
+    }
+
+    .public-site-footer .public-footer-highlight strong {
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .public-site-footer .public-footer-highlight span {
+      margin-top: 4px;
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+    .public-site-footer .public-footer-socials {
+      gap: 7px;
+    }
+
+    .public-site-footer .public-footer-socials a {
+      width: 35px;
+      height: 35px;
+      border-radius: 10px;
+    }
+
+    .public-site-footer .public-footer-bottom {
+      gap: 8px;
+      font-size: 9.5px;
+    }
+
+    .public-site-footer .public-footer-bottom p,
+    .public-site-footer .public-footer-bottom a {
+      font-size: 9.5px;
+      line-height: 1.45;
+    }
+
+    .public-site-footer .public-footer-bottom > div {
+      width: 100%;
+      gap: 8px 14px;
+    }
+  }
+
+  @media (max-width: 390px) {
+    .public-site-footer .public-footer-inner {
+      width: calc(100% - 20px);
+    }
+
+    .public-site-footer .public-footer-contact-row {
+      grid-template-columns: 1fr;
+    }
+
+    .public-site-footer .public-footer-links-grid {
+      gap: 22px 14px;
+    }
+
+    .public-site-footer .public-footer-column a {
+      font-size: 11px;
+    }
+
+    .public-site-footer .public-footer-highlight {
+      margin-top: 24px;
+    }
+  }
+
 `;
 
 export default PublicLayout;
