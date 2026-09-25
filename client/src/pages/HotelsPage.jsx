@@ -1,81 +1,181 @@
-import ContentImage from "../components/ContentImage";
-import { assetUrl as toImageUrl } from "../utils/assetUrl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { Link, useSearchParams } from "react-router-dom";
+
+import {
+  BedDouble,
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Grid2X2,
+  List,
+  MapPin,
+  Plus,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
+
 import api from "../api/api";
-import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
+import ContentImage from "../components/ContentImage";
 
-const priceLimitMin = 0;
-const priceLimitMax = 50000;
-const priceGap = 500;
+import { assetUrl as toImageUrl } from "../utils/assetUrl";
 
-const defaultFilterState = {
-  city: "",
-  district: "",
-  type: "",
-  search: "",
-  minPrice: 0,
-  maxPrice: 50000,
-  hasRoomsOnly: false,
-  sort: "recommended",
+import {
+  readTripItems,
+  SAVED_TRIP_EVENT,
+  toggleTripItem,
+} from "../utils/tripBasket";
+
+import "../styles/hotels.css";
+
+const HOTELS_PER_PAGE = 10;
+
+const parseMoney = (value) => {
+  if (value === null || value === undefined || value === "") return 0;
+
+  const cleaned = String(value)
+    .replace(/,/g, "")
+    .replace(/[^\d.-]/g, "")
+    .trim();
+
+  const parsed = Number(cleaned);
+
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 };
 
-const budgetPresets = [
-  { id: "all", label: "All budgets", min: 0, max: 50000 },
-  { id: "budget", label: "Budget friendly", min: 0, max: 15000 },
-  { id: "comfort", label: "Comfort stays", min: 15000, max: 30000 },
-  { id: "premium", label: "Premium stays", min: 30000, max: 50000 },
-];
+const formatPrice = (value) => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return "0";
+  }
+
+  return Math.round(Math.max(0, numericValue)).toLocaleString("en-LK");
+};
+
+const getPropertyPrice = (property) => {
+  return parseMoney(property?.starting_price);
+};
+
+const getPriceCeiling = (items) => {
+  return items.reduce(
+    (highest, property) => Math.max(highest, getPropertyPrice(property)),
+    0
+  );
+};
+
+const getDistrictForCity = (items, city) => {
+  const normalizedCity = String(city || "").trim().toLowerCase();
+
+  if (!normalizedCity) return "";
+
+  const matchingProperty = items.find(
+    (property) =>
+      String(property.city || "").trim().toLowerCase() === normalizedCity &&
+      property.district
+  );
+
+  return matchingProperty?.district || "";
+};
 
 function HotelsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+
   const [properties, setProperties] = useState([]);
-  const [places, setPlaces] = useState([]);
+
   const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+
   const [notice, setNotice] = useState("");
+
   const [loading, setLoading] = useState(true);
+
   const [viewMode, setViewMode] = useState("list");
-  const [heroIndex, setHeroIndex] = useState(0);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const resultsTopRef = useRef(null);
+
   const [filters, setFilters] = useState({
-    ...defaultFilterState,
     city: searchParams.get("city") || "",
+    district: "",
+    type: "",
     search: searchParams.get("search") || "",
+    minPrice: 0,
+    maxPrice: 0,
+    hasRoomsOnly: false,
+    sort: "recommended",
   });
 
-  const loadPageData = async () => {
-    try {
-      setLoading(true);
-
-      const [propertiesResponse, placesResponse] = await Promise.allSettled([
-        api.get("/properties"),
-        api.get("/explore/places"),
-      ]);
-
-      if (propertiesResponse.status === "fulfilled") {
-        const approvedHotels = (propertiesResponse.value.data.data || []).filter(
-          (property) =>
-            !property.status || String(property.status).toLowerCase() === "approved"
-        );
-        setProperties(approvedHotels);
-      }
-
-      if (placesResponse.status === "fulfilled") {
-        setPlaces(placesResponse.value.data.places || []);
-      }
-    } catch (error) {
-      console.error("Load hotels page data error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadPageData();
+    let cancelled = false;
+
+    const loadHotels = async () => {
+      try {
+        setLoading(true);
+
+        const response = await api.get("/properties");
+
+        const rows = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+
+        const approvedHotels = rows
+          .filter(
+            (property) =>
+              !property.status ||
+              String(property.status).toLowerCase() === "approved"
+          )
+          .map((property) => ({
+            ...property,
+            starting_price: getPropertyPrice(property),
+            total_rooms_count: Number(property.total_rooms_count || 0),
+          }));
+
+        const initialPriceCeiling = getPriceCeiling(approvedHotels);
+
+        if (cancelled) return;
+
+        setProperties(approvedHotels);
+
+        setFilters((previous) => ({
+          ...previous,
+          minPrice: 0,
+          maxPrice: initialPriceCeiling,
+        }));
+      } catch (error) {
+        console.error("Load hotels error:", error);
+
+        if (!cancelled) {
+          setProperties([]);
+
+          setFilters((previous) => ({
+            ...previous,
+            minPrice: 0,
+            maxPrice: 0,
+          }));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadHotels();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    const refreshSavedItems = () => setSavedTripItems(readTripItems());
+    const refreshSavedItems = () => {
+      setSavedTripItems(readTripItems());
+    };
+
     window.addEventListener("storage", refreshSavedItems);
     window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
 
@@ -87,98 +187,59 @@ function HotelsPage() {
 
   useEffect(() => {
     if (!notice) return undefined;
+
     const timer = window.setTimeout(() => setNotice(""), 2500);
+
     return () => window.clearTimeout(timer);
   }, [notice]);
 
   useEffect(() => {
+    setCurrentPage(1);
+
+    const city = searchParams.get("city") || "";
+    const cityDistrict = getDistrictForCity(properties, city);
+
     setFilters((previous) => ({
       ...previous,
-      city: searchParams.get("city") || "",
+      city,
+      district: city ? cityDistrict : previous.district,
       search: searchParams.get("search") || "",
     }));
-  }, [searchParams]);
+  }, [searchParams, properties]);
 
+  const destinationProperties = useMemo(() => {
+    if (!filters.district) return properties;
 
-  const hotelHeroImages = useMemo(() => {
-    return properties
-      .map((property) => ({
-        src: toImageUrl(property.main_image || property.hero_image || property.logo_url),
-        title: property.name,
-        label: property.city || "Hotel stay",
-        type: "Hotel",
-      }))
-      .filter((item) => item.src)
-      .slice(0, 4);
-  }, [properties]);
+    const selectedDistrict = filters.district.toLowerCase();
 
-  const placeHeroImages = useMemo(() => {
-    const used = new Set();
-    const images = [];
-
-    places.forEach((place) => {
-      const imageCandidates = [
-        place.image_url,
-        place.image,
-        ...(Array.isArray(place.images) ? place.images : []),
-        ...(Array.isArray(place.photos)
-          ? place.photos.map((photo) => photo.image_url || photo.url || photo.image)
-          : []),
-      ];
-
-      const image = imageCandidates.map(toImageUrl).find((url) => url && !used.has(url));
-
-      if (image) {
-        used.add(image);
-        images.push({
-          src: image,
-          title: place.name,
-          label: place.region || place.city || "Explore place",
-          type: "Explore",
-        });
-      }
-    });
-
-    return images.slice(0, 2);
-  }, [places]);
-
-  const heroImages = useMemo(() => {
-    return [...hotelHeroImages, ...placeHeroImages];
-  }, [hotelHeroImages, placeHeroImages]);
-
-  useEffect(() => {
-    setHeroIndex(0);
-  }, [heroImages.length]);
-
-  useEffect(() => {
-    if (heroImages.length <= 1) return undefined;
-
-    const timer = window.setInterval(() => {
-      setHeroIndex((current) => (current + 1) % heroImages.length);
-    }, 4000);
-
-    return () => window.clearInterval(timer);
-  }, [heroImages.length]);
-
-  const currentHero = heroImages[heroIndex] || null;
+    return properties.filter(
+      (property) =>
+        String(property.district || "").toLowerCase() === selectedDistrict
+    );
+  }, [properties, filters.district]);
 
   const destinationOptions = useMemo(() => {
-    const countMap = properties.reduce((acc, property) => {
-      if (!property.city) return acc;
-      acc[property.city] = (acc[property.city] || 0) + 1;
-      return acc;
+    const countMap = destinationProperties.reduce((accumulator, property) => {
+      if (!property.city) return accumulator;
+
+      accumulator[property.city] = (accumulator[property.city] || 0) + 1;
+
+      return accumulator;
     }, {});
 
     return Object.entries(countMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [properties]);
+  }, [destinationProperties]);
 
   const districtOptions = useMemo(() => {
-    const countMap = properties.reduce((acc, property) => {
-      if (!property.district) return acc;
-      acc[property.district] = (acc[property.district] || 0) + 1;
-      return acc;
+    const countMap = properties.reduce((accumulator, property) => {
+      if (!property.district) return accumulator;
+
+      accumulator[property.district] =
+        (accumulator[property.district] || 0) + 1;
+
+      return accumulator;
     }, {});
 
     return Object.entries(countMap)
@@ -187,10 +248,12 @@ function HotelsPage() {
   }, [properties]);
 
   const typeOptions = useMemo(() => {
-    const countMap = properties.reduce((acc, property) => {
+    const countMap = properties.reduce((accumulator, property) => {
       const type = property.property_type || "Hotel";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
+
+      accumulator[type] = (accumulator[type] || 0) + 1;
+
+      return accumulator;
     }, {});
 
     return Object.entries(countMap)
@@ -198,28 +261,15 @@ function HotelsPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [properties]);
 
-  const stats = useMemo(() => {
-    const cities = new Set(properties.map((property) => property.city).filter(Boolean));
-    const prices = properties
-      .map((property) => Number(property.starting_price || 0))
-      .filter((price) => price > 0);
-    const totalRooms = properties.reduce(
-      (sum, property) => sum + Number(property.total_rooms_count || 0),
-      0
-    );
+  const priceCeiling = useMemo(
+    () => getPriceCeiling(properties),
+    [properties]
+  );
 
-    return {
-      approvedStays: properties.length,
-      destinations: cities.size,
-      lowestPrice: prices.length ? Math.min(...prices) : 0,
-      rooms: totalRooms,
-    };
-  }, [properties]);
-
-  const filteredProperties = useMemo(() => {
+  const priceContextProperties = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
 
-    const matched = properties.filter((property) => {
+    return properties.filter((property) => {
       const searchMatches =
         !query ||
         [
@@ -236,18 +286,18 @@ function HotelsPage() {
           .includes(query);
 
       const cityMatches =
-        !filters.city || property.city?.toLowerCase() === filters.city.toLowerCase();
+        !filters.city ||
+        property.city?.toLowerCase() === filters.city.toLowerCase();
 
       const districtMatches =
         !filters.district ||
         property.district?.toLowerCase() === filters.district.toLowerCase();
 
+      const propertyType = property.property_type || "Hotel";
+
       const typeMatches =
         !filters.type ||
-        property.property_type?.toLowerCase() === filters.type.toLowerCase();
-
-      const price = Number(property.starting_price || 0);
-      const priceMatches = price >= filters.minPrice && price <= filters.maxPrice;
+        propertyType.toLowerCase() === filters.type.toLowerCase();
 
       const roomMatches =
         !filters.hasRoomsOnly || Number(property.total_rooms_count || 0) > 0;
@@ -257,81 +307,260 @@ function HotelsPage() {
         cityMatches &&
         districtMatches &&
         typeMatches &&
-        priceMatches &&
         roomMatches
       );
     });
+  }, [
+    properties,
+    filters.search,
+    filters.city,
+    filters.district,
+    filters.type,
+    filters.hasRoomsOnly,
+  ]);
+
+  const selectedMinPrice = filters.minPrice;
+  const selectedMaxPrice = filters.maxPrice;
+
+  const budgetPresets = useMemo(() => {
+    if (priceCeiling <= 0) {
+      return [
+        {
+          id: "all",
+          label: "All budgets",
+          min: 0,
+          max: 0,
+        },
+      ];
+    }
+
+    const presets = [
+      {
+        id: "all",
+        label: "All budgets",
+        min: 0,
+        max: priceCeiling,
+      },
+    ];
+
+    if (priceCeiling > 0) {
+      presets.push({
+        id: "budget",
+        label: "Budget",
+        min: 0,
+        max: Math.min(15000, priceCeiling),
+      });
+    }
+
+    if (priceCeiling > 15000) {
+      presets.push({
+        id: "comfort",
+        label: "Comfort",
+        min: 15000,
+        max: Math.min(30000, priceCeiling),
+      });
+    }
+
+    if (priceCeiling > 30000) {
+      presets.push({
+        id: "premium",
+        label: "Premium",
+        min: 30000,
+        max: priceCeiling,
+      });
+    }
+
+    return presets.filter((preset) => preset.min <= preset.max);
+  }, [priceCeiling]);
+
+  const filteredProperties = useMemo(() => {
+    const matched = priceContextProperties.filter((property) => {
+      const price = getPropertyPrice(property);
+
+      return price >= selectedMinPrice && price <= selectedMaxPrice;
+    });
 
     return [...matched].sort((a, b) => {
-      const priceA = Number(a.starting_price || 0);
-      const priceB = Number(b.starting_price || 0);
+      const priceA = getPropertyPrice(a);
+      const priceB = getPropertyPrice(b);
       const roomsA = Number(a.total_rooms_count || 0);
       const roomsB = Number(b.total_rooms_count || 0);
 
       if (filters.sort === "priceLow") return priceA - priceB;
       if (filters.sort === "priceHigh") return priceB - priceA;
       if (filters.sort === "rooms") return roomsB - roomsA;
+
       if (filters.sort === "newest") {
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       }
-      if (filters.sort === "name") return a.name.localeCompare(b.name);
+
+      if (filters.sort === "name") {
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      }
 
       return roomsB - roomsA || priceA - priceB;
     });
-  }, [properties, filters]);
+  }, [
+    priceContextProperties,
+    filters.sort,
+    selectedMinPrice,
+    selectedMaxPrice,
+  ]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProperties.length / HOTELS_PER_PAGE)
+  );
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  const paginatedProperties = useMemo(() => {
+    const startIndex = (currentPage - 1) * HOTELS_PER_PAGE;
+
+    return filteredProperties.slice(startIndex, startIndex + HOTELS_PER_PAGE);
+  }, [filteredProperties, currentPage]);
+
+  const visibleStart =
+    filteredProperties.length === 0
+      ? 0
+      : (currentPage - 1) * HOTELS_PER_PAGE + 1;
+
+  const visibleEnd = Math.min(
+    currentPage * HOTELS_PER_PAGE,
+    filteredProperties.length
+  );
 
   const updateFilters = (updates) => {
+    setCurrentPage(1);
+
     setFilters((previous) => {
-      const next = { ...previous, ...updates };
-      const params = new URLSearchParams(searchParams);
+      const next = {
+        ...previous,
+        ...updates,
+      };
 
-      if (updates.city !== undefined) {
-        if (next.city) params.set("city", next.city);
-        else params.delete("city");
+      if (updates.city !== undefined || updates.search !== undefined) {
+        const params = new URLSearchParams(searchParams);
+
+        if (updates.city !== undefined) {
+          if (next.city) params.set("city", next.city);
+          else params.delete("city");
+        }
+
+        if (updates.search !== undefined) {
+          if (next.search.trim()) params.set("search", next.search.trim());
+          else params.delete("search");
+        }
+
+        setSearchParams(params);
       }
 
-      if (updates.search !== undefined) {
-        if (next.search.trim()) params.set("search", next.search.trim());
-        else params.delete("search");
-      }
-
-      setSearchParams(params);
       return next;
     });
   };
 
+  const handleDestinationSelect = (city) => {
+    if (!city) {
+      updateFilters({ city: "" });
+      return;
+    }
+
+    updateFilters({
+      city,
+      district: getDistrictForCity(properties, city),
+    });
+  };
+
+  const handleDistrictChange = (event) => {
+    const district = event.target.value;
+
+    if (!district) {
+      updateFilters({ district: "", city: "" });
+      return;
+    }
+
+    const cityBelongsToDistrict = properties.some(
+      (property) =>
+        String(property.city || "").toLowerCase() ===
+          filters.city.toLowerCase() &&
+        String(property.district || "").toLowerCase() ===
+          district.toLowerCase()
+    );
+
+    updateFilters({
+      district,
+      city: cityBelongsToDistrict ? filters.city : "",
+    });
+  };
+
   const handleMinPriceChange = (event) => {
-    const value = Number(event.target.value);
-    updateFilters({ minPrice: Math.min(value, filters.maxPrice - priceGap) });
+    const requested = Number(event.target.value);
+
+    setCurrentPage(1);
+    setFilters((previous) => {
+      const safeValue = Math.min(
+        Math.max(Number.isFinite(requested) ? requested : 0, 0),
+        previous.maxPrice
+      );
+
+      return {
+        ...previous,
+        minPrice: safeValue,
+      };
+    });
   };
 
   const handleMaxPriceChange = (event) => {
-    const value = Number(event.target.value);
-    updateFilters({ maxPrice: Math.max(value, filters.minPrice + priceGap) });
+    const requested = Number(event.target.value);
+
+    setCurrentPage(1);
+    setFilters((previous) => {
+      const safeValue = Math.max(
+        previous.minPrice,
+        Math.min(
+          Number.isFinite(requested) ? requested : priceCeiling,
+          priceCeiling
+        )
+      );
+
+      return {
+        ...previous,
+        maxPrice: safeValue,
+      };
+    });
   };
 
   const handleClearFilters = () => {
-    setFilters(defaultFilterState);
+    setFilters({
+      city: "",
+      district: "",
+      type: "",
+      search: "",
+      minPrice: 0,
+      maxPrice: priceCeiling,
+      hasRoomsOnly: false,
+      sort: "recommended",
+    });
+
     setSearchParams({});
+    setCurrentPage(1);
   };
 
   const applyBudgetPreset = (preset) => {
-    updateFilters({ minPrice: preset.min, maxPrice: preset.max });
+    updateFilters({
+      minPrice: Math.max(0, Math.min(preset.min, priceCeiling)),
+      maxPrice: Math.max(0, Math.min(preset.max, priceCeiling)),
+    });
   };
-
-  const minPercent =
-    ((filters.minPrice - priceLimitMin) / (priceLimitMax - priceLimitMin)) * 100;
-  const maxPercent =
-    ((filters.maxPrice - priceLimitMin) / (priceLimitMax - priceLimitMin)) * 100;
 
   const activeChips = [
     filters.search && `Search: ${filters.search}`,
     filters.city && `City: ${filters.city}`,
     filters.district && `District: ${filters.district}`,
     filters.type && `Type: ${filters.type}`,
-    filters.hasRoomsOnly && "Has rooms",
-    (filters.minPrice !== 0 || filters.maxPrice !== 50000) &&
-      `Rs. ${filters.minPrice.toLocaleString()} - Rs. ${filters.maxPrice.toLocaleString()}`,
+    filters.hasRoomsOnly && "Rooms listed",
   ].filter(Boolean);
 
   const savedTripIds = useMemo(
@@ -340,8 +569,11 @@ function HotelsPage() {
   );
 
   const buildHotelTripItem = (property) => {
-    const image = toImageUrl(property.main_image || property.logo_url || property.hero_image);
-    const price = Number(property.starting_price || 0);
+    const image = toImageUrl(
+      property.main_image || property.logo_url || property.hero_image
+    );
+
+    const price = getPropertyPrice(property);
 
     return {
       id: `hotel-${property.id}`,
@@ -354,128 +586,246 @@ function HotelsPage() {
       image,
       duration: "Stay",
       bestTime: "Check-in day",
-      budget: price >= 30000 ? "High" : price >= 15000 ? "Medium" : "Low",
+      budget:
+        price >= 30000 ? "High" : price >= 15000 ? "Medium" : "Low",
       estimatedCost: price,
-      shortDescription: property.description || "Selected hotel stay for this Sri Lanka trip.",
+      shortDescription:
+        property.description || "Selected hotel stay for this Sri Lanka trip.",
       link: `/hotels/${property.id}`,
     };
   };
 
   const handleToggleHotelTrip = (property) => {
-    const item = buildHotelTripItem(property);
-    const result = toggleTripItem(item);
+    const result = toggleTripItem(buildHotelTripItem(property));
+
     setSavedTripItems(result.items);
+
     setNotice(
       result.saved
-        ? `${property.name} added to your trip basket.`
-        : `${property.name} removed from your trip basket.`
+        ? `${property.name} added to your trip.`
+        : `${property.name} removed from your trip.`
     );
   };
 
+  const goToPage = (page) => {
+    const safePage = Math.min(Math.max(page, 1), totalPages);
+
+    if (safePage === currentPage) return;
+
+    setCurrentPage(safePage);
+
+    window.requestAnimationFrame(() => {
+      resultsTopRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
   return (
-    <div className="hotels-page-shell">
-      <style>{pageStyles}</style>
-      {notice ? <div className="hotel-trip-toast">{notice}</div> : null}
+    <main className="hotels-page">
+      {notice ? <div className="hotels-toast">{notice}</div> : null}
 
-      <section
-        className="hotels-hero"
-        style={{
-          backgroundImage: currentHero
-            ? `linear-gradient(90deg, rgba(0, 69, 61, 0.84), rgba(0, 92, 81, 0.68)), url(${currentHero.src})`
-            : "linear-gradient(135deg, #00453d, #087264)",
-        }}
-      >
-        <div className="hero-copy">
-          <span className="hero-kicker">Trusted stays across Sri Lanka</span>
-          <h1>Find the right hotel for your journey</h1>
-          <p>
-            Browse admin-approved registered hotels, compare destinations and use
-            smart filters to find the stay that matches your trip.
-          </p>
+      <header className="hotels-modern-hero">
+        <div className="hotels-hero-visual" aria-hidden="true">
+          <span className="hotels-hero-glow hotels-hero-glow-left" />
+          <span className="hotels-hero-glow hotels-hero-glow-right" />
 
-          <div className="hero-search-box">
-            <span>🔎</span>
+          <div className="hotels-hero-watermark">
+            <svg
+              className="hotels-hero-resort-illustration"
+              viewBox="0 0 360 240"
+              role="presentation"
+            >
+              <circle className="hotels-resort-sun" cx="306" cy="38" r="22" />
+
+              <path
+                className="hotels-resort-palm-trunk"
+                d="M62 158 C65 125 63 102 55 80"
+              />
+              <path
+                className="hotels-resort-palm-leaf"
+                d="M55 81 C38 66 23 69 16 76 C31 76 43 82 52 91"
+              />
+              <path
+                className="hotels-resort-palm-leaf"
+                d="M55 81 C67 61 84 59 95 65 C78 68 67 76 59 90"
+              />
+              <path
+                className="hotels-resort-palm-leaf"
+                d="M55 81 C49 61 55 49 65 43 C66 59 63 70 58 84"
+              />
+
+              <path
+                className="hotels-resort-palm-trunk"
+                d="M298 160 C295 130 297 110 305 91"
+              />
+              <path
+                className="hotels-resort-palm-leaf"
+                d="M305 92 C290 77 276 80 269 87 C283 86 295 92 302 101"
+              />
+              <path
+                className="hotels-resort-palm-leaf"
+                d="M305 92 C318 75 332 75 342 81 C328 83 317 90 308 101"
+              />
+
+              <rect
+                className="hotels-resort-sign"
+                x="136"
+                y="27"
+                width="88"
+                height="34"
+                rx="5"
+              />
+              <text className="hotels-resort-sign-text" x="180" y="49">
+                HOTEL
+              </text>
+
+              <path
+                className="hotels-resort-building"
+                d="M97 64 H263 V157 H97 Z"
+              />
+
+              <g className="hotels-resort-windows">
+                <rect x="113" y="79" width="27" height="24" rx="4" />
+                <rect x="151" y="79" width="27" height="24" rx="4" />
+                <rect x="189" y="79" width="27" height="24" rx="4" />
+                <rect x="227" y="79" width="20" height="24" rx="4" />
+                <rect x="113" y="114" width="27" height="24" rx="4" />
+                <rect x="151" y="114" width="27" height="24" rx="4" />
+                <rect x="189" y="114" width="27" height="24" rx="4" />
+                <rect x="227" y="114" width="20" height="24" rx="4" />
+              </g>
+
+              <path
+                className="hotels-resort-ground-floor"
+                d="M82 143 H278 V180 H82 Z"
+              />
+              <path
+                className="hotels-resort-arch"
+                d="M101 178 V165 C101 154 110 148 121 148 C132 148 141 154 141 165 V178"
+              />
+              <path
+                className="hotels-resort-arch"
+                d="M159 178 V162 C159 150 168 143 180 143 C192 143 201 150 201 162 V178"
+              />
+              <path
+                className="hotels-resort-arch"
+                d="M219 178 V165 C219 154 228 148 239 148 C250 148 259 154 259 165 V178"
+              />
+
+              <path
+                className="hotels-resort-pool"
+                d="M67 221 H293 L270 180 H90 Z"
+              />
+              <path
+                className="hotels-resort-pool-highlight"
+                d="M91 207 H269 L260 191 H100 Z"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div className="hotels-hero-copy">
+          <span className="hotels-hero-kicker">TRIPLANKA · HOTELS</span>
+
+          <h1>
+            Find your <span className="hotels-title-sri-lanka">Sri Lanka</span>{" "}
+            <span className="hotels-title-stay">stay.</span>
+          </h1>
+
+          <p>Choose a stay that fits your route and budget.</p>
+
+          <div className="hotels-hero-search">
+            <Search size={18} aria-hidden="true" />
+
             <input
-              type="text"
+              type="search"
               value={filters.search}
-              onChange={(event) => updateFilters({ search: event.target.value })}
-              placeholder="Search by hotel, city, district, address or type..."
+              onChange={(event) =>
+                updateFilters({ search: event.target.value })
+              }
+              placeholder="Search hotels, cities or districts"
+              aria-label="Search hotels"
             />
+
+            {filters.search ? (
+              <button
+                type="button"
+                onClick={() => updateFilters({ search: "" })}
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
 
-          {currentHero && (
-            <div className="hero-photo-source">
-              <span>{currentHero.type}</span>
-              <strong>{currentHero.title}</strong>
-              <small>{currentHero.label}</small>
-            </div>
-          )}
-        </div>
-
-        <div className="hero-stats-grid">
-          <div className="hero-stat-card">
-            <strong>{stats.approvedStays}</strong>
-            <span>Approved stays</span>
-          </div>
-          <div className="hero-stat-card">
-            <strong>{stats.destinations}</strong>
-            <span>Destinations</span>
-          </div>
-          <div className="hero-stat-card">
-            <strong>
-              {stats.lowestPrice ? `Rs. ${stats.lowestPrice.toLocaleString()}` : "-"}
-            </strong>
-            <span>Lowest start price</span>
-          </div>
-          <div className="hero-stat-card">
-            <strong>{stats.rooms}</strong>
-            <span>Listed rooms</span>
+          <div className="hotels-hero-capabilities">
+            <span>Search by destination</span>
+            <span>Compare prices</span>
+            <span>Add to trip</span>
           </div>
         </div>
-      </section>
+      </header>
 
-      <section className="hotel-content-grid">
-        <aside className="hotel-filter-panel">
-          <div className="filter-panel-top">
+      <section className="hotels-main-layout">
+        <aside className="hotels-filter-card">
+          <div className="hotels-filter-heading">
             <div>
-              <span className="section-kicker">Smart filter</span>
-              <h2>Refine hotels</h2>
+              <span className="hotels-section-label">
+                <SlidersHorizontal size={14} />
+                Filters
+              </span>
+
+              <h2>Refine results</h2>
             </div>
-            <button type="button" onClick={handleClearFilters} className="clear-filter-btn">
+
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="hotels-reset-button"
+            >
+              <RotateCcw size={14} />
               Clear
             </button>
           </div>
 
-          <div className="filter-block">
+          <div className="hotels-filter-group">
             <label>Destination</label>
-            <button
-              type="button"
-              onClick={() => updateFilters({ city: "" })}
-              className={`filter-option ${!filters.city ? "active" : ""}`}
-            >
-              <span>All destinations</span>
-              <small>{properties.length}</small>
-            </button>
-            {destinationOptions.map((city) => (
+
+            <div className="hotels-destination-list">
               <button
                 type="button"
-                key={city.name}
-                onClick={() => updateFilters({ city: city.name })}
-                className={`filter-option ${filters.city === city.name ? "active" : ""}`}
+                onClick={() => handleDestinationSelect("")}
+                className={!filters.city ? "active" : ""}
               >
-                <span>{city.name}</span>
-                <small>{city.count}</small>
+                <span>All destinations</span>
+                <small>{destinationProperties.length}</small>
               </button>
-            ))}
+
+              {destinationOptions.map((city) => (
+                <button
+                  type="button"
+                  key={city.name}
+                  onClick={() => handleDestinationSelect(city.name)}
+                  className={filters.city === city.name ? "active" : ""}
+                >
+                  <span>{city.name}</span>
+                  <small>{city.count}</small>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="filter-block">
-            <label>District</label>
+          <div className="hotels-filter-group">
+            <label htmlFor="hotel-district">District</label>
+
             <select
+              id="hotel-district"
               value={filters.district}
-              onChange={(event) => updateFilters({ district: event.target.value })}
+              onChange={handleDistrictChange}
             >
               <option value="">All districts</option>
+
               {districtOptions.map((district) => (
                 <option value={district.name} key={district.name}>
                   {district.name} ({district.count})
@@ -484,22 +834,24 @@ function HotelsPage() {
             </select>
           </div>
 
-          <div className="filter-block">
+          <div className="hotels-filter-group">
             <label>Stay type</label>
-            <div className="type-grid">
+
+            <div className="hotels-choice-grid">
               <button
                 type="button"
                 onClick={() => updateFilters({ type: "" })}
-                className={`type-pill ${!filters.type ? "active" : ""}`}
+                className={!filters.type ? "active" : ""}
               >
                 All
               </button>
+
               {typeOptions.map((type) => (
                 <button
                   type="button"
                   key={type.name}
                   onClick={() => updateFilters({ type: type.name })}
-                  className={`type-pill ${filters.type === type.name ? "active" : ""}`}
+                  className={filters.type === type.name ? "active" : ""}
                 >
                   {type.name}
                 </button>
@@ -507,63 +859,69 @@ function HotelsPage() {
             </div>
           </div>
 
-          <div className="filter-block">
+          <div className="hotels-filter-group">
             <label>Price range</label>
-            <div className="price-card">
-              <div className="price-top-row">
-                <strong>Rs. {filters.minPrice.toLocaleString()}</strong>
-                <strong>Rs. {filters.maxPrice.toLocaleString()}</strong>
-              </div>
 
-              <div className="dual-slider-wrap">
-                <div className="dual-slider-base" />
-                <div
-                  className="dual-slider-active"
-                  style={{ left: `${minPercent}%`, right: `${100 - maxPercent}%` }}
-                />
+            <div className="hotels-price-box">
+              <div className="hotels-price-control">
+                <div className="hotels-price-control-heading">
+                  <span>Minimum</span>
+                </div>
+
                 <input
-                  className="hotel-range-input"
+                  className="hotels-range-input"
                   type="range"
-                  min={priceLimitMin}
-                  max={priceLimitMax}
-                  step="500"
-                  value={filters.minPrice}
+                  min={0}
+                  max={priceCeiling}
+                  step="1"
+                  value={selectedMinPrice}
+                  onInput={handleMinPriceChange}
                   onChange={handleMinPriceChange}
-                  style={{ zIndex: filters.minPrice > priceLimitMax - 8000 ? 5 : 3 }}
-                />
-                <input
-                  className="hotel-range-input"
-                  type="range"
-                  min={priceLimitMin}
-                  max={priceLimitMax}
-                  step="500"
-                  value={filters.maxPrice}
-                  onChange={handleMaxPriceChange}
-                  style={{ zIndex: 4 }}
+                  disabled={loading || priceCeiling <= 0}
+                  aria-label="Minimum hotel price"
+                  aria-valuetext={`Rs. ${formatPrice(selectedMinPrice)}`}
                 />
               </div>
 
-              <div className="price-bottom-row">
-                <span>Rs. 0</span>
-                <span>Rs. 50,000</span>
+              <div className="hotels-price-control">
+                <div className="hotels-price-control-heading">
+                  <span>Maximum</span>
+                </div>
+
+                <input
+                  className="hotels-range-input"
+                  type="range"
+                  min={0}
+                  max={priceCeiling}
+                  step="1"
+                  value={selectedMaxPrice}
+                  onInput={handleMaxPriceChange}
+                  onChange={handleMaxPriceChange}
+                  disabled={loading || priceCeiling <= 0}
+                  aria-label="Maximum hotel price"
+                  aria-valuetext={`Rs. ${formatPrice(selectedMaxPrice)}`}
+                />
               </div>
             </div>
           </div>
 
-          <div className="filter-block">
-            <label>Budget quick picks</label>
-            <div className="budget-grid">
+          <div className="hotels-filter-group">
+            <label>Budget</label>
+
+            <div className="hotels-budget-list">
               {budgetPresets.map((preset) => {
                 const isActive =
-                  filters.minPrice === preset.min && filters.maxPrice === preset.max;
+                  selectedMinPrice === preset.min &&
+                  selectedMaxPrice === preset.max;
 
                 return (
                   <button
                     type="button"
                     key={preset.id}
                     onClick={() => applyBudgetPreset(preset)}
-                    className={`budget-pill ${isActive ? "active" : ""}`}
+                    className={isActive ? "active" : ""}
                   >
+                    {isActive ? <Check size={14} /> : null}
                     {preset.label}
                   </button>
                 );
@@ -571,814 +929,268 @@ function HotelsPage() {
             </div>
           </div>
 
-          <div className="filter-block">
-            <label>Availability</label>
+          <div className="hotels-filter-group">
+            <label>Rooms</label>
+
             <button
               type="button"
-              onClick={() => updateFilters({ hasRoomsOnly: !filters.hasRoomsOnly })}
-              className={`toggle-row ${filters.hasRoomsOnly ? "active" : ""}`}
+              onClick={() =>
+                updateFilters({ hasRoomsOnly: !filters.hasRoomsOnly })
+              }
+              className={`hotels-availability-toggle ${
+                filters.hasRoomsOnly ? "active" : ""
+              }`}
+              aria-pressed={filters.hasRoomsOnly}
             >
-              <span>🛏️ Has room listings</span>
+              <span>
+                <BedDouble size={16} />
+                Rooms listed
+              </span>
+
               <strong>{filters.hasRoomsOnly ? "On" : "Off"}</strong>
             </button>
           </div>
         </aside>
 
-        <main className="hotel-results-area">
-          <div className="results-toolbar">
+        <div className="hotels-results-column" ref={resultsTopRef}>
+          <div className="hotels-results-toolbar">
             <div>
-              <span className="section-kicker">Approved hotel results</span>
+              <span className="hotels-section-label">Hotels</span>
               <h2>{filteredProperties.length} stays found</h2>
             </div>
 
-            <div className="toolbar-actions">
-              <select
-                value={filters.sort}
-                onChange={(event) => updateFilters({ sort: event.target.value })}
-              >
-                <option value="recommended">Recommended</option>
-                <option value="priceLow">Lowest price</option>
-                <option value="priceHigh">Highest price</option>
-                <option value="rooms">Most rooms</option>
-                <option value="newest">Newest</option>
-                <option value="name">Name A-Z</option>
-              </select>
+            <div className="hotels-toolbar-controls">
+              <label className="hotels-sort-control">
+                <span>Sort by</span>
 
-              <div className="view-toggle">
+                <select
+                  value={filters.sort}
+                  onChange={(event) =>
+                    updateFilters({ sort: event.target.value })
+                  }
+                >
+                  <option value="recommended">Recommended</option>
+                  <option value="priceLow">Lowest price</option>
+                  <option value="priceHigh">Highest price</option>
+                  <option value="rooms">Most rooms</option>
+                  <option value="newest">Newest</option>
+                  <option value="name">Name A-Z</option>
+                </select>
+              </label>
+
+              <div className="hotels-view-toggle" aria-label="Hotel view style">
                 <button
                   type="button"
                   className={viewMode === "list" ? "active" : ""}
                   onClick={() => setViewMode("list")}
+                  aria-label="List view"
+                  title="List view"
                 >
-                  List
+                  <List size={17} />
                 </button>
+
                 <button
                   type="button"
                   className={viewMode === "grid" ? "active" : ""}
                   onClick={() => setViewMode("grid")}
+                  aria-label="Grid view"
+                  title="Grid view"
                 >
-                  Grid
+                  <Grid2X2 size={17} />
                 </button>
               </div>
             </div>
           </div>
 
-          {activeChips.length > 0 && (
-            <div className="active-chip-row">
+          {activeChips.length > 0 ? (
+            <div className="hotels-active-filters">
               {activeChips.map((chip) => (
                 <span key={chip}>{chip}</span>
               ))}
             </div>
-          )}
+          ) : null}
 
           {loading ? (
-            <div className="empty-result-card">
-              <h3>Loading approved hotels...</h3>
-              <p>Please wait while TripLanka loads registered hotel data.</p>
-            </div>
+            <EmptyState title="Loading hotels..." />
           ) : filteredProperties.length === 0 ? (
-            <div className="empty-result-card">
-              <h3>No approved hotels found</h3>
-              <p>Try changing the destination, price range or search text.</p>
-              <button type="button" onClick={handleClearFilters}>
-                Reset filters
-              </button>
-            </div>
+            <EmptyState
+              title="No hotels found"
+              description="Try changing your filters or search."
+              actionLabel="Reset filters"
+              onAction={handleClearFilters}
+            />
           ) : (
-            <div className={viewMode === "grid" ? "hotel-grid-view" : "hotel-list-view"}>
-              {filteredProperties.map((property) => (
-                <HotelCard
-                  key={property.id}
-                  property={property}
-                  toImageUrl={toImageUrl}
-                  saved={savedTripIds.has(`hotel-${property.id}`)}
-                  onToggleTrip={handleToggleHotelTrip}
-                />
-              ))}
-            </div>
+            <>
+              <div
+                className={
+                  viewMode === "grid" ? "hotels-grid-view" : "hotels-list-view"
+                }
+              >
+                {paginatedProperties.map((property) => (
+                  <HotelCard
+                    key={property.id}
+                    property={property}
+                    saved={savedTripIds.has(`hotel-${property.id}`)}
+                    onToggleTrip={handleToggleHotelTrip}
+                  />
+                ))}
+              </div>
+
+              <div className="hotels-pagination">
+                <p className="hotels-pagination-summary">
+                  Showing <strong>{visibleStart}</strong>–
+                  <strong>{visibleEnd}</strong> of{" "}
+                  <strong>{filteredProperties.length}</strong> hotels
+                </p>
+
+                <div className="hotels-pagination-control">
+                  <button
+                    type="button"
+                    className="hotels-pagination-arrow"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    aria-label="Previous hotel page"
+                  >
+                    <ChevronLeft size={21} />
+                  </button>
+
+                  <div className="hotels-pagination-page">
+                    Page <strong>{currentPage}</strong> of{" "}
+                    <strong>{totalPages}</strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="hotels-pagination-arrow"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next hotel page"
+                  >
+                    <ChevronRight size={21} />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
-        </main>
+        </div>
       </section>
-    </div>
+    </main>
   );
 }
 
-function HotelCard({ property, toImageUrl, saved, onToggleTrip }) {
-  const imageUrl = toImageUrl(property.main_image || property.logo_url);
-  const price = Number(property.starting_price || 0);
+function HotelCard({ property, saved, onToggleTrip }) {
+  const imageUrl = toImageUrl(
+    property.main_image || property.logo_url || property.hero_image
+  );
+
+  const price = getPropertyPrice(property);
+
   const totalRooms = Number(property.total_rooms_count || 0);
 
-  return (
-    <article className="hotel-result-card">
-      {imageUrl ? (
-        <ContentImage src={imageUrl} alt={property.name} className="hotel-card-image" />
-      ) : (
-        <div className="hotel-image-placeholder">
-          <span>🏨</span>
-          <strong>{property.name}</strong>
-        </div>
-      )}
+  const location = [property.city, property.district]
+    .filter(Boolean)
+    .join(", ");
 
-      <div className="hotel-card-content">
-        <div className="hotel-main-info">
-          <div className="hotel-card-badges">
-            <span className="verified-badge">Approved</span>
-            {property.property_type && <span>{property.property_type}</span>}
-            {totalRooms > 0 && <span>{totalRooms} rooms</span>}
+  return (
+    <article className="hotels-result-card">
+      <Link
+        to={`/hotels/${property.id}`}
+        className="hotels-card-media"
+        aria-label={`View ${property.name}`}
+      >
+        {imageUrl ? (
+          <ContentImage
+            src={imageUrl}
+            alt={property.name}
+            className="hotels-card-image"
+          />
+        ) : (
+          <div className="hotels-image-placeholder">
+            <Building2 size={36} />
+            <strong>{property.name}</strong>
+          </div>
+        )}
+      </Link>
+
+      <div className="hotels-card-body">
+        <div className="hotels-card-main">
+          <div className="hotels-card-meta">
+            {property.property_type ? (
+              <span>{property.property_type}</span>
+            ) : null}
+
+            {totalRooms > 0 ? <span>{totalRooms} rooms</span> : null}
           </div>
 
-          <h3>{property.name}</h3>
-          <p className="hotel-location">📍 {property.city}, {property.district}</p>
-          <p className="hotel-description">
-            {property.description || "No description added yet."}
-          </p>
+          <Link
+            to={`/hotels/${property.id}`}
+            className="hotels-card-title-link"
+          >
+            <h3>{property.name}</h3>
+          </Link>
+
+          {location ? (
+            <p className="hotels-card-location">
+              <MapPin size={15} />
+              {location}
+            </p>
+          ) : null}
+
+          {property.description ? (
+            <p className="hotels-card-description">{property.description}</p>
+          ) : null}
         </div>
 
-        <div className="hotel-price-panel">
-          <span>Starting from</span>
-          <strong>{price ? `Rs. ${price.toLocaleString()}` : "Contact hotel"}</strong>
-          <small>per night</small>
-          <button
-            type="button"
-            className={saved ? "hotel-trip-btn saved" : "hotel-trip-btn"}
-            onClick={() => onToggleTrip(property)}
-          >
-            {saved ? "Saved to trip" : "+ Add to trip"}
-          </button>
-          <Link to={`/hotels/${property.id}`}>View Details</Link>
+        <div className="hotels-card-side">
+          <div className="hotels-price-copy">
+            <span>From</span>
+
+            <strong>
+              {price > 0 ? `Rs. ${formatPrice(price)}` : "Contact hotel"}
+            </strong>
+
+            {price > 0 ? <small>per night</small> : null}
+          </div>
+
+          <div className="hotels-card-actions">
+            <button
+              type="button"
+              className={`hotels-save-button ${saved ? "saved" : ""}`}
+              onClick={() => onToggleTrip(property)}
+            >
+              {saved ? <Check size={16} /> : <Plus size={16} />}
+              {saved ? "Saved" : "Add to trip"}
+            </button>
+
+            <Link
+              className="hotels-details-button"
+              to={`/hotels/${property.id}`}
+            >
+              View details
+            </Link>
+          </div>
         </div>
       </div>
     </article>
   );
 }
 
-const pageStyles = `
-  .hotel-trip-toast{
-    position:fixed;
-    right:22px;
-    bottom:98px;
-    z-index:78;
-    background:#064e45;
-    color:#fff;
-    border-radius:16px;
-    padding:14px 18px;
-    box-shadow:0 18px 40px rgba(0,0,0,.18);
-    font-weight:900;
-  }
-  .hotels-page-shell{
-    width:100%;
-    margin:0;
-    padding:0 0 60px;
-    color:#102033;
-  }
-
-  .hotels-hero{
-    width:100%;
-    max-width:none;
-    margin:0;
-    min-height:500px;
-    border-radius:0;
-    padding:58px clamp(32px, 4vw, 78px);
-    display:grid;
-    grid-template-columns:1.15fr .85fr;
-    gap:34px;
-    align-items:center;
-    background-size:cover;
-    background-position:center;
-    box-shadow:0 26px 70px rgba(0, 69, 61, .18);
-    overflow:hidden;
-    position:relative;
-    transition:background-image .9s ease-in-out;
-  }
-
-  .hotels-hero::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:radial-gradient(circle at 75% 25%, rgba(255, 199, 44, .18), transparent 32%), linear-gradient(180deg, rgba(0,0,0,.03), rgba(0,0,0,.18));
-    pointer-events:none;
-  }
-
-  .hero-copy,.hero-stats-grid{position:relative;z-index:1;}
-
-  .hero-kicker,.section-kicker{
-    display:inline-flex;
-    align-items:center;
-    width:max-content;
-    background:rgba(255, 238, 168, .95);
-    color:#00453d;
-    border:1px solid rgba(255, 255, 255, .45);
-    border-radius:999px;
-    padding:10px 18px;
-    text-transform:uppercase;
-    letter-spacing:.14em;
-    font-size:12px;
-    font-weight:950;
-  }
-
-  .hero-copy h1{
-    margin:24px 0 16px;
-    font-size:clamp(48px, 6vw, 92px);
-    line-height:.98;
-    letter-spacing:-.06em;
-    color:#ffffff;
-    max-width:850px;
-  }
-
-  .hero-copy p{
-    color:rgba(255,255,255,.9);
-    font-size:19px;
-    line-height:1.7;
-    max-width:800px;
-    margin:0 0 24px;
-  }
-
-  .hero-search-box{
-    width:min(760px, 100%);
-    display:flex;
-    align-items:center;
-    gap:14px;
-    background:#fff;
-    border-radius:999px;
-    padding:15px 22px;
-    box-shadow:0 22px 45px rgba(0,0,0,.18);
-  }
-
-  .hero-search-box span{font-size:22px;}
-
-  .hero-search-box input{
-    flex:1;
-    border:none;
-    outline:none;
-    font-size:16px;
-    font-weight:800;
-    color:#102033;
-    min-width:0;
-  }
-
-  .hero-photo-source{
-    margin-top:16px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    color:#ffffff;
-  }
-
-  .hero-photo-source span{
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.28);
-    padding:7px 12px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:950;
-    text-transform:uppercase;
-    letter-spacing:.08em;
-  }
-
-  .hero-photo-source strong{font-weight:950;}
-  .hero-photo-source small{opacity:.88;font-weight:800;}
-
-  .hero-stats-grid{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(180px, 1fr));
-    gap:18px;
-  }
-
-  .hero-stat-card{
-    min-height:145px;
-    border:1px solid rgba(255,255,255,.25);
-    background:rgba(255,255,255,.12);
-    backdrop-filter:blur(8px);
-    border-radius:28px;
-    padding:28px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-  }
-
-  .hero-stat-card strong{
-    color:#ffdf74;
-    font-size:34px;
-    line-height:1;
-    margin-bottom:12px;
-    letter-spacing:-.03em;
-  }
-
-  .hero-stat-card span{
-    color:#ffffff;
-    font-size:13px;
-    font-weight:950;
-    text-transform:uppercase;
-    letter-spacing:.12em;
-  }
-
-  .hotel-content-grid{
-    width:min(1560px, calc(100% - 36px));
-    margin:28px auto 0;
-    display:grid;
-    grid-template-columns:340px 1fr;
-    gap:26px;
-    align-items:start;
-  }
-
-  .hotel-filter-panel{
-    position:sticky;
-    top:92px;
-    background:rgba(255,255,255,.94);
-    border:1px solid #dbece7;
-    border-radius:28px;
-    padding:24px;
-    box-shadow:0 24px 55px rgba(0,69,61,.09);
-  }
-
-  .filter-panel-top{
-    display:flex;
-    justify-content:space-between;
-    gap:16px;
-    align-items:flex-start;
-    border-bottom:1px solid #e3efeb;
-    padding-bottom:20px;
-    margin-bottom:18px;
-  }
-
-  .filter-panel-top h2,.results-toolbar h2{
-    margin:8px 0 0;
-    color:#00453d;
-    font-size:25px;
-    letter-spacing:-.04em;
-  }
-
-  .clear-filter-btn{
-    border:none;
-    background:#ffe2e2;
-    color:#a30d17;
-    border-radius:999px;
-    padding:10px 14px;
-    font-weight:950;
-    cursor:pointer;
-  }
-
-  .filter-block{margin-top:22px;}
-  .filter-block label{
-    display:block;
-    color:#102033;
-    font-weight:950;
-    margin-bottom:10px;
-  }
-
-  .filter-block select,.toolbar-actions select{
-    width:100%;
-    border:1px solid #cfdfda;
-    background:#f9fffd;
-    color:#102033;
-    border-radius:15px;
-    padding:13px 14px;
-    font-weight:850;
-    outline:none;
-  }
-
-  .filter-option{
-    width:100%;
-    border:1px solid #d9e8e4;
-    background:#fbfffd;
-    color:#244257;
-    border-radius:16px;
-    padding:13px 14px;
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:9px;
-    cursor:pointer;
-    font-weight:850;
-    text-align:left;
-  }
-
-  .filter-option small{
-    background:#ecf7f3;
-    color:#006655;
-    border-radius:999px;
-    padding:2px 8px;
-    font-weight:950;
-  }
-
-  .filter-option.active{
-    background:#006655;
-    color:#ffffff;
-    border-color:#006655;
-    box-shadow:0 12px 26px rgba(0,102,85,.18);
-  }
-
-  .filter-option.active small{
-    background:#ffcf4a;
-    color:#00453d;
-  }
-
-  .type-grid,.budget-grid{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-  }
-
-  .type-pill,.budget-pill{
-    border:1px solid #dbece7;
-    background:#fbfffd;
-    color:#00453d;
-    border-radius:999px;
-    padding:10px 13px;
-    font-weight:950;
-    cursor:pointer;
-  }
-
-  .type-pill.active,.budget-pill.active{
-    background:#006655;
-    color:#ffffff;
-    border-color:#006655;
-  }
-
-  .price-card{
-    border:1px solid #dbece7;
-    background:#f9fffd;
-    border-radius:22px;
-    padding:20px 20px 17px;
-  }
-
-  .price-top-row,.price-bottom-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  }
-
-  .price-top-row strong{
-    color:#102033;
-    font-size:17px;
-  }
-
-  .price-bottom-row{
-    color:#6b788c;
-    font-size:13px;
-    font-weight:950;
-  }
-
-  .dual-slider-wrap{
-    position:relative;
-    height:44px;
-    margin:18px 0 6px;
-    display:flex;
-    align-items:center;
-  }
-
-  .dual-slider-base,.dual-slider-active{
-    position:absolute;
-    height:8px;
-    border-radius:999px;
-    pointer-events:none;
-  }
-
-  .dual-slider-base{
-    left:0;
-    right:0;
-    background:#dce7e3;
-  }
-
-  .dual-slider-active{
-    background:linear-gradient(90deg, #ffcf4a, #009c89);
-    box-shadow:0 8px 20px rgba(0,156,137,.28);
-  }
-
-  .hotel-range-input{
-    position:absolute;
-    left:0;
-    width:100%;
-    height:8px;
-    background:transparent!important;
-    pointer-events:none;
-    appearance:none;
-    -webkit-appearance:none;
-    outline:none;
-  }
-
-  .hotel-range-input::-webkit-slider-thumb{
-    pointer-events:auto;
-    width:28px;
-    height:28px;
-    border-radius:50%;
-    background:#009cde;
-    border:4px solid #009cde;
-    box-shadow:0 7px 18px rgba(0,156,222,.35);
-    cursor:pointer;
-    appearance:none;
-    -webkit-appearance:none;
-  }
-
-  .hotel-range-input::-moz-range-thumb{
-    pointer-events:auto;
-    width:24px;
-    height:24px;
-    border-radius:50%;
-    background:#009cde;
-    border:4px solid #009cde;
-    box-shadow:0 7px 18px rgba(0,156,222,.35);
-    cursor:pointer;
-  }
-
-  .hotel-range-input::-webkit-slider-runnable-track{background:transparent!important;border:none;}
-  .hotel-range-input::-moz-range-track{background:transparent!important;border:none;}
-
-  .toggle-row{
-    width:100%;
-    border:1px solid #dbece7;
-    background:#fbfffd;
-    color:#102033;
-    border-radius:16px;
-    padding:13px 14px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    font-weight:900;
-    cursor:pointer;
-  }
-
-  .toggle-row.active{
-    background:#e6fff6;
-    border-color:#8fd9c9;
-    color:#006655;
-  }
-
-  .hotel-results-area{min-width:0;}
-
-  .results-toolbar{
-    background:#fff;
-    border:1px solid #dbece7;
-    border-radius:24px;
-    padding:18px 20px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:18px;
-    margin-bottom:14px;
-    box-shadow:0 18px 40px rgba(0,69,61,.07);
-  }
-
-  .toolbar-actions{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
-    justify-content:flex-end;
-  }
-
-  .toolbar-actions select{min-width:180px;}
-
-  .view-toggle{
-    display:flex;
-    gap:6px;
-    background:#ecf7f3;
-    border:1px solid #dbece7;
-    padding:5px;
-    border-radius:999px;
-  }
-
-  .view-toggle button{
-    border:none;
-    background:transparent;
-    color:#006655;
-    border-radius:999px;
-    padding:9px 14px;
-    font-weight:950;
-    cursor:pointer;
-  }
-
-  .view-toggle button.active{
-    background:#006655;
-    color:#fff;
-  }
-
-  .active-chip-row{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin:0 0 14px;
-  }
-
-  .active-chip-row span{
-    background:#fff4c8;
-    color:#00453d;
-    border:1px solid #ffdf74;
-    border-radius:999px;
-    padding:8px 12px;
-    font-size:12px;
-    font-weight:950;
-  }
-
-  .hotel-list-view{display:grid;gap:18px;}
-  .hotel-grid-view{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:18px;
-  }
-
-  .hotel-result-card{
-    background:#fff;
-    border:1px solid #dbece7;
-    border-radius:28px;
-    overflow:hidden;
-    box-shadow:0 20px 48px rgba(0,69,61,.08);
-  }
-
-  .hotel-list-view .hotel-result-card{
-    display:grid;
-    grid-template-columns:310px 1fr;
-  }
-
-  .hotel-grid-view .hotel-result-card{display:block;}
-
-  .hotel-card-image,.hotel-image-placeholder{
-    width:100%;
-    height:100%;
-    min-height:245px;
-    object-fit:cover;
-    display:block;
-  }
-
-  .hotel-grid-view .hotel-card-image,.hotel-grid-view .hotel-image-placeholder{
-    height:245px;
-  }
-
-  .hotel-image-placeholder{
-    background:linear-gradient(135deg, #e6fff6, #fff4c8);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    color:#00453d;
-    text-align:center;
-    padding:24px;
-  }
-
-  .hotel-image-placeholder span{font-size:42px;}
-  .hotel-image-placeholder strong{font-size:20px;}
-
-  .hotel-card-content{
-    padding:24px;
-    display:flex;
-    justify-content:space-between;
-    gap:24px;
-  }
-
-  .hotel-grid-view .hotel-card-content{
-    display:block;
-  }
-
-  .hotel-card-badges{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin-bottom:12px;
-  }
-
-  .hotel-card-badges span{
-    background:#ecf7f3;
-    color:#006655;
-    border-radius:999px;
-    padding:7px 10px;
-    font-size:12px;
-    font-weight:950;
-  }
-
-  .hotel-card-badges .verified-badge{
-    background:#dcfce7;
-    color:#15803d;
-  }
-
-  .hotel-main-info h3{
-    margin:0;
-    font-size:28px;
-    color:#00453d;
-    letter-spacing:-.04em;
-  }
-
-  .hotel-location{
-    color:#006655;
-    font-weight:950;
-    margin:10px 0 0;
-  }
-
-  .hotel-description{
-    color:#536276;
-    font-size:16px;
-    line-height:1.65;
-    max-width:650px;
-  }
-
-  .hotel-price-panel{
-    min-width:190px;
-    border-left:1px solid #e5efeb;
-    padding-left:24px;
-    text-align:right;
-    display:flex;
-    flex-direction:column;
-    align-items:flex-end;
-    justify-content:center;
-  }
-
-  .hotel-grid-view .hotel-price-panel{
-    border-left:none;
-    border-top:1px solid #e5efeb;
-    padding-left:0;
-    padding-top:18px;
-    margin-top:18px;
-    align-items:flex-start;
-    text-align:left;
-  }
-
-  .hotel-price-panel span,.hotel-price-panel small{
-    color:#6b788c;
-    font-weight:750;
-  }
-
-  .hotel-price-panel strong{
-    color:#102033;
-    font-size:26px;
-    margin:8px 0 2px;
-  }
-
-  .hotel-price-panel a{
-    margin-top:18px;
-    background:#006655;
-    color:#ffffff;
-    border-radius:16px;
-    padding:13px 18px;
-    font-weight:950;
-    text-decoration:none;
-    box-shadow:0 15px 30px rgba(0,102,85,.22);
-  }
-
-  .hotel-trip-btn{
-    margin-top:16px;
-    border:1px solid #ffcf4a;
-    background:#ffc22b;
-    color:#063c38;
-    border-radius:16px;
-    padding:12px 16px;
-    font-weight:950;
-    cursor:pointer;
-  }
-
-  .hotel-trip-btn.saved{
-    background:#e8fff5;
-    color:#05614f;
-    border-color:#64c8a8;
-  }
-
-  .empty-result-card{
-    background:#ffffff;
-    border:1px solid #dbece7;
-    border-radius:26px;
-    padding:44px;
-    text-align:center;
-    color:#102033;
-    box-shadow:0 18px 45px rgba(0,69,61,.08);
-  }
-
-  .empty-result-card h3{
-    color:#00453d;
-    margin:0 0 8px;
-    font-size:25px;
-  }
-
-  .empty-result-card button{
-    border:none;
-    background:#006655;
-    color:#fff;
-    border-radius:999px;
-    padding:12px 18px;
-    font-weight:950;
-    cursor:pointer;
-    margin-top:12px;
-  }
-
-  @media (max-width: 1100px){
-    .hotels-hero{grid-template-columns:1fr;padding:34px;}
-    .hero-stats-grid{grid-template-columns:repeat(2, minmax(0,1fr));}
-    .hotel-content-grid{grid-template-columns:1fr;}
-    .hotel-filter-panel{position:static;}
-  }
-
-  @media (max-width: 760px){
-    .hotels-page-shell{width:100%;padding-top:0;}
-    .hotels-hero{border-radius:0;padding:28px 18px;min-height:560px;}
-    .hero-copy h1{font-size:44px;}
-    .hero-stats-grid{grid-template-columns:1fr;}
-    .hotel-list-view .hotel-result-card{grid-template-columns:1fr;}
-    .hotel-grid-view{grid-template-columns:1fr;}
-    .hotel-card-content{display:block;}
-    .hotel-price-panel{border-left:none;border-top:1px solid #e5efeb;padding-left:0;padding-top:18px;margin-top:18px;align-items:flex-start;text-align:left;}
-    .results-toolbar{align-items:flex-start;flex-direction:column;}
-    .toolbar-actions{width:100%;justify-content:space-between;}
-    .toolbar-actions select{flex:1;min-width:160px;}
-  }
-`;
+function EmptyState({ title, description, actionLabel, onAction }) {
+  return (
+    <div className="hotels-empty-state">
+      <Building2 size={32} />
+
+      <h3>{title}</h3>
+
+      {description ? <p>{description}</p> : null}
+
+      {actionLabel && onAction ? (
+        <button type="button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export default HotelsPage;
