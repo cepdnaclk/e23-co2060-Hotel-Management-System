@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Building2, CalendarDays, Compass, ShieldCheck } from "lucide-react";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
 import PasswordInput from "../../components/PasswordInput";
+import "../../styles/partnerAuth.css";
 
 function PartnerLoginPage() {
   const navigate = useNavigate();
@@ -29,7 +31,6 @@ function PartnerLoginPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     setError("");
 
     try {
@@ -38,7 +39,6 @@ function PartnerLoginPage() {
       const response = await api.post("/auth/partner/login", form);
 
       login(response.data.user, response.data.token);
-
       navigate(redirectTo);
     } catch (error) {
       setError(error.response?.data?.message || "Partner login failed");
@@ -48,166 +48,110 @@ function PartnerLoginPage() {
   };
 
   return (
-    <div style={styles.page}>
-      <div className="card" style={styles.wrapper}>
-        <div style={styles.imageSide}>
-          <div style={styles.imageOverlay}>
-            <h2>Partner Portal</h2>
-            <p>
-              Login to manage your hotels, events, and tourist guide listings,
-              plus their admin approval status.
-            </p>
+    <main className="partner-auth-page partner-login-page">
+      <div className="partner-auth-bg-art" aria-hidden="true">
+        <Building2 className="partner-auth-bg-icon partner-auth-bg-building" />
+        <CalendarDays className="partner-auth-bg-icon partner-auth-bg-calendar" />
+        <Compass className="partner-auth-bg-icon partner-auth-bg-compass" />
+      </div>
+
+      <section className="partner-login-card">
+        <aside className="partner-login-brand-panel">
+          <div className="partner-login-brand-art" aria-hidden="true">
+            <Building2 className="partner-login-brand-building" />
+            <span className="partner-login-route route-one" />
+            <span className="partner-login-route route-two" />
+            <span className="partner-login-dot dot-one" />
+            <span className="partner-login-dot dot-two" />
+            <span className="partner-login-dot dot-three" />
           </div>
-        </div>
 
-        <div style={styles.formSide}>
-          <h1 style={styles.title}>Partner Login</h1>
-          <p style={styles.subtitle}>
-            Access your TripLanka partner account.
-          </p>
+          <div className="partner-login-brand-copy">
+            <span className="partner-auth-kicker">TRIPLANKA · PARTNER PORTAL</span>
+            <h2>Manage your tourism business.</h2>
+            <p>
+              Access your hotels, events and guide services from one partner
+              account.
+            </p>
 
-          {redirectTo !== "/partner/dashboard" && (
-            <div style={styles.redirectBox}>
+            <div className="partner-login-service-tags">
+              <span>Hotels & Stays</span>
+              <span>Tourism Events</span>
+              <span>Guide Services</span>
+            </div>
+          </div>
+        </aside>
+
+        <div className="partner-login-form-panel">
+          <header className="partner-auth-header partner-login-header">
+            <span className="partner-auth-kicker mobile-login-kicker">
+              TRIPLANKA · PARTNER PORTAL
+            </span>
+            <h1>Partner Login</h1>
+            <p>Access your TripLanka partner account.</p>
+          </header>
+
+          {redirectTo !== "/partner/dashboard" ? (
+            <div className="partner-auth-alert info">
               Login first. After login, you will return to the property
               management page.
             </div>
-          )}
+          ) : null}
 
-          {error && <div style={styles.errorBox}>{error}</div>}
+          {error ? <div className="partner-auth-alert error">{error}</div> : null}
 
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <div>
-              <label style={styles.label}>Business Email</label>
+          <form onSubmit={handleSubmit} className="partner-auth-form login-form">
+            <div className="partner-auth-field">
+              <label htmlFor="partner-login-email">Business Email</label>
               <input
+                id="partner-login-email"
+                className="partner-auth-input"
                 name="email"
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                style={styles.input}
                 placeholder="partner@example.com"
                 required
               />
             </div>
 
-            <div>
-              <label style={styles.label}>Password</label>
+            <div className="partner-auth-field">
+              <label htmlFor="partner-login-password">Password</label>
               <PasswordInput
+                id="partner-login-password"
+                className="partner-auth-input"
+                wrapperClassName="partner-password-wrapper"
+                buttonClassName="partner-password-toggle"
                 name="password"
                 value={form.password}
                 onChange={handleChange}
-                style={styles.input}
                 placeholder="Enter password"
                 required
               />
             </div>
 
-            <button type="submit" className="btn-green" style={styles.fullBtn}>
+            <button
+              type="submit"
+              className="partner-auth-primary-button"
+              disabled={loading}
+            >
               {loading ? "Logging in..." : "Partner Login"}
             </button>
           </form>
 
+          <div className="partner-auth-trust-note login-trust-note">
+            <ShieldCheck size={16} />
+            <span>Secure access to your TripLanka partner workspace.</span>
+          </div>
 
-          <p style={styles.bottomText}>
+          <p className="partner-auth-bottom-text">
             New partner?{" "}
-            <Link to="/partner/register" style={styles.link}>
-              Register Partner
-            </Link>
+            <Link to="/partner/register">Register Partner</Link>
           </p>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "calc(100vh - 76px)",
-    padding: "60px 20px",
-    background:
-      "linear-gradient(135deg, rgba(22,163,74,0.10), rgba(11,99,206,0.07))",
-  },
-  wrapper: {
-    maxWidth: "980px",
-    margin: "0 auto",
-    display: "grid",
-    gridTemplateColumns: "0.9fr 1.1fr",
-    overflow: "hidden",
-  },
-  imageSide: {
-    minHeight: "520px",
-    backgroundImage:
-      "url('/images/hotels/colombo-city-stay/property-01.jpg')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    position: "relative",
-  },
-  imageOverlay: {
-    position: "absolute",
-    inset: 0,
-    background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.1))",
-    color: "white",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-end",
-    padding: "32px",
-  },
-  formSide: {
-    padding: "42px",
-    background: "white",
-  },
-  title: {
-    margin: 0,
-    fontSize: "38px",
-  },
-  subtitle: {
-    color: "#6b7280",
-    marginBottom: "24px",
-  },
-  form: {
-    display: "grid",
-    gap: "18px",
-  },
-  label: {
-    display: "block",
-    marginBottom: "8px",
-    fontWeight: "800",
-  },
-  input: {
-    width: "100%",
-    padding: "14px",
-    border: "1px solid #d1d5db",
-    borderRadius: "12px",
-    fontSize: "14px",
-  },
-  fullBtn: {
-    width: "100%",
-    marginTop: "6px",
-  },
-  redirectBox: {
-    background: "#e0f2fe",
-    color: "#075985",
-    padding: "12px",
-    borderRadius: "12px",
-    marginBottom: "16px",
-    fontWeight: "800",
-  },
-  errorBox: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    padding: "12px",
-    borderRadius: "12px",
-    marginBottom: "16px",
-    fontWeight: "800",
-  },
-  bottomText: {
-    textAlign: "center",
-    marginTop: "18px",
-    color: "#6b7280",
-  },
-  link: {
-    color: "#16a34a",
-    fontWeight: "900",
-  },
-};
 
 export default PartnerLoginPage;

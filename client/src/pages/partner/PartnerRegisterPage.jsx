@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Building2, CalendarDays, Compass, ShieldCheck } from "lucide-react";
 import api from "../../api/api";
 import {
   countries,
@@ -10,6 +11,7 @@ import {
   validateCountryPhone,
 } from "../../utils/countryPhone";
 import PasswordInput from "../../components/PasswordInput";
+import "../../styles/partnerAuth.css";
 
 const checkPasswordStrength = (password) => {
   const hasMinLength = password.length >= 8;
@@ -82,7 +84,6 @@ function PartnerRegisterPage() {
         ...form,
         phone_local: onlyDigits(value),
       });
-
       return;
     }
 
@@ -94,7 +95,6 @@ function PartnerRegisterPage() {
         password: value,
         confirm_password: strength.isStrong ? form.confirm_password : "",
       });
-
       return;
     }
 
@@ -162,307 +162,173 @@ function PartnerRegisterPage() {
   };
 
   return (
-    <main style={styles.page}>
-      <section style={styles.card}>
-        <div style={styles.badge}>PARTNER REGISTER</div>
+    <main className="partner-auth-page partner-register-page">
+      <div className="partner-auth-bg-art" aria-hidden="true">
+        <Building2 className="partner-auth-bg-icon partner-auth-bg-building" />
+        <CalendarDays className="partner-auth-bg-icon partner-auth-bg-calendar" />
+        <Compass className="partner-auth-bg-icon partner-auth-bg-compass" />
+      </div>
 
-        <h1 style={styles.title}>Register as Partner</h1>
+      <section className="partner-register-card">
+        <header className="partner-auth-header">
+          <span className="partner-auth-kicker">TRIPLANKA · PARTNER REGISTER</span>
+          <h1>Register as Partner</h1>
+          <p>
+            Create a partner account to manage hotels, events and tourist guide
+            services.
+          </p>
+        </header>
 
-        <p style={styles.subtitle}>
-          Create a partner account to register and manage your hotels, events, and tourist guide services.
-        </p>
+        {error ? <div className="partner-auth-alert error">{error}</div> : null}
+        {success ? (
+          <div className="partner-auth-alert success">{success}</div>
+        ) : null}
 
-        {error && <div style={styles.error}>{error}</div>}
-        {success && <div style={styles.success}>{success}</div>}
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>Partner / Company Name</label>
-          <input
-            style={styles.input}
-            name="full_name"
-            value={form.full_name}
-            onChange={handleChange}
-            placeholder="Sun Lanka Travels"
-            required
-          />
-
-          <label style={styles.label}>Email</label>
-          <input
-            style={styles.input}
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="partner@example.com"
-            required
-          />
-
-          <label style={styles.label}>Business Country</label>
-          <select
-            style={styles.input}
-            name="business_country"
-            value={form.business_country}
-            onChange={handleCountryChange}
-            required
-          >
-            {countries.map((item) => (
-              <option key={item.country} value={item.country}>
-                {item.country} ({item.nationality})
-              </option>
-            ))}
-          </select>
-
-          <label style={styles.label}>WhatsApp / Phone Number</label>
-          <div style={styles.phoneGroup}>
-            <div style={styles.codeBox}>{selectedCountry.code}</div>
-
+        <form onSubmit={handleSubmit} className="partner-auth-form">
+          <div className="partner-auth-field">
+            <label htmlFor="partner-full-name">Partner / Company Name</label>
             <input
-              style={styles.input}
-              name="phone_local"
-              value={form.phone_local}
+              id="partner-full-name"
+              className="partner-auth-input"
+              name="full_name"
+              value={form.full_name}
               onChange={handleChange}
-              placeholder={selectedCountry.placeholder}
-              maxLength={selectedCountry.maxLength}
+              placeholder="Sun Lanka Travels"
               required
             />
           </div>
 
-          <p style={styles.phoneHint}>
-            Format:{" "}
-            <strong>
-              {formatCountryPhone(
+          <div className="partner-auth-field">
+            <label htmlFor="partner-email">Email</label>
+            <input
+              id="partner-email"
+              className="partner-auth-input"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="partner@example.com"
+              required
+            />
+          </div>
+
+          <div className="partner-auth-field">
+            <label htmlFor="partner-country">Business Country</label>
+            <select
+              id="partner-country"
+              className="partner-auth-input partner-auth-select"
+              name="business_country"
+              value={form.business_country}
+              onChange={handleCountryChange}
+              required
+            >
+              {countries.map((item) => (
+                <option key={item.country} value={item.country}>
+                  {item.country} ({item.nationality})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="partner-auth-field">
+            <label htmlFor="partner-phone">WhatsApp / Phone Number</label>
+            <div className="partner-phone-group">
+              <div className="partner-phone-code">{selectedCountry.code}</div>
+              <input
+                id="partner-phone"
+                className="partner-auth-input"
+                name="phone_local"
+                value={form.phone_local}
+                onChange={handleChange}
+                placeholder={selectedCountry.placeholder}
+                maxLength={selectedCountry.maxLength}
+                required
+              />
+            </div>
+            <p className="partner-auth-hint">
+              Format: <strong>{formatCountryPhone(
                 selectedCountry,
                 form.phone_local || selectedCountry.placeholder
-              )}
-            </strong>
-          </p>
+              )}</strong>
+            </p>
+          </div>
 
-          <label style={styles.label}>Password</label>
-          <PasswordInput
-            style={styles.input}
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="Enter password"
-            required
-          />
+          <div className="partner-auth-field">
+            <label htmlFor="partner-password">Password</label>
+            <PasswordInput
+              id="partner-password"
+              className="partner-auth-input"
+              wrapperClassName="partner-password-wrapper"
+              buttonClassName="partner-password-toggle"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Enter password"
+              required
+            />
+          </div>
 
-          <div style={styles.passwordRules}>
-            <p
-              style={
-                passwordStrength.hasMinLength ? styles.ruleOk : styles.ruleBad
-              }
-            >
+          <div className="partner-password-rules">
+            <p className={passwordStrength.hasMinLength ? "valid" : "invalid"}>
               {passwordStrength.hasMinLength ? "✓" : "•"} At least 8 characters
             </p>
-
-            <p
-              style={
-                passwordStrength.hasCapital ? styles.ruleOk : styles.ruleBad
-              }
-            >
+            <p className={passwordStrength.hasCapital ? "valid" : "invalid"}>
               {passwordStrength.hasCapital ? "✓" : "•"} Capital letter
             </p>
-
-            <p
-              style={
-                passwordStrength.hasSimple ? styles.ruleOk : styles.ruleBad
-              }
-            >
+            <p className={passwordStrength.hasSimple ? "valid" : "invalid"}>
               {passwordStrength.hasSimple ? "✓" : "•"} Simple letter
             </p>
-
-            <p
-              style={
-                passwordStrength.hasNumber ? styles.ruleOk : styles.ruleBad
-              }
-            >
+            <p className={passwordStrength.hasNumber ? "valid" : "invalid"}>
               {passwordStrength.hasNumber ? "✓" : "•"} Number
             </p>
-
-            <p
-              style={
-                passwordStrength.hasSymbol ? styles.ruleOk : styles.ruleBad
-              }
-            >
+            <p className={passwordStrength.hasSymbol ? "valid" : "invalid"}>
               {passwordStrength.hasSymbol ? "✓" : "•"} Symbol
             </p>
           </div>
 
-          <label style={styles.label}>Confirm Password</label>
-          <PasswordInput
-            style={{
-              ...styles.input,
-              background: passwordStrength.isStrong ? "white" : "#f3f4f6",
-              cursor: passwordStrength.isStrong ? "text" : "not-allowed",
-            }}
-            name="confirm_password"
-            value={form.confirm_password}
-            onChange={handleChange}
-            placeholder={
-              passwordStrength.isStrong
-                ? "Re-enter password"
-                : "Enter strong password first"
-            }
-            disabled={!passwordStrength.isStrong}
-            required
-          />
+          <div className="partner-auth-field">
+            <label htmlFor="partner-confirm-password">Confirm Password</label>
+            <PasswordInput
+              id="partner-confirm-password"
+              className={`partner-auth-input ${
+                passwordStrength.isStrong ? "" : "disabled-input"
+              }`}
+              wrapperClassName="partner-password-wrapper"
+              buttonClassName="partner-password-toggle"
+              name="confirm_password"
+              value={form.confirm_password}
+              onChange={handleChange}
+              placeholder={
+                passwordStrength.isStrong
+                  ? "Re-enter password"
+                  : "Enter strong password first"
+              }
+              disabled={!passwordStrength.isStrong}
+              required
+            />
+          </div>
 
-          <button style={styles.button} type="submit" disabled={loading}>
+          <button
+            className="partner-auth-primary-button"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Creating Partner..." : "Register Partner"}
           </button>
         </form>
 
-        <p style={styles.bottomText}>
+        <div className="partner-auth-trust-note">
+          <ShieldCheck size={16} />
+          <span>Your partner profile will follow the TripLanka approval process.</span>
+        </div>
+
+        <p className="partner-auth-bottom-text">
           Already have a partner account?{" "}
-          <Link to="/partner/login">Login here</Link>
+          <Link to="/partner/login">Partner Login</Link>
         </p>
       </section>
     </main>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #f0fdfa, #f8fafc)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "40px 16px",
-  },
-
-  card: {
-    width: "100%",
-    maxWidth: "560px",
-    background: "#ffffff",
-    borderRadius: "24px",
-    padding: "32px",
-    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.12)",
-    border: "1px solid #e2e8f0",
-  },
-
-  badge: {
-    display: "inline-block",
-    background: "#ccfbf1",
-    color: "#0f766e",
-    padding: "8px 14px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: "900",
-    marginBottom: "12px",
-  },
-
-  title: {
-    margin: "0 0 8px",
-    fontSize: "32px",
-    color: "#0f172a",
-  },
-
-  subtitle: {
-    margin: "0 0 22px",
-    color: "#64748b",
-    fontWeight: "600",
-  },
-
-  form: {
-    display: "grid",
-    gap: "10px",
-  },
-
-  label: {
-    fontSize: "14px",
-    fontWeight: "900",
-    color: "#334155",
-  },
-
-  input: {
-    width: "100%",
-    padding: "13px 14px",
-    borderRadius: "14px",
-    border: "1px solid #cbd5e1",
-    outline: "none",
-    fontWeight: "700",
-  },
-
-  phoneGroup: {
-    display: "grid",
-    gridTemplateColumns: "86px 1fr",
-    gap: "10px",
-  },
-
-  codeBox: {
-    background: "#f1f5f9",
-    border: "1px solid #cbd5e1",
-    borderRadius: "14px",
-    padding: "13px 10px",
-    textAlign: "center",
-    fontWeight: "900",
-  },
-
-  phoneHint: {
-    margin: "0 0 8px",
-    color: "#64748b",
-    fontSize: "12px",
-    fontWeight: "700",
-  },
-
-  passwordRules: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "4px 10px",
-    fontSize: "12px",
-    marginTop: "-4px",
-    marginBottom: "6px",
-  },
-
-  ruleOk: {
-    margin: 0,
-    color: "#166534",
-    fontWeight: "700",
-  },
-
-  ruleBad: {
-    margin: 0,
-    color: "#991b1b",
-    fontWeight: "700",
-  },
-
-  button: {
-    marginTop: "10px",
-    background: "#0f766e",
-    color: "#ffffff",
-    padding: "14px 18px",
-    border: "none",
-    borderRadius: "14px",
-    fontWeight: "900",
-    cursor: "pointer",
-  },
-
-  error: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    padding: "12px 14px",
-    borderRadius: "14px",
-    fontWeight: "800",
-    marginBottom: "14px",
-  },
-
-  success: {
-    background: "#dcfce7",
-    color: "#166534",
-    padding: "12px 14px",
-    borderRadius: "14px",
-    fontWeight: "800",
-    marginBottom: "14px",
-  },
-
-  bottomText: {
-    textAlign: "center",
-    color: "#64748b",
-    fontWeight: "700",
-    marginTop: "18px",
-  },
-};
 
 export default PartnerRegisterPage;
