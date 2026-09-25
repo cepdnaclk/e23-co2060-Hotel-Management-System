@@ -1,331 +1,1506 @@
-import ContentImage from "../components/ContentImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CalendarDays,
+  Camera,
+  CheckCircle2,
+  Clock3,
+  Compass,
+  ExternalLink,
+  Heart,
+  Lightbulb,
+  MapPin,
+  Navigation,
+  Sparkles,
+  Ticket,
+  WalletCards,
+} from "lucide-react";
+
+import ContentImage from "../components/ContentImage";
+
 import {
   assetUrl,
   formatLkr,
   getExplorePlace,
   getTouristEventsByPlace,
 } from "../services/exploreService";
-import { normaliseEvent } from "../data/eventData";
-import { readTripItems, SAVED_TRIP_EVENT, toggleTripItem } from "../utils/tripBasket";
 
-const getEventImage = (event) => event.imageUrl || event.image_url || event.image;
+import { normaliseEvent } from "../data/eventData";
+
+import {
+  getTripItemCategoryKey,
+  getTripItemSourceId,
+  readTripItems,
+  SAVED_TRIP_EVENT,
+  toggleTripItem,
+} from "../utils/tripBasket";
+
+import "../styles/placeDetailsPage.css";
+
+const getEventImage = (event) =>
+  event?.imageUrl ||
+  event?.image_url ||
+  event?.image ||
+  "";
+
+const getPlaceImage = (place) =>
+  place?.image ||
+  place?.imageUrl ||
+  place?.image_url ||
+  place?.images?.[0] ||
+  "";
+
+const hasText = (value) =>
+  String(value || "").trim().length > 0;
 
 const toCoordinateNumber = (value) => {
   const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : null;
+
+  return Number.isFinite(numberValue)
+    ? numberValue
+    : null;
 };
 
-const hasMapCoordinates = (place) => {
-  return toCoordinateNumber(place?.lat) !== null && toCoordinateNumber(place?.lng) !== null;
-};
+const hasMapCoordinates = (place) =>
+  toCoordinateNumber(place?.lat) !== null &&
+  toCoordinateNumber(place?.lng) !== null;
 
 const getOpenStreetMapEmbedUrl = (lat, lng) => {
-  const latitude = toCoordinateNumber(lat);
-  const longitude = toCoordinateNumber(lng);
+  const latitude =
+    toCoordinateNumber(lat);
 
-  if (latitude === null || longitude === null) return "";
+  const longitude =
+    toCoordinateNumber(lng);
+
+  if (
+    latitude === null ||
+    longitude === null
+  ) {
+    return "";
+  }
 
   const zoomSize = 0.018;
-  const left = longitude - zoomSize;
-  const right = longitude + zoomSize;
-  const bottom = latitude - zoomSize;
-  const top = latitude + zoomSize;
+
+  const left =
+    longitude - zoomSize;
+
+  const right =
+    longitude + zoomSize;
+
+  const bottom =
+    latitude - zoomSize;
+
+  const top =
+    latitude + zoomSize;
 
   return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${latitude}%2C${longitude}`;
 };
 
-const getDirectionsUrl = (lat, lng) => {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+const getDirectionsUrl = (lat, lng) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${lat},${lng}`
+  )}`;
+
+const getGalleryImages = (place) => {
+  const rawImages = [
+    getPlaceImage(place),
+    ...(Array.isArray(place?.images)
+      ? place.images
+      : []),
+  ].filter(Boolean);
+
+  return [
+    ...new Set(rawImages),
+  ];
 };
 
 export default function PlaceDetailsPage() {
   const { id } = useParams();
-  const location = useLocation();
-  const thingsToDoRef = useRef(null);
-  const focusedEventSlug = new URLSearchParams(location.search).get("focusEvent");
 
-  const [place, setPlace] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [eventsLoading, setEventsLoading] = useState(true);
-  const [eventsError, setEventsError] = useState("");
-  const [eventsRetry, setEventsRetry] = useState(0);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [mainImage, setMainImage] = useState("");
-  const [savedTripItems, setSavedTripItems] = useState(readTripItems);
+  const location =
+    useLocation();
+
+  const thingsToDoRef =
+    useRef(null);
+
+  const focusedEventSlug =
+    new URLSearchParams(
+      location.search
+    ).get("focusEvent");
+
+  const [
+    place,
+    setPlace,
+  ] = useState(null);
+
+  const [
+    events,
+    setEvents,
+  ] = useState([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    eventsLoading,
+    setEventsLoading,
+  ] = useState(true);
+
+  const [
+    eventsError,
+    setEventsError,
+  ] = useState("");
+
+  const [
+    eventsRetry,
+    setEventsRetry,
+  ] = useState(0);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const [
+    notice,
+    setNotice,
+  ] = useState("");
+
+  const [
+    mainImage,
+    setMainImage,
+  ] = useState("");
+
+  const [
+    savedTripItems,
+    setSavedTripItems,
+  ] = useState(
+    readTripItems
+  );
 
   useEffect(() => {
-    const loadPlace = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await getExplorePlace(id);
-        setPlace(data);
-        setMainImage(data.image || data.images?.[0] || "");
-      } catch (err) {
-        setError(err.response?.data?.message || "Place not found");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const loadPlace =
+      async () => {
+        try {
+          setLoading(true);
+
+          setError("");
+
+          const data =
+            await getExplorePlace(
+              id
+            );
+
+          setPlace(data);
+
+          setMainImage(
+            getPlaceImage(data)
+          );
+        } catch (err) {
+          setError(
+            err.response?.data
+              ?.message ||
+              "Place not found"
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
 
     loadPlace();
   }, [id]);
 
   useEffect(() => {
     let active = true;
-    setEventsLoading(true); setEventsError(""); setEvents([]);
-    getTouristEventsByPlace(id).then(rows => { if (active) setEvents(rows.map(normaliseEvent)); })
-      .catch(() => { if (active) setEventsError("Events could not be loaded. Please try again."); })
-      .finally(() => { if (active) setEventsLoading(false); });
-    return () => { active = false; };
-  }, [id, eventsRetry]);
 
-  const sortedEvents = useMemo(() => {
-    const mapped = events.map(normaliseEvent);
-    if (!focusedEventSlug) return mapped;
-    return [...mapped].sort((a, b) => {
-      if (a.slug === focusedEventSlug) return -1;
-      if (b.slug === focusedEventSlug) return 1;
-      return 0;
-    });
-  }, [events, focusedEventSlug]);
+    setEventsLoading(true);
 
-  useEffect(() => {
-    if (focusedEventSlug && !eventsLoading && thingsToDoRef.current) {
-      window.setTimeout(() => {
-        thingsToDoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 150);
-    }
-  }, [eventsLoading, focusedEventSlug]);
+    setEventsError("");
 
-  useEffect(() => {
-    const refreshSavedItems = () => setSavedTripItems(readTripItems());
-    window.addEventListener("storage", refreshSavedItems);
-    window.addEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+    setEvents([]);
+
+    getTouristEventsByPlace(id)
+      .then((rows) => {
+        if (active) {
+          setEvents(
+            (rows || []).map(
+              normaliseEvent
+            )
+          );
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setEventsError(
+            "Events could not be loaded."
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setEventsLoading(
+            false
+          );
+        }
+      });
 
     return () => {
-      window.removeEventListener("storage", refreshSavedItems);
-      window.removeEventListener(SAVED_TRIP_EVENT, refreshSavedItems);
+      active = false;
+    };
+  }, [
+    id,
+    eventsRetry,
+  ]);
+
+  const sortedEvents =
+    useMemo(() => {
+      const mapped =
+        events.map(
+          normaliseEvent
+        );
+
+      if (!focusedEventSlug) {
+        return mapped;
+      }
+
+      return [
+        ...mapped,
+      ].sort(
+        (a, b) => {
+          if (
+            a.slug ===
+            focusedEventSlug
+          ) {
+            return -1;
+          }
+
+          if (
+            b.slug ===
+            focusedEventSlug
+          ) {
+            return 1;
+          }
+
+          return 0;
+        }
+      );
+    }, [
+      events,
+      focusedEventSlug,
+    ]);
+
+  useEffect(() => {
+    if (
+      focusedEventSlug &&
+      !eventsLoading &&
+      thingsToDoRef.current
+    ) {
+      window.setTimeout(
+        () => {
+          thingsToDoRef.current?.scrollIntoView(
+            {
+              behavior:
+                "smooth",
+              block: "start",
+            }
+          );
+        },
+        150
+      );
+    }
+  }, [
+    eventsLoading,
+    focusedEventSlug,
+  ]);
+
+  useEffect(() => {
+    const refreshSavedItems =
+      () =>
+        setSavedTripItems(
+          readTripItems()
+        );
+
+    window.addEventListener(
+      "storage",
+      refreshSavedItems
+    );
+
+    window.addEventListener(
+      SAVED_TRIP_EVENT,
+      refreshSavedItems
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        refreshSavedItems
+      );
+
+      window.removeEventListener(
+        SAVED_TRIP_EVENT,
+        refreshSavedItems
+      );
     };
   }, []);
 
   useEffect(() => {
-    if (!notice) return undefined;
-    const timer = window.setTimeout(() => setNotice(""), 2500);
-    return () => window.clearTimeout(timer);
+    if (!notice) {
+      return undefined;
+    }
+
+    const timer =
+      window.setTimeout(
+        () =>
+          setNotice(""),
+        2500
+      );
+
+    return () =>
+      window.clearTimeout(
+        timer
+      );
   }, [notice]);
 
-  const isPlaceSaved = useMemo(
-    () => savedTripItems.some((item) => String(item.id) === String(place?.id)),
-    [savedTripItems, place]
-  );
+  const galleryImages =
+    useMemo(
+      () =>
+        getGalleryImages(
+          place
+        ),
+      [place]
+    );
 
-  const handleToggleSaveTrip = () => {
-    const result = toggleTripItem(place);
-    setSavedTripItems(result.items);
-    setNotice(result.saved ? `✓ ${place.name} added to your trip.` : `${place.name} removed from your trip.`);
-  };
+  const isPlaceSaved =
+    useMemo(() => {
+      if (!place) {
+        return false;
+      }
+
+      return savedTripItems.some(
+        (item) =>
+          getTripItemCategoryKey(
+            item
+          ) ===
+            "destinations" &&
+          String(
+            getTripItemSourceId(
+              item
+            )
+          ) ===
+            String(place.id)
+      );
+    }, [
+      savedTripItems,
+      place,
+    ]);
+
+  const handleToggleSaveTrip =
+    () => {
+      if (!place) {
+        return;
+      }
+
+      const tripItem = {
+        ...place,
+
+        id:
+          `place-${place.id}`,
+
+        sourceId:
+          place.id,
+
+        tripItemType:
+          "destination",
+
+        image:
+          assetUrl(
+            getPlaceImage(
+              place
+            )
+          ),
+
+        link:
+          `/explore/${place.id}`,
+      };
+
+      const result =
+        toggleTripItem(
+          tripItem
+        );
+
+      setSavedTripItems(
+        result.items
+      );
+
+      setNotice(
+        result.saved
+          ? `${place.name} saved to your trip.`
+          : `${place.name} removed from your trip.`
+      );
+    };
 
   if (loading) {
-    return <main className="place-detail-page"><style>{css}</style><div className="state">Loading place details...</div></main>;
+    return (
+      <main className="place-detail-page">
+        <div className="place-detail-state">
+          <span className="place-detail-loading-dot" />
+
+          <strong>
+            Loading place details
+          </strong>
+        </div>
+      </main>
+    );
   }
 
-  if (error || !place) {
-    return <main className="place-detail-page"><style>{css}</style><div className="state error">{error || "Place not found"}</div></main>;
+  if (
+    error ||
+    !place
+  ) {
+    return (
+      <main className="place-detail-page">
+        <div className="place-detail-state place-detail-state-error">
+          <Compass size={30} />
+
+          <strong>
+            {error ||
+              "Place not found"}
+          </strong>
+
+          <Link to="/explore">
+            Back to Explore
+          </Link>
+        </div>
+      </main>
+    );
   }
 
-  const placeHasMap = hasMapCoordinates(place);
+  const placeHasMap =
+    hasMapCoordinates(
+      place
+    );
+
+  const hasCost =
+    Number(
+      place.estimatedCost ||
+        0
+    ) > 0;
+
+  const tags =
+    Array.isArray(place.tags)
+      ? place.tags
+      : [];
+
+  const highlights =
+    Array.isArray(
+      place.highlights
+    )
+      ? place.highlights
+      : [];
+
+  const experiences =
+    Array.isArray(
+      place.experiences
+    )
+      ? place.experiences
+      : [];
+
+  const nearbyPlaces =
+    Array.isArray(
+      place.nearbyPlaces
+    )
+      ? place.nearbyPlaces
+      : [];
+
+  const tips =
+    Array.isArray(
+      place.tips
+    )
+      ? place.tips
+      : [];
+
+  const facilities =
+    Array.isArray(
+      place.facilities
+    )
+      ? place.facilities
+      : [];
 
   return (
     <main className="place-detail-page">
-      <style>{css}</style>
-      {notice ? <div className="detail-toast">{notice}</div> : null}
-
-      <section className="detail-hero">
-        <ContentImage src={assetUrl(mainImage)} alt={place.name} />
-        <div className="detail-hero-overlay" />
-        <div className="detail-hero-content">
-          <Link to="/explore" className="back-link">← Back to Explore</Link>
-          <span>{place.categoryIcon} {place.categoryLabel || place.category}</span>
-          <h1>{place.name}</h1>
-          <p>📍 {place.city}, {place.district} · {place.region}</p>
+      {notice ? (
+        <div className="place-detail-toast">
+          {notice}
         </div>
-      </section>
+      ) : null}
 
-      <section className="detail-wrap">
-        <aside className="quick-card">
-          <h3>Travel Info</h3>
-          <div><strong>⏱ Duration</strong><span>{place.duration}</span></div>
-          <div><strong>🗓 Best time</strong><span>{place.bestTime}</span></div>
-          <div><strong>💰 Cost</strong><span>{formatLkr(place.estimatedCost)}</span></div>
-          <div><strong>🎯 Budget</strong><span>{place.budget}</span></div>
-          <div><strong>🕒 Opening</strong><span>{place.openingHours}</span></div>
-          <div><strong>🎫 Entry</strong><span>{place.entryFee}</span></div>
+      <div className="place-detail-shell">
+        <div className="place-detail-topbar">
+          <Link
+            to="/explore"
+            className="place-detail-back"
+          >
+            <ArrowLeft size={16} />
+            Explore
+          </Link>
+        </div>
+
+        <section className="place-detail-hero">
+          <ContentImage
+            src={assetUrl(
+              mainImage
+            )}
+            alt={place.name}
+            className="place-detail-hero-image"
+          />
+
+          <div className="place-detail-hero-overlay" />
+
           <button
             type="button"
-            className={isPlaceSaved ? "saved-trip-btn" : ""}
-            onClick={handleToggleSaveTrip}
+            className={
+              isPlaceSaved
+                ? "place-detail-hero-save is-saved"
+                : "place-detail-hero-save"
+            }
+            onClick={
+              handleToggleSaveTrip
+            }
+            aria-label={
+              isPlaceSaved
+                ? "Remove from trip"
+                : "Save to trip"
+            }
           >
-            {isPlaceSaved ? "Saved to trip" : "+ Save to trip"}
+            <Heart
+              size={18}
+              fill={
+                isPlaceSaved
+                  ? "currentColor"
+                  : "none"
+              }
+            />
+
+            <span>
+              {isPlaceSaved
+                ? "Saved"
+                : "Save"}
+            </span>
           </button>
-          <Link to={`/hotels?city=${encodeURIComponent(place.city)}`}>Find Hotels</Link>
-          <Link to="/events" className="secondary-link">Browse Events</Link>
-          {placeHasMap ? (
-            <a href={getDirectionsUrl(place.lat, place.lng)} target="_blank" rel="noreferrer" className="map-link">Open Map</a>
-          ) : null}
-        </aside>
 
-        <div className="detail-main">
-          <section className="white-card">
-            <h2>Overview</h2>
-            <p>{place.fullDescription || place.shortDescription}</p>
-            <div className="tags">{(place.tags || []).map((tag) => <span key={tag}>{tag}</span>)}</div>
-          </section>
+          <div className="place-detail-hero-content">
+            <div className="place-detail-hero-badges">
+              {place.categoryLabel ||
+              place.category ? (
+                <span>
+                  {place.categoryIcon ? (
+                    <>
+                      {
+                        place.categoryIcon
+                      }{" "}
+                    </>
+                  ) : null}
 
-          {placeHasMap ? (
-            <section className="white-card location-map-card">
-              <div className="card-title-row map-title-row">
-                <div>
-                  <span className="section-kicker">Location</span>
-                  <h2>Find it on the Map</h2>
-                </div>
-                <a href={getDirectionsUrl(place.lat, place.lng)} target="_blank" rel="noreferrer">Open directions →</a>
-              </div>
-              <iframe
-                title={`${place.name} location map`}
-                src={getOpenStreetMapEmbedUrl(place.lat, place.lng)}
-                loading="lazy"
-              />
-              <p className="map-note">📍 {place.name} is marked using the coordinates added by the admin.</p>
-            </section>
-          ) : null}
+                  {place.categoryLabel ||
+                    place.category}
+                </span>
+              ) : null}
 
-          {place.images?.length ? (
-            <section className="white-card">
-              <h2>Photos</h2>
-              <div className="gallery-row">
-                {place.images.map((image) => (
-                  <button key={image} type="button" onClick={() => setMainImage(image)}>
-                    <ContentImage src={assetUrl(image)} alt={place.name} />
-                  </button>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {place.highlights?.length ? (
-            <section className="white-card">
-              <h2>Highlights</h2>
-              <div className="highlight-grid">
-                {place.highlights.map((item, index) => (
-                  <article key={`${item.title}-${index}`}>
-                    <span>{item.icon || "✨"}</span>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="white-card things-to-do-card" id="things-to-do" ref={thingsToDoRef}>
-            <div className="card-title-row">
-              <div>
-                <span className="section-kicker">Explore → View Details</span>
-                <h2>Things to Do</h2>
-              </div>
-              <Link to={`/events?city=${encodeURIComponent(place.city)}`}>See all events →</Link>
+              {place.featured ? (
+                <span className="place-detail-featured-badge">
+                  <Sparkles
+                    size={12}
+                  />
+                  Featured
+                </span>
+              ) : null}
             </div>
 
-            {eventsError ? <div role="alert" className="no-events-box">{eventsError} <button type="button" onClick={() => setEventsRetry(n => n + 1)}>Try again</button></div> : eventsLoading ? <p role="status">Loading nearby events and experiences...</p> : null}
+            <h1>
+              {place.name}
+            </h1>
 
-            {sortedEvents.length ? (
-              <div className="place-event-grid">
-                {sortedEvents.map((event) => {
-                  const isFocused = event.slug === focusedEventSlug;
-                  return (
-                    <article className={isFocused ? "place-event-card focused-event" : "place-event-card"} key={event.slug}>
-                      <ContentImage src={getEventImage(event)} alt={event.title} />
-                      <div className="place-event-body">
-                        <div className="event-badge-row">
-                          <span>{event.category}</span>
-                          {isFocused ? <strong>Selected event</strong> : null}
-                        </div>
-                        <h3>{event.title}</h3>
-                        <p>{event.shortDescription}</p>
-                        <div className="small-meta">
-                          <span>📍 {event.venue}</span>
-                          <span>🗓 {event.dateLabel} · {event.timeLabel}</span>
-                          <span>💰 {event.priceLabel}</span>
-                        </div>
-                        <div className="mini-actions">
-                          <Link to={`/events/${event.slug}`}>Details & report an issue</Link>
-                          <a href={event.mapUrl} target="_blank" rel="noreferrer">Directions</a>
-                          <Link to={`/hotels?city=${encodeURIComponent(event.city)}`}>Hotels nearby</Link>
-                          <Link to={`/tourist-guides?city=${encodeURIComponent(event.city)}&type=${encodeURIComponent(event.category)}`}>Find guide</Link>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : !eventsLoading && !eventsError ? (
-              <div className="no-events-box">
-                <span>🎒</span>
-                <h3>No connected tourist events yet</h3>
-                <p>Use the normal experiences below, or browse all Events & Experiences.</p>
-                <Link to="/events">Browse events</Link>
-              </div>
-            ) : null}
+            <div className="place-detail-location">
+              <MapPin
+                size={17}
+              />
 
-            {place.experiences?.length ? (
-              <div className="experience-list legacy-experiences">
-                {place.experiences.map((item, index) => (
-                  <article key={`${item.title}-${index}`}>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                    <span>{item.duration || item.time || ""} {item.cost !== undefined ? ` · ${formatLkr(item.cost)}` : ""}</span>
-                  </article>
-                ))}
-              </div>
+              <span>
+                {[
+                  place.city,
+                  place.district !==
+                  place.city
+                    ? place.district
+                    : null,
+                  place.region,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </div>
+
+            {hasText(
+              place.shortDescription
+            ) ? (
+              <p>
+                {
+                  place.shortDescription
+                }
+              </p>
             ) : null}
+          </div>
+        </section>
+
+        {galleryImages.length >
+        1 ? (
+          <section className="place-detail-gallery-strip">
+            <div className="place-detail-gallery-heading">
+              <Camera
+                size={15}
+              />
+
+              <span>
+                Photos
+              </span>
+            </div>
+
+            <div className="place-detail-gallery-list">
+              {galleryImages.map(
+                (
+                  image,
+                  index
+                ) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    className={
+                      image ===
+                      mainImage
+                        ? "is-active"
+                        : ""
+                    }
+                    onClick={() =>
+                      setMainImage(
+                        image
+                      )
+                    }
+                  >
+                    <ContentImage
+                      src={assetUrl(
+                        image
+                      )}
+                      alt={`${place.name} ${index + 1}`}
+                    />
+                  </button>
+                )
+              )}
+            </div>
           </section>
+        ) : null}
 
-          <section className="two-col">
-            {place.nearbyPlaces?.length ? (
-              <div className="white-card">
-                <h2>Nearby Places</h2>
-                <ul>
-                  {place.nearbyPlaces.map((item, index) => <li key={`${item.name}-${index}`}><strong>{item.name}</strong> — {item.distance} · {item.type}</li>)}
-                </ul>
+        <section className="place-detail-layout">
+          <div className="place-detail-main">
+            <section className="place-detail-card place-detail-overview-card">
+              <div className="place-detail-section-heading">
+                <span>
+                  OVERVIEW
+                </span>
+
+                <h2>
+                  About {place.name}
+                </h2>
               </div>
-            ) : null}
 
-            {place.tips?.length ? (
-              <div className="white-card">
-                <h2>Tips</h2>
-                <ul>{place.tips.map((tip, index) => <li key={`${tip}-${index}`}>{tip}</li>)}</ul>
-              </div>
-            ) : null}
-          </section>
+              <p className="place-detail-description">
+                {place.fullDescription ||
+                  place.shortDescription}
+              </p>
 
-          {place.facilities?.length ? (
-            <section className="white-card">
-              <h2>Facilities</h2>
-              <div className="tags">{place.facilities.map((item) => <span key={item}>✓ {item}</span>)}</div>
+              {tags.length ? (
+                <div className="place-detail-tags">
+                  {tags.map(
+                    (
+                      tag,
+                      index
+                    ) => (
+                      <span
+                        key={`${tag}-${index}`}
+                      >
+                        {tag}
+                      </span>
+                    )
+                  )}
+                </div>
+              ) : null}
             </section>
-          ) : null}
-        </div>
-      </section>
+
+            {highlights.length ? (
+              <section className="place-detail-card">
+                <div className="place-detail-section-heading">
+                  <span>
+                    HIGHLIGHTS
+                  </span>
+
+                  <h2>
+                    What stands out
+                  </h2>
+                </div>
+
+                <div className="place-detail-highlight-grid">
+                  {highlights.map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <article
+                        key={`${item.title || "highlight"}-${index}`}
+                      >
+                        <div className="place-detail-highlight-icon">
+                          {item.icon ||
+                            "✨"}
+                        </div>
+
+                        <div>
+                          <h3>
+                            {item.title}
+                          </h3>
+
+                          {hasText(
+                            item.description
+                          ) ? (
+                            <p>
+                              {
+                                item.description
+                              }
+                            </p>
+                          ) : null}
+                        </div>
+                      </article>
+                    )
+                  )}
+                </div>
+              </section>
+            ) : null}
+
+            {experiences.length ? (
+              <section
+                className="place-detail-card"
+                ref={
+                  thingsToDoRef
+                }
+              >
+                <div className="place-detail-section-heading">
+                  <span>
+                    EXPERIENCES
+                  </span>
+
+                  <h2>
+                    Things to do
+                  </h2>
+                </div>
+
+                <div className="place-detail-experience-grid">
+                  {experiences.map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <article
+                        key={`${item.title || "experience"}-${index}`}
+                      >
+                        <Compass
+                          size={18}
+                        />
+
+                        <div>
+                          <h3>
+                            {item.title}
+                          </h3>
+
+                          {hasText(
+                            item.description
+                          ) ? (
+                            <p>
+                              {
+                                item.description
+                              }
+                            </p>
+                          ) : null}
+
+                          {(item.duration ||
+                            item.time ||
+                            item.cost !==
+                              undefined) && (
+                            <div className="place-detail-experience-meta">
+                              {item.duration ||
+                              item.time ? (
+                                <span>
+                                  <Clock3
+                                    size={
+                                      12
+                                    }
+                                  />
+                                  {item.duration ||
+                                    item.time}
+                                </span>
+                              ) : null}
+
+                              {item.cost !==
+                              undefined ? (
+                                <span>
+                                  <WalletCards
+                                    size={
+                                      12
+                                    }
+                                  />
+                                  {formatLkr(
+                                    item.cost
+                                  )}
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      </article>
+                    )
+                  )}
+                </div>
+              </section>
+            ) : null}
+
+            <section
+              className="place-detail-card"
+              id="things-to-do"
+              ref={
+                experiences.length
+                  ? undefined
+                  : thingsToDoRef
+              }
+            >
+              <div className="place-detail-section-heading place-detail-heading-row">
+                <div>
+                  <span>
+                    EVENTS
+                  </span>
+
+                  <h2>
+                    Events nearby
+                  </h2>
+                </div>
+
+                <Link
+                  to={`/events?city=${encodeURIComponent(
+                    place.city ||
+                      ""
+                  )}`}
+                >
+                  All events
+                  <ArrowRight
+                    size={14}
+                  />
+                </Link>
+              </div>
+
+              {eventsError ? (
+                <div className="place-detail-event-state">
+                  <strong>
+                    {
+                      eventsError
+                    }
+                  </strong>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEventsRetry(
+                        (
+                          current
+                        ) =>
+                          current +
+                          1
+                      )
+                    }
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : eventsLoading ? (
+                <div className="place-detail-event-state">
+                  Loading events...
+                </div>
+              ) : sortedEvents.length ? (
+                <div className="place-detail-event-grid">
+                  {sortedEvents.map(
+                    (event) => {
+                      const isFocused =
+                        event.slug ===
+                        focusedEventSlug;
+
+                      return (
+                        <article
+                          key={
+                            event.slug
+                          }
+                          className={
+                            isFocused
+                              ? "place-detail-event-card is-focused"
+                              : "place-detail-event-card"
+                          }
+                        >
+                          <ContentImage
+                            src={assetUrl(
+                              getEventImage(
+                                event
+                              )
+                            )}
+                            alt={
+                              event.title
+                            }
+                          />
+
+                          <div className="place-detail-event-body">
+                            <div className="place-detail-event-badges">
+                              {event.category ? (
+                                <span>
+                                  {
+                                    event.category
+                                  }
+                                </span>
+                              ) : null}
+
+                              {isFocused ? (
+                                <strong>
+                                  Selected
+                                </strong>
+                              ) : null}
+                            </div>
+
+                            <h3>
+                              {
+                                event.title
+                              }
+                            </h3>
+
+                            {hasText(
+                              event.shortDescription
+                            ) ? (
+                              <p>
+                                {
+                                  event.shortDescription
+                                }
+                              </p>
+                            ) : null}
+
+                            <div className="place-detail-event-meta">
+                              {event.venue ? (
+                                <span>
+                                  <MapPin
+                                    size={
+                                      13
+                                    }
+                                  />
+                                  {
+                                    event.venue
+                                  }
+                                </span>
+                              ) : null}
+
+                              {event.dateLabel ||
+                              event.timeLabel ? (
+                                <span>
+                                  <CalendarDays
+                                    size={
+                                      13
+                                    }
+                                  />
+
+                                  {[
+                                    event.dateLabel,
+                                    event.timeLabel,
+                                  ]
+                                    .filter(
+                                      Boolean
+                                    )
+                                    .join(
+                                      " · "
+                                    )}
+                                </span>
+                              ) : null}
+
+                              {event.priceLabel ? (
+                                <span>
+                                  <WalletCards
+                                    size={
+                                      13
+                                    }
+                                  />
+                                  {
+                                    event.priceLabel
+                                  }
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <div className="place-detail-event-actions">
+                              <Link
+                                to={`/events/${event.slug}`}
+                              >
+                                View details
+                              </Link>
+
+                              {event.mapUrl ? (
+                                <a
+                                  href={
+                                    event.mapUrl
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Directions
+                                </a>
+                              ) : null}
+
+                              <Link
+                                to={`/hotels?city=${encodeURIComponent(
+                                  event.city ||
+                                    place.city ||
+                                    ""
+                                )}`}
+                              >
+                                Hotels
+                              </Link>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    }
+                  )}
+                </div>
+              ) : (
+                <div className="place-detail-event-state">
+                  <Compass
+                    size={23}
+                  />
+
+                  <strong>
+                    No connected events yet
+                  </strong>
+
+                  <Link to="/events">
+                    Browse events
+                  </Link>
+                </div>
+              )}
+            </section>
+
+            {placeHasMap ? (
+              <section className="place-detail-card">
+                <div className="place-detail-section-heading place-detail-heading-row">
+                  <div>
+                    <span>
+                      LOCATION
+                    </span>
+
+                    <h2>
+                      Map
+                    </h2>
+                  </div>
+
+                  <a
+                    href={getDirectionsUrl(
+                      place.lat,
+                      place.lng
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Directions
+                    <ExternalLink
+                      size={13}
+                    />
+                  </a>
+                </div>
+
+                <div className="place-detail-map">
+                  <iframe
+                    title={`${place.name} location map`}
+                    src={getOpenStreetMapEmbedUrl(
+                      place.lat,
+                      place.lng
+                    )}
+                    loading="lazy"
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            {(nearbyPlaces.length ||
+              tips.length) && (
+              <section className="place-detail-split-section">
+                {nearbyPlaces.length ? (
+                  <div className="place-detail-card">
+                    <div className="place-detail-section-heading">
+                      <span>
+                        NEARBY
+                      </span>
+
+                      <h2>
+                        Nearby places
+                      </h2>
+                    </div>
+
+                    <div className="place-detail-list">
+                      {nearbyPlaces.map(
+                        (
+                          item,
+                          index
+                        ) => (
+                          <div
+                            key={`${item.name || "nearby"}-${index}`}
+                          >
+                            <MapPin
+                              size={
+                                15
+                              }
+                            />
+
+                            <div>
+                              <strong>
+                                {
+                                  item.name
+                                }
+                              </strong>
+
+                              <span>
+                                {[
+                                  item.distance,
+                                  item.type,
+                                ]
+                                  .filter(
+                                    Boolean
+                                  )
+                                  .join(
+                                    " · "
+                                  )}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
+                {tips.length ? (
+                  <div className="place-detail-card">
+                    <div className="place-detail-section-heading">
+                      <span>
+                        GOOD TO KNOW
+                      </span>
+
+                      <h2>
+                        Travel tips
+                      </h2>
+                    </div>
+
+                    <div className="place-detail-list">
+                      {tips.map(
+                        (
+                          tip,
+                          index
+                        ) => (
+                          <div
+                            key={`${tip}-${index}`}
+                          >
+                            <Lightbulb
+                              size={
+                                15
+                              }
+                            />
+
+                            <div>
+                              <p>
+                                {tip}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            )}
+
+            {facilities.length ? (
+              <section className="place-detail-card">
+                <div className="place-detail-section-heading">
+                  <span>
+                    FACILITIES
+                  </span>
+
+                  <h2>
+                    Available here
+                  </h2>
+                </div>
+
+                <div className="place-detail-facilities">
+                  {facilities.map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <span
+                        key={`${item}-${index}`}
+                      >
+                        <CheckCircle2
+                          size={14}
+                        />
+
+                        {item}
+                      </span>
+                    )
+                  )}
+                </div>
+              </section>
+            ) : null}
+          </div>
+
+          <aside className="place-detail-sidebar">
+            <div className="place-detail-travel-card">
+              <div className="place-detail-travel-heading">
+                <span>
+                  TRAVEL INFO
+                </span>
+
+                <h2>
+                  Plan your visit
+                </h2>
+              </div>
+
+              <div className="place-detail-travel-list">
+                {hasText(
+                  place.duration
+                ) ? (
+                  <div>
+                    <span className="place-detail-info-icon">
+                      <Clock3
+                        size={16}
+                      />
+                    </span>
+
+                    <div>
+                      <small>
+                        Duration
+                      </small>
+
+                      <strong>
+                        {
+                          place.duration
+                        }
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+
+                {hasText(
+                  place.bestTime
+                ) ? (
+                  <div>
+                    <span className="place-detail-info-icon">
+                      <CalendarDays
+                        size={16}
+                      />
+                    </span>
+
+                    <div>
+                      <small>
+                        Best time
+                      </small>
+
+                      <strong>
+                        {
+                          place.bestTime
+                        }
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+
+                {hasCost ? (
+                  <div>
+                    <span className="place-detail-info-icon">
+                      <WalletCards
+                        size={16}
+                      />
+                    </span>
+
+                    <div>
+                      <small>
+                        Estimated cost
+                      </small>
+
+                      <strong>
+                        {formatLkr(
+                          place.estimatedCost
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+
+                {hasText(
+                  place.budget
+                ) ? (
+                  <div>
+                    <span className="place-detail-info-icon">
+                      <WalletCards
+                        size={16}
+                      />
+                    </span>
+
+                    <div>
+                      <small>
+                        Budget
+                      </small>
+
+                      <strong>
+                        {
+                          place.budget
+                        }
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+
+                {hasText(
+                  place.openingHours
+                ) ? (
+                  <div>
+                    <span className="place-detail-info-icon">
+                      <Clock3
+                        size={16}
+                      />
+                    </span>
+
+                    <div>
+                      <small>
+                        Opening
+                      </small>
+
+                      <strong>
+                        {
+                          place.openingHours
+                        }
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+
+                {hasText(
+                  place.entryFee
+                ) ? (
+                  <div>
+                    <span className="place-detail-info-icon">
+                      <Ticket
+                        size={16}
+                      />
+                    </span>
+
+                    <div>
+                      <small>
+                        Entry
+                      </small>
+
+                      <strong>
+                        {
+                          place.entryFee
+                        }
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="place-detail-primary-actions">
+                <button
+                  type="button"
+                  className={
+                    isPlaceSaved
+                      ? "place-detail-save-button is-saved"
+                      : "place-detail-save-button"
+                  }
+                  onClick={
+                    handleToggleSaveTrip
+                  }
+                >
+                  <Heart
+                    size={16}
+                    fill={
+                      isPlaceSaved
+                        ? "currentColor"
+                        : "none"
+                    }
+                  />
+
+                  {isPlaceSaved
+                    ? "Saved to trip"
+                    : "Save to trip"}
+                </button>
+
+                <Link
+                  to={`/hotels?city=${encodeURIComponent(
+                    place.city ||
+                      ""
+                  )}`}
+                  className="place-detail-hotel-button"
+                >
+                  <Building2
+                    size={16}
+                  />
+
+                  Find hotels
+                </Link>
+              </div>
+
+              <div className="place-detail-secondary-actions">
+                <Link
+                  to={`/events?city=${encodeURIComponent(
+                    place.city ||
+                      ""
+                  )}`}
+                >
+                  <CalendarDays
+                    size={14}
+                  />
+                  Events
+                </Link>
+
+                {placeHasMap ? (
+                  <a
+                    href={getDirectionsUrl(
+                      place.lat,
+                      place.lng
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Navigation
+                      size={14}
+                    />
+                    Directions
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </aside>
+        </section>
+      </div>
     </main>
   );
 }
-
-const css = `
-.place-detail-page{background:#f7faf5;min-height:100vh;color:#102936;font-family:Inter,system-ui,Arial,sans-serif}.detail-toast{position:fixed;right:22px;bottom:22px;background:#064e45;color:#fff;padding:14px 18px;border-radius:14px;z-index:50;font-weight:900}.state{max-width:850px;margin:70px auto;background:#fff;border:1px solid #e2ebe5;border-radius:20px;padding:30px;text-align:center;font-weight:900}.state.error{color:#991b1b}.detail-hero{height:460px;position:relative;overflow:hidden}.detail-hero>img{width:100%;height:100%;object-fit:cover}.detail-hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(1,25,28,.90),rgba(1,48,45,.56),rgba(1,25,28,.28))}.detail-hero-content{position:absolute;left:clamp(22px,8vw,110px);bottom:60px;color:#fff;max-width:850px}.back-link{display:inline-block;color:#fff;text-decoration:none;background:rgba(255,255,255,.18);padding:10px 16px;border-radius:999px;font-weight:900;margin-bottom:24px}.detail-hero-content span{display:inline-block;color:#ffe68b;font-weight:900;text-transform:uppercase;letter-spacing:.15em}.detail-hero-content h1{font-size:clamp(42px,7vw,74px);margin:12px 0;letter-spacing:-.04em;color:#fff;text-shadow:0 14px 42px rgba(0,0,0,.52)}.detail-hero-content p{font-size:19px;font-weight:800;color:#fff;text-shadow:0 8px 28px rgba(0,0,0,.46)}.detail-wrap{max-width:1250px;margin:-56px auto 70px;padding:0 22px;display:grid;grid-template-columns:330px 1fr;gap:26px;position:relative;z-index:3}.quick-card,.white-card{background:#fff;border:1px solid #e2ebe5;border-radius:26px;box-shadow:0 20px 50px rgba(0,0,0,.08)}.quick-card{padding:22px;position:sticky;top:20px;height:max-content}.quick-card h3,.white-card h2{margin:0 0 18px;color:#064e45}.quick-card div{display:flex;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #eef3ef}.quick-card strong{color:#52616f}.quick-card span{text-align:right;font-weight:900}.quick-card button,.quick-card a{display:block;width:100%;box-sizing:border-box;text-align:center;border:none;text-decoration:none;margin-top:14px;border-radius:16px;padding:14px;font-weight:900;cursor:pointer}.quick-card button{background:#ffc22b;color:#063c38}.quick-card button.saved-trip-btn{background:#e8fff5;color:#05614f;border:1px solid #64c8a8}.quick-card a{background:#064e45;color:#fff}.quick-card .secondary-link{background:#edf8f6;color:#064e45}.detail-main{display:flex;flex-direction:column;gap:22px}.white-card{padding:26px}.white-card p{line-height:1.85;color:#475569;font-weight:600;white-space:pre-line}.tags{display:flex;gap:9px;flex-wrap:wrap}.tags span{background:#f0faf6;color:#064e45;border-radius:999px;padding:8px 12px;font-weight:800}.gallery-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.gallery-row button{border:none;border-radius:16px;overflow:hidden;padding:0;cursor:pointer;height:160px}.gallery-row img{width:100%;height:100%;object-fit:cover}.quick-card .map-link{background:#e8f5ef;color:#064e45}.location-map-card iframe{width:100%;height:360px;border:0;border-radius:18px;display:block;background:#e5e7eb}.location-map-card .map-note{margin:12px 0 0;color:#64748b!important;font-weight:850;white-space:normal!important}.map-title-row{margin-bottom:14px!important}.highlight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.highlight-grid article,.experience-list article{border:1px solid #e2ebe5;background:#fbfdf9;border-radius:18px;padding:18px}.highlight-grid span{font-size:34px}.highlight-grid h3,.experience-list h3{color:#064e45;margin:8px 0}.highlight-grid p,.experience-list p{margin:0;white-space:normal}.experience-list{display:grid;gap:14px}.experience-list span{display:inline-block;margin-top:10px;color:#b45309;font-weight:900}.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.section-kicker{display:inline-block;color:#007e91;font-weight:950;text-transform:uppercase;letter-spacing:.12em;font-size:12px;margin-bottom:8px}.card-title-row a{color:#007e91;text-decoration:none;font-weight:950}.place-event-grid{display:grid;gap:16px;margin-bottom:20px}.place-event-card{display:grid;grid-template-columns:220px 1fr;border:1px solid #dbeceb;background:#fbffff;border-radius:22px;overflow:hidden}.place-event-card.focused-event{border:2px solid #007e91;box-shadow:0 18px 42px rgba(0,126,145,.14)}.place-event-card img{width:100%;height:100%;min-height:210px;object-fit:cover}.place-event-body{padding:18px}.event-badge-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.event-badge-row span,.event-badge-row strong{border-radius:999px;padding:7px 10px;font-size:12px;font-weight:950}.event-badge-row span{background:#e5f6f4;color:#007e91}.event-badge-row strong{background:#facc15;color:#102936}.place-event-body h3{font-size:24px;margin:13px 0 8px;color:#0b4b45}.place-event-body p{white-space:normal;margin:0}.small-meta{display:grid;gap:6px;margin-top:12px;color:#52616f;font-weight:750}.mini-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.mini-actions a{background:#064e45;color:white;text-decoration:none;border-radius:12px;padding:10px 12px;font-weight:900}.mini-actions a:first-child{background:#007e91}.no-events-box{text-align:center;border:1px dashed #b6d9d5;border-radius:20px;background:#f8ffff;padding:26px;margin-bottom:18px}.no-events-box span{font-size:38px}.no-events-box h3{color:#064e45;margin:8px 0}.no-events-box a{display:inline-block;margin-top:10px;background:#007e91;color:white;border-radius:14px;text-decoration:none;padding:11px 14px;font-weight:950}.legacy-experiences{margin-top:20px}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:22px}.white-card ul{padding-left:20px;margin:0}.white-card li{margin:10px 0;line-height:1.6;color:#475569;font-weight:650}@media(max-width:900px){.detail-wrap{grid-template-columns:1fr}.quick-card{position:static}.two-col,.highlight-grid,.gallery-row,.place-event-card{grid-template-columns:1fr}.place-event-card img{height:230px}.detail-hero{height:420px}.card-title-row{align-items:flex-start;flex-direction:column}}
-`;
-

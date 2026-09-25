@@ -8,11 +8,13 @@ const {
   getSeasonalPlaces,
   getExploreItineraries,
 } = require("../controllers/explore.controller");
+const { getExploreFeed } = require("../controllers/exploreFeed.controller");
 
 const router = express.Router();
 
 router.get("/categories", getExploreCategories);
 router.get("/settings", getExploreSettings);
+router.get("/feed", optionalProtect, getExploreFeed);
 router.get("/places", optionalProtect, getExplorePlaces);
 router.get("/places/:id", optionalProtect, getExplorePlaceById);
 router.get("/seasonal", getSeasonalPlaces);

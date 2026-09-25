@@ -33,10 +33,41 @@ export const getHomePageData = async () => {
 
 export const getExploreCategories = async () => {
   const res = await api.get("/explore/categories");
-
   return res.data.categories || [];
 };
 
+export const getExploreSettings = async () => {
+  const res = await api.get("/explore/settings");
+  return res.data.settings || {};
+};
+
+/*
+ * Paginated public Explore feed.
+ * Use this on list/grid screens so the page remains fast even when
+ * hundreds or thousands of destinations are added later.
+ */
+export const getExploreFeed = async (params = {}) => {
+  const res = await api.get("/explore/feed", {
+    params,
+  });
+
+  return {
+    places: res.data.places || [],
+    pagination:
+      res.data.pagination || {
+        page: 1,
+        limit: Number(params.limit || 12),
+        total: 0,
+        totalPages: 0,
+        hasMore: false,
+      },
+  };
+};
+
+/*
+ * Existing non-paginated endpoint kept for compatibility with
+ * current pages/components that already use it.
+ */
 export const getExplorePlaces = async (params = {}) => {
   const res = await api.get("/explore/places", {
     params,
@@ -47,7 +78,6 @@ export const getExplorePlaces = async (params = {}) => {
 
 export const getExplorePlace = async (id) => {
   const res = await api.get(`/explore/places/${id}`);
-
   return res.data.place;
 };
 
@@ -61,7 +91,6 @@ export const getSeasonalPlaces = async (month) => {
 
 export const getExploreItineraries = async () => {
   const res = await api.get("/explore/itineraries");
-
   return res.data.itineraries || [];
 };
 
@@ -78,26 +107,17 @@ export const getTouristEvents = async (params = {}) => {
 };
 
 export const getTouristEvent = async (slug) => {
-  const res = await api.get(
-    `/tourist/events/${encodeURIComponent(slug)}`
-  );
-
+  const res = await api.get(`/tourist/events/${encodeURIComponent(slug)}`);
   return res.data.event;
 };
 
 export const getTouristEventsByPlace = async (placeId) => {
-  const res = await api.get(
-    `/tourist/events/by-place/${placeId}`
-  );
-
+  const res = await api.get(`/tourist/events/by-place/${placeId}`);
   return res.data.events || [];
 };
 
 export const getTouristEventBySlug = async (slug) => {
-  const res = await api.get(
-    `/tourist/events/${encodeURIComponent(slug)}`
-  );
-
+  const res = await api.get(`/tourist/events/${encodeURIComponent(slug)}`);
   return res.data.event || null;
 };
 
@@ -107,6 +127,5 @@ export const getTouristEventBySlug = async (slug) => {
 
 export const formatLkr = (amount) => {
   const value = Number(amount || 0);
-
   return `LKR ${value.toLocaleString()}`;
 };
