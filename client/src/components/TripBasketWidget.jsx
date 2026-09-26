@@ -2,6 +2,7 @@ import ContentImage from "./ContentImage";
 import { assetUrl as resolveAssetUrl } from "../utils/assetUrl";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
 } from "react";
@@ -160,6 +161,40 @@ function TripBasketWidget({
     };
   }, []);
 
+
+  const [panelBounds, setPanelBounds] = useState({});
+
+  useLayoutEffect(() => {
+    if (!open || embedded) return undefined;
+    const header = document.querySelector(".site-header");
+    const viewport = window.visualViewport;
+    const updateBounds = () => {
+      const viewportTop = viewport?.offsetTop || 0;
+      const viewportHeight = viewport?.height || window.innerHeight;
+      const headerBottom = header?.getBoundingClientRect().bottom || 0;
+      const top = Math.max(viewportTop, headerBottom) + 12;
+      const bottomGap = window.innerWidth <= 680 ? 74 : 84;
+      const bottom = window.innerHeight - viewportTop - viewportHeight + bottomGap;
+      setPanelBounds({
+        "--trip-basket-bottom": `${bottom}px`,
+        "--trip-basket-available": `${Math.max(0, viewportTop + viewportHeight - bottomGap - top)}px`,
+      });
+    };
+    const observer = new ResizeObserver(updateBounds);
+    if (header) observer.observe(header);
+    updateBounds();
+    window.addEventListener("resize", updateBounds);
+    window.addEventListener("scroll", updateBounds, { passive: true });
+    viewport?.addEventListener("resize", updateBounds);
+    viewport?.addEventListener("scroll", updateBounds);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateBounds);
+      window.removeEventListener("scroll", updateBounds);
+      viewport?.removeEventListener("resize", updateBounds);
+      viewport?.removeEventListener("scroll", updateBounds);
+    };
+  }, [open, embedded]);
 
   const groups =
     useMemo(
@@ -810,6 +845,7 @@ function TripBasketWidget({
       {open && (
         <aside
           className="trip-basket-panel"
+          style={panelBounds}
           aria-label="Saved trip basket"
         >
           <div className="trip-basket-head">
@@ -840,9 +876,9 @@ function TripBasketWidget({
             </button>
           </div>
 
-          {
-            basketContent
-          }
+          <div className="trip-basket-panel-content">
+            {basketContent}
+          </div>
 
           <div className="trip-basket-open-planner">
             <Link
@@ -907,10 +943,10 @@ const basketCss = `
 .trip-basket-panel{
   position:fixed;
   right:24px;
-  bottom:84px;
+  bottom:var(--trip-basket-bottom,84px);
   width:min(430px,calc(100vw - 32px));
-  max-height:min(680px,calc(100vh - 118px));
-  z-index:76;
+  max-height:min(680px,var(--trip-basket-available,calc(100dvh - 200px)));
+  z-index:10002;
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -918,6 +954,31 @@ const basketCss = `
   border-radius:18px;
   background:#ffffff;
   box-shadow:0 24px 70px rgba(28,52,48,.2);
+}
+
+/* The outer panel is bounded; its middle section can scroll even on short screens.
+   The item list gets its own scroll area whenever space permits. */
+.trip-basket-panel > .trip-basket-head,
+.trip-basket-panel > .trip-basket-open-planner{
+  flex:none;
+}
+.trip-basket-panel-content{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.trip-basket-panel-content > :not(.trip-basket-list){
+  flex:none;
+}
+.trip-basket-panel-content .trip-basket-list{
+  flex:1 1 auto;
+  min-height:120px;
+  overscroll-behavior:contain;
+}
+.trip-basket-panel .trip-basket-open-planner{
+  padding-top:10px;
 }
 
 .trip-basket-head,
@@ -1292,7 +1353,7 @@ const basketCss = `
   }
   .trip-basket-panel{
     right:12px;
-    bottom:74px;
+    bottom:var(--trip-basket-bottom,74px);
     width:calc(100vw - 24px);
   }
   .trip-basket-tabs{

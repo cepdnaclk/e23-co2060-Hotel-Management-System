@@ -6,262 +6,108 @@
 ![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/Express.js-REST_API-000000?logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?logo=mysql&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Academic_Project-success)
-![Responsive](https://img.shields.io/badge/UI-Mobile_Responsive-orange)
+![Status](https://img.shields.io/badge/Status-Final_Academic_Project-success)
+![Responsive](https://img.shields.io/badge/UI-Responsive-orange)
 
-**TripLanka** is a mobile-responsive smart hotel and tourism management platform developed for the Sri Lankan tourism industry.
+**TripLanka** is a smart hotel and tourism management platform designed for the Sri Lankan tourism industry. It connects tourists, hotel and tourism partners, tourist guides, event providers, reception staff, and administrators through one integrated system.
 
-The platform connects tourists, hotel and tourism partners, tourist guides, event providers, reception staff and administrators through one integrated system.
+Tourists can discover destinations, search verified hotels, create bookings, build day-by-day travel plans, view real road routes, discover events, find tourist guides, manage reservations, change language and currency preferences, and use the AI tourism assistant.
 
-Tourists can explore Sri Lankan destinations, create travel plans, search for hotels, check rooms, make bookings, view events, find tourist guides, manage reservations, select languages and currencies and use an AI tourism assistant.
-
-Hotel and tourism partners can register properties and services, manage rooms, prices, bookings, events, guides, photos, policies and selected payment-related functions.
-
-Administrators can verify properties, manage users, approve events and guides, maintain Explore content, monitor payments and control platform activities.
+Partners can register and manage properties, rooms, tourist events, guide services, booking requests, photos, policies, and selected payment-related functions. Administrators can approve and manage platform content and services. Reception staff use a separate front-desk application for the assigned hotel.
 
 ---
 
-## Project Overview
-
-Tourism information, hotel booking, trip planning, tourist events and guide services are often available through separate platforms. TripLanka brings these services together and provides a connected workflow for tourists and tourism businesses.
-
-A typical tourist journey through the platform is:
+## Main Tourist Journey
 
 ```text
-Explore Sri Lanka
-        ↓
-Save destinations
-        ↓
-Create a trip plan
-        ↓
-Search for hotels
-        ↓
-Check rooms and availability
-        ↓
-Create a booking
-        ↓
-Manage the booking in My Bookings
+Home
+  ↓
+Explore destinations
+  ↓
+View place details
+  ↓
+Save destinations / hotels / events / guides to Trip Basket
+  ↓
+Build a day-by-day Trip Plan
+  ↓
+Analyze the real road route on the map
+  ↓
+Manage bookings and travel activities
 ```
-
-The system also provides separate operational portals for hotel partners, administrators and reception staff.
 
 ---
 
 ## Main Modules
 
-### Tourist Platform
+### Tourist and Public Platform
 
-Tourists can:
-
-- Create an account and log in securely
-- Browse the mobile-responsive landing page
-- Search for hotels by name or location
-- Filter and sort hotel results
-- View hotel information, photos, facilities, rooms, prices and policies
-- View room details and check availability
-- Create hotel bookings
-- Use a demonstration payment workflow
-- Receive a booking confirmation and reference number
-- View bookings through the **My Bookings** page
-- Cancel supported bookings
-- Download booking invoices as PDF documents
-- Explore Sri Lankan tourist destinations
-- Filter destinations by category
-- Open detailed destination pages
-- Save destinations for trip planning
-- Create custom or suggested trip plans
-- Organize destinations using a day-by-day planner
-- Browse tourist events and event details
-- Browse tourist guides and guide profiles
-- Change supported language preferences
-- Change supported currency preferences
-- Ask tourism-related questions using the AI assistant
+- Home page with connected access to the main tourist services
+- Tourist registration and login
+- Hotel search, filters, sorting, details, rooms, availability, and booking
+- Booking confirmation, My Bookings, cancellation, and invoice PDF
+- Explore Sri Lanka destination search and filters
+- Destination detail pages and saved destinations
+- Trip Basket for destinations, hotels, events, and tourist guides
+- Day-by-day Trip Planner
+- Fastest and shortest road-route analysis
+- Leaflet map with OpenStreetMap tiles
+- OpenRouteService-based road routing, distance, and duration
+- Trip-plan saving/editing and PDF export functions
+- Tourist event listings and event detail pages
+- Event reporting and report-status tracking
+- Tourist-guide listings and detailed guide profiles
+- Guide booking-request workflow and reviews
+- Language and currency preferences
+- AI tourism assistant
+- Responsive public navigation and layouts
 
 ### Hotel and Tourism Partner Portal
 
-Partners can:
-
-- Register and log in to the partner portal
-- List and register properties
-- Select available property plans
-- Manage property details
-- Add and update rooms
-- Manage room availability
-- Manage room pricing
-- Upload property and room photographs
-- Manage property policies
-- View and manage customer bookings
-- Register and manage tourist events
-- Register tourist-guide services
-- Complete demonstration guide-registration payments
-- Use selected guide-promotion and property-payment functions
-- View business information through the partner dashboard
+- Partner registration and login
+- Property registration and management
+- Property-plan selection
+- Room, price, availability, photo, and policy management
+- Customer booking management
+- Tourist event registration and management
+- Tourist-guide registration and management
+- Guide-registration and selected promotion/payment workflows
+- Partner dashboard
 
 ### Administrator Portal
 
-Administrators can:
+- Administrator authentication
+- Dashboard and platform statistics
+- User management
+- Property review, approval, rejection, and verification
+- Explore category and destination management
+- Destination-image management
+- Tourist-event approval and moderation
+- Tourist-guide approval
+- Payment and revenue monitoring
+- Event-report investigation and resolution
 
-- Log in through the admin portal
-- View platform statistics through the admin dashboard
-- View and manage users
-- Review registered properties
-- Approve or reject properties
-- Mark approved properties as verified
-- Manage Explore Sri Lanka categories
-- Create, update, and remove destinations
-- Upload and manage destination images
-- Approve or reject tourist events
-- Approve or reject tourist guides
-- Monitor property-related payments
-- Monitor guide-related payments
-- View payment and revenue information
-- Manage selected complaints and reports
+### Reception Portal
 
-### Reception Module
+Reception is a separate frontend application.
 
-Reception staff can:
+- Reception login using the hotel partner email and property management password
+- Property-scoped reception authentication
+- Front-desk dashboard
+- Room availability management
+- Walk-in guest registration and booking creation
+- Online booking approval/rejection
+- Guest check-in and check-out
+- Booking cancellation and payment-status updates
+- Guest and booking search
 
-- Log in through the separate reception portal using the hotel partner email and property management password
-- Access only the property assigned by the matched hotel password
-- View a front-desk dashboard with room, arrival, departure, in-house and pending-booking statistics
-- View and update room-type availability
-- Register walk-in guests and create hotel bookings with cash or card payment records
-- View both online and reception-created bookings for the assigned property
-- Approve or reject pending online booking requests
-- Check approved guests in and check guests out
-- Cancel supported bookings while keeping room availability synchronized
-- Update booking payment status when payment is collected at reception
-- Search bookings by guest, phone number, room type or booking reference
-- View a guest directory built from the property's booking records
-- Support the connection between online reservations and daily hotel operations
-
----
-
-## Additional Features
-
-### Explore Sri Lanka
-
-The Explore module provides destination information using categories such as:
-
-- Heritage sites
-- Nature and wildlife
-- Beaches
-- Adventure
-- Spiritual destinations
-- Food and culture
-
-Each place may include photographs, descriptions, location details, highlights, estimated duration and related travel information.
-
-### Trip Planner
-
-The Trip Planner allows tourists to:
-
-- Enter a trip name
-- Select a start date
-- Choose the number of travel days
-- Select travel style, budget, and pace
-- View saved destinations
-- Use suggested plans
-- Create a custom route
-- Organize destinations by day
-- Add travel notes and hotel requirements
-- Export selected trip information as a PDF
-
-Some advanced planner-saving and PDF functions are still being refined.
-
-### Tourist Events
-
-The event module supports:
-
-- Public event listings
-- Event detail pages
-- Partner event registration and management
-- Administrator event approval and rejection
-- Tourist event reports with private status tracking and response history
-- Admin investigation, resolution/dismissal and event moderation holds
-
-For the report database migration, setup and verification, see [EVENT_REPORTS_UPDATE.md](EVENT_REPORTS_UPDATE.md). Event attendance/booking is a separate future feature.
-
-### Tourist Guides
-
-The tourist-guide module supports:
-
-- Public guide listings
-- Detailed guide profiles
-- Guide registration
-- Guide approval and rejection
-- Guide registration payments
-- Selected guide-promotion functions
-- Currency-aware guide-price presentation
-
-### AI Tourism Assistant
-
-The AI assistant helps users:
-
-- Ask questions about Sri Lankan destinations
-- Receive travel-related guidance
-- Understand website functions
-- Access fallback tourism information when an external AI response is unavailable
-
-### Language and Currency Preferences
-
-The system provides shared preference controls for supported languages and currencies. These settings are applied across relevant public pages and pricing information.
-
----
-
-## Current Project Status
-
-| Module | Current Status |
-|---|---|
-| Tourist registration and login | Completed |
-| Landing page | Completed |
-| Hotel search and filters | Completed |
-| Hotel and room details | Completed |
-| Hotel booking | Completed |
-| Booking confirmation | Completed |
-| My Bookings | Completed |
-| Booking cancellation | Completed |
-| Invoice PDF | Completed |
-| Explore Sri Lanka | Completed |
-| Place details and saved places | Completed |
-| Trip Planner | In progress |
-| Trip-plan PDF | In progress |
-| Tourist events | Browsing, approval and reporting implemented; booking remains future work |
-| Event details | Completed |
-| Tourist-guide listing | In progress |
-| Guide profiles | Completed |
-| Language selection | Completed |
-| Currency selection | Completed |
-| AI tourism assistant | Completed |
-| Partner registration and login | Completed |
-| Property and room management | Completed |
-| Partner booking management | Completed |
-| Event and guide registration | Completed |
-| Admin dashboard and approvals | Completed |
-| Payment and revenue monitoring | Completed |
-| Complaint and report handling | Event reports implemented; live database acceptance testing required |
-| Reception login | Completed |
-| Reception dashboard and bookings | Completed |
-| Mobile responsiveness | In progress |
-| Production deployment | Pending |
-
----
-
-## Reception Portal
-
-Reception is a **separate frontend application**, just like the administrator site. It is not routed through the public `client` application.
-
-Local development URLs:
+Local URLs:
 
 ```text
 Main/public site:    http://localhost:5173
 Admin site:          http://localhost:5174
 Reception site:      http://localhost:5175
-Reception login:     http://localhost:5175/login
-Reception dashboard: http://localhost:5175/dashboard
+Backend API:         http://localhost:5000
 ```
-
-Reception authentication uses a dedicated reception JWT. Reception API requests are restricted to the `property_id` stored in that token, so staff cannot manage another partner property through reception routes. Reception staff sign in with the hotel partner email and that property's management password.
 
 ---
 
@@ -272,66 +118,51 @@ Reception authentication uses a dedicated reception JWT. Reception API requests 
 - React
 - React Router
 - Vite
-- JavaScript
-- HTML
-- CSS
+- JavaScript / JSX
+- HTML / CSS
+- Leaflet
+- jsPDF
 
 ### Backend
 
 - Node.js
 - Express.js
 - REST APIs
-- JSON Web Tokens
+- JSON Web Tokens (JWT)
 - CORS
 - dotenv
-- Multer/file-upload handling
+- Multer
 - mysql2
+- Google GenAI integration
 
 ### Database
 
 - MySQL Community Edition
-- MySQL Workbench
-- Relational tables, foreign keys, and indexes
+- Relational tables, foreign keys, indexes, and JSON fields where suitable
 
-### Development and Testing Tools
+### Maps and Routing
 
-- Visual Studio Code
-- Git
-- GitHub
-- Postman
-- npm
-- Browser Developer Tools
-- Figma
-- Nodemon
-- ESLint
-- Prettier
+- **Leaflet** — interactive map display and route visualization
+- **OpenStreetMap** — map tiles
+- **OpenRouteService** — real road routing, distance, and estimated duration
 
 ---
 
 ## System Architecture
 
-TripLanka follows a three-tier architecture.
+TripLanka follows a three-tier architecture:
 
 ```text
 React Frontend Applications
         ↓
 REST API Requests
         ↓
-Node.js and Express Backend
+Node.js + Express Backend
         ↓
-MySQL Relational Database
+MySQL Database
 ```
 
-The project contains separate interfaces for:
-
-```text
-Tourist and public users
-Hotel and tourism partners
-Administrators
-Reception staff
-```
-
-Authentication and role-based access are handled through the backend.
+The backend also communicates with external services such as OpenRouteService and the configured AI provider.
 
 ---
 
@@ -340,12 +171,14 @@ Authentication and role-based access are handled through the backend.
 ```text
 e23-co2060-Hotel-Management-System/
 │
-├── admin-client/        # Administrator frontend (Vite port 5174)
-├── reception-client/    # Hotel reception frontend (Vite port 5175)
-├── client/              # Tourist, partner, and public frontend (Vite port 5173)
-├── database/            # Database schema and seed files
-├── docs/                # Documentation, images, and screenshots
-├── server/              # Node.js and Express backend
+├── admin-client/        # Administrator frontend - port 5174
+├── reception-client/    # Reception frontend - port 5175
+├── client/              # Tourist/public/partner frontend - port 5173
+├── database/
+│   ├── schema.sql       # Final database structure
+│   └── seed.sql         # Final initial/reference/demo data
+├── docs/
+├── server/              # Node.js and Express backend - port 5000
 ├── .gitignore
 └── README.md
 ```
@@ -358,171 +191,222 @@ e23-co2060-Hotel-Management-System/
 
 ```bash
 git clone https://github.com/cepdnaclk/e23-co2060-Hotel-Management-System.git
-```
-
-### 2. Open the project directory
-
-```bash
 cd e23-co2060-Hotel-Management-System
 ```
 
-### 3. Install and run the main client
+### 2. Install dependencies
+
+Main client:
 
 ```bash
 cd client
 npm install
-npm run dev
 ```
 
-### 4. Install and run the admin client
-
-Open a new terminal from the project root:
+Admin client:
 
 ```bash
-cd admin-client
+cd ../admin-client
 npm install
-npm run dev
 ```
 
-### 5. Install and run the reception client
-
-Open a new terminal from the project root:
+Reception client:
 
 ```bash
-cd reception-client
+cd ../reception-client
 npm install
-npm run dev
 ```
 
-Open the reception portal at:
-
-```text
-http://localhost:5175/login
-```
-
-### 6. Install and run the backend
-
-Open another terminal from the project root:
+Backend:
 
 ```bash
-cd server
+cd ../server
 npm install
-npm run dev
-```
-
-When the backend does not contain a development script, use:
-
-```bash
-npm start
 ```
 
 ---
 
 ## Database Setup
 
-The database scripts are available inside the `database` directory.
-
-Create the database:
-
-```sql
-CREATE DATABASE tourismhub_lk;
-USE tourismhub_lk;
-```
-
-For a **fresh installation**, the final database source is consolidated into only these two files:
+The final repository uses **only two SQL files for a fresh database setup**:
 
 ```text
-1. database/schema.sql
-2. database/seed.sql
+database/schema.sql
+database/seed.sql
 ```
 
-`schema.sql` already includes the Home, Trip Planner, event-report, and complete guide-process structures. `seed.sql` includes the required final reference/configuration data. Historical migration files are kept only for safely upgrading an existing database and are not required after a fresh setup.
+Run them in this exact order:
 
-Check the created tables:
+```text
+1. schema.sql
+2. seed.sql
+```
+
+`schema.sql` creates the complete final database structure, including hotel management, Explore, Home, Trip Planner, routing cache/access points, events, event reports, tourist guides, guide bookings, guide payments, and reviews.
+
+`seed.sql` contains the final reference/demo data, local image paths, Explore destinations, Home-page data, Trip Planner configuration, routing configuration, events, guides, properties, rooms, and related records.
+
+> **Important:** `schema.sql` drops and recreates the `tourismhub_lk` database. Use it for a fresh setup only. Do not run it against a database that contains data you need to keep.
+
+After setup:
 
 ```sql
+USE tourismhub_lk;
 SHOW TABLES;
 ```
-
-Major database areas include:
-
-- Users and authentication
-- Properties and rooms
-- Property and room photos
-- Property policies
-- Hotel bookings
-- Property plans
-- Payment methods and transactions
-- Explore categories and destinations
-- Explore images and itineraries
-- Trip Planner plans, days, items, routing cache and routing configuration
-- Home-page sections and quick actions
-- Tourist events and event reports
-- Tourist guides, guide requests, reviews, and guide-payment transactions
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file inside the `server` directory.
+Create `server/.env` and keep real secret values private.
 
 Example:
 
 ```env
 DB_HOST=localhost
+DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=your_mysql_password
+DB_PASSWORD=YOUR_MYSQL_PASSWORD
 DB_NAME=tourismhub_lk
-PORT=5000
 
-JWT_SECRET=replace_with_a_secure_secret
-ADMIN_REGISTRATION_SECRET=replace_with_a_secure_admin_secret
+PORT=5000
+NODE_ENV=development
+
+JWT_SECRET=YOUR_SECURE_JWT_SECRET
+ADMIN_REGISTRATION_SECRET=YOUR_SECURE_ADMIN_SECRET
 
 CLIENT_URL=http://localhost:5173
 ADMIN_CLIENT_URL=http://localhost:5174
 RECEPTION_CLIENT_URL=http://localhost:5175
+
+ROUTING_API_KEY=YOUR_OPENROUTESERVICE_KEY
+
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TRANSLATION_MODEL=gemini-2.5-flash
+TRANSLATION_PROVIDER=gemini
 ```
 
-Do not upload the `.env` file to GitHub.
-
-The `.gitignore` file should include:
-
-```text
-.env
-node_modules
-dist
-```
+Optional routing retry/snap values are supported by the backend, but the normal Trip Planner routing configuration is stored in the database.
 
 Never commit:
 
+- `.env`
 - Database passwords
-- API keys
-- JWT secrets
-- Admin secrets
+- JWT/admin secrets
+- OpenRouteService keys
+- Gemini/translation API keys
 - Access tokens
 
 ---
 
-## Important Backend API Areas
+## Running the System
 
-The current backend contains APIs for:
+Open separate terminals.
 
-- Authentication
-- Public property and hotel data
-- Property and room management
-- Bookings
-- Explore Sri Lanka
-- Tourist events
-- Partner events
-- Admin event management
-- Public tourist guides
-- Partner guide management
-- Admin guide management
-- Translation
-- AI tourism assistant
-- Reception operations
-- Admin management
-- Payment and revenue functions
+Backend:
+
+```bash
+cd server
+npm run dev
+```
+
+Main/public client:
+
+```bash
+cd client
+npm run dev
+```
+
+Admin client:
+
+```bash
+cd admin-client
+npm run dev
+```
+
+Reception client:
+
+```bash
+cd reception-client
+npm run dev
+```
+
+---
+
+## Testing
+
+Backend test suite:
+
+```bash
+cd server
+npm test
+```
+
+Important focused tests include:
+
+```bash
+npm run test:auth
+npm run test:properties
+npm run test:bookings
+npm run test:guides
+npm run test:events
+npm run test:reception
+npm run test:trip-planner
+npm run test:images
+```
+
+Production client build:
+
+```bash
+cd client
+npm run build
+```
+
+The admin and reception clients can also be verified with their own Vite build commands.
+
+---
+
+## Current Project Status
+
+| Module | Status |
+|---|---|
+| Tourist registration and login | Completed |
+| Home page | Completed |
+| Hotel search, filters, details, rooms and booking | Completed |
+| My Bookings, cancellation and invoice PDF | Completed |
+| Explore Sri Lanka | Completed |
+| Place details and saved places | Completed |
+| Trip Basket | Completed |
+| Trip Planner and map routing | Completed |
+| Trip-plan PDF/export functions | Implemented |
+| Tourist events | Completed for current project scope |
+| Event details and event reports | Completed |
+| Tourist-guide listing and profiles | Completed |
+| Guide booking requests and reviews | Implemented |
+| Language and currency preferences | Completed |
+| AI tourism assistant | Implemented |
+| Partner portal | Completed for current project scope |
+| Admin portal and approvals | Completed for current project scope |
+| Reception portal | Completed for current project scope |
+| Responsive UI | Implemented across the main project interfaces |
+| Production cloud deployment | Not part of the local final setup |
+
+---
+
+## Key Integration Flow
+
+The main tourist modules are intentionally connected:
+
+```text
+Explore ─────┐
+Hotels ──────┤
+Events ──────┼──> Trip Basket ───> Trip Planner
+Guides ──────┘
+```
+
+The Trip Planner uses database-driven configuration and destination coordinates. The backend performs routing through OpenRouteService, while Leaflet renders the map, destination markers, and returned road geometry.
 
 ---
 
@@ -552,7 +436,6 @@ The current backend contains APIs for:
 
 ![Admin Dashboard](docs/screenshots/admin-dashboard.jpeg)
 
-
 ---
 
 ## Team Members
@@ -569,58 +452,42 @@ Although each member had primary responsibilities, all members contributed to fr
 
 ## Current Limitations
 
-The current academic version has the following limitations:
-
-- It uses demonstration or mock online payments
-- A real bank or payment-gateway integration is not included
-- Some advanced Trip Planner saving and PDF functions are still being refined
-- Final double-booking prevention requires further validation
-- Guide-listing and guide-promotion functions require further improvements
-- Complaint/report handling currently covers tourist events; reports for hotels, bookings and guides are outside this update
-- Some complex pages require further mobile-responsive testing
-- The current system is primarily tested in a local development environment
+- Online payment flows are demonstration/academic implementations rather than a production payment gateway.
+- The final system is primarily configured and tested for local development.
+- Production security hardening, cloud deployment, large-scale load testing, and complete external-service monitoring would be required before real commercial deployment.
 
 ---
 
 ## Future Improvements
 
-- Complete double-booking prevention
-- Improve Trip Planner saving and PDF generation
-- Complete guide booking and promotion workflows
-- Implement event booking if required, and extend reports to other service types
-- Add individual room-number assignment and housekeeping workflows for reception
-- Integrate a secure real payment gateway
-- Improve mobile responsiveness across all modules
-- Add email and notification services
-- Add a complete review and rating system
-- Improve hotel and itinerary recommendations
-- Add advanced analytics and reporting
-- Improve multilingual content coverage
-- Complete cloud deployment
-- Perform full user-acceptance and security testing
+- Production payment-gateway integration
+- Cloud deployment and CI/CD
+- Email/SMS notification services
+- Broader review/reporting features across all service types
+- Advanced recommendations and analytics
+- Expanded multilingual content
+- Production-scale security, load, and user-acceptance testing
 
 ---
 
 ## Academic Information
-
-This project was developed as part of:
 
 ```text
 CO2060 – Software Systems Design Project
 Department of Computer Engineering
 Faculty of Engineering
 University of Peradeniya
+Group: E23_GR40
 ```
-
-**Group:** E23_GR40
 
 ---
 
-## Repository Version
+## Repository Branches
 
-The `main` branch contains the final consolidated project version used for evaluation.
+- `dev` — integration/development branch
+- `main` — final consolidated branch used for the completed project version
 
-A backup of the previous main branch was maintained before replacing it with the completed development version.
+Before merging `dev` into `main`, run the database fresh-setup check, backend tests, and frontend builds.
 
 ---
 

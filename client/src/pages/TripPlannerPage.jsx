@@ -1,8 +1,13 @@
+import { useAuth } from "../context/AuthContext";
+import { canManageTripPlans, plannerAccessMessage } from "../utils/plannerAccess";
+import { loadPlannerResources } from "../utils/loadPlannerResources";
 import ContentImage from "../components/ContentImage";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
+  useLayoutEffect,
   useState,
 } from "react";
 
@@ -1904,6 +1909,13 @@ const drawPdfFooter =
 
 
 function TripPlannerPage() {
+  const { user, authReady } = useAuth();
+  const canManagePlans = canManageTripPlans(authReady, user);
+  const accessMessage = plannerAccessMessage(user);
+  const routeRequestPending = useRef(false);
+  const latestRouteInput = useRef("");
+  const latestSavedPlanId = useRef(null);
+
   const today =
     useMemo(
       () =>
@@ -2298,6 +2310,13 @@ function TripPlannerPage() {
     );
 
 
+  const routeInput = JSON.stringify({ days, transportProfile, optimizationMode, ownerId: user?.id, role: user?.role });
+  useLayoutEffect(() => {
+    latestRouteInput.current = routeInput;
+    return () => { latestRouteInput.current = ""; };
+  }, [routeInput]);
+  useLayoutEffect(() => { latestSavedPlanId.current = savedPlanId; }, [savedPlanId]);
+
   const showMessage =
     (
       message,
@@ -2340,6 +2359,7 @@ function TripPlannerPage() {
   const refreshSavedTrips =
     useCallback(
       async () => {
+        if (!canManagePlans) return;
         try {
           const response =
             await getMyTripPlans();
@@ -2355,11 +2375,12 @@ function TripPlannerPage() {
           );
         }
       },
-      []
+      [canManagePlans]
     );
 
 
   useEffect(() => {
+    if (!authReady) return undefined;
     let active = true;
 
 
@@ -2369,22 +2390,18 @@ function TripPlannerPage() {
           setLoading(true);
 
 
-          const [
-            bootstrapResponse,
-            plansResponse,
-            databaseEvents,
-          ] =
-            await Promise.all([
-              getTripPlannerBootstrap(),
-              getMyTripPlans(),
-              getTouristEvents(),
-            ]);
-
-
-          if (!active) {
-            return;
-          }
-
+          const resources = await loadPlannerResources({
+            bootstrap: getTripPlannerBootstrap,
+            plans: canManagePlans ? getMyTripPlans : undefined,
+            events: getTouristEvents,
+          });
+          if (!active) return;
+          const bootstrapResponse = resources.bootstrap;
+          const failures = [resources.plans, resources.events]
+            .filter((result) => result.status === "rejected")
+            .map((result) => result.reason?.response?.data?.message ||
+              result.reason?.message || "A Trip Planner resource could not be loaded.");
+          setError(failures.join(" "));
 
           const data =
             bootstrapResponse.data ||
@@ -2421,36 +2438,31 @@ function TripPlannerPage() {
           );
 
 
-          setSavedTrips(
-            plansResponse.data ||
-            []
-          );
-
-
-          const reconciledEvents =
-            reconcileSavedEventsWithDatabase(
-              readTripItems(),
-              databaseEvents
-            );
-
-
-          if (
-            reconciledEvents.changed
-          ) {
-            const updatedItems =
-              writeTripItems(
-                reconciledEvents.items
-              );
-
-            setSavedItems(
-              updatedItems
-            );
-          } else {
-            setSavedItems(
-              reconciledEvents.items
-            );
+          if (resources.plans.status === "fulfilled") {
+            const ownedPlans = resources.plans.value.data || [];
+            setSavedTrips(ownedPlans);
+            // Draft items stay local, but a plan ID from another login is not reusable.
+            const draftPlanId = latestSavedPlanId.current;
+            if (draftPlanId && !ownedPlans.some((plan) => Number(plan.id) === Number(draftPlanId))) {
+              setSavedPlanId(null);
+              setRouteAnalysis(null);
+              setDirty(true);
+            }
+          } else if (resources.plans.status === "skipped") {
+            setSavedTrips([]);
+            setRouteAnalysis(null);
+            setRouteError("");
           }
 
+          // Never reconcile against a failed event request: it could remove saved items.
+          if (resources.events.status === "fulfilled") {
+            const reconciledEvents = reconcileSavedEventsWithDatabase(
+              readTripItems(), resources.events.value
+            );
+            setSavedItems(reconciledEvents.changed
+              ? writeTripItems(reconciledEvents.items)
+              : reconciledEvents.items);
+          }
 
           const styles =
             loadedSettings
@@ -2519,6 +2531,7 @@ function TripPlannerPage() {
               ""
           );
         } catch (loadError) {
+          if (!active) return;
           console.error(
             loadError
           );
@@ -2544,7 +2557,7 @@ function TripPlannerPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [authReady, canManagePlans, user?.id]);
 
 
   useEffect(() => {
@@ -3284,6 +3297,7 @@ function TripPlannerPage() {
     async ({
       silent = false,
     } = {}) => {
+      if (!canManagePlans) throw new Error(accessMessage);
       const payload =
         buildPayload();
 
@@ -3535,6 +3549,7 @@ function TripPlannerPage() {
     async (
       tripPlanId
     ) => {
+      if (!canManagePlans) return false;
       try {
         setActionLoading(
           true
@@ -3758,7 +3773,17 @@ function TripPlannerPage() {
 
   const handleAnalyze =
     async () => {
+      if (!canManagePlans || actionLoading || routeRequestPending.current) return;
+      if (routableDayCount < 2) {
+        setRouteError("Add destinations to at least two different days to analyze the road route.");
+        return;
+      }
+      routeRequestPending.current = true;
+      const requestInput = routeInput;
+      const stillCurrent = () => latestRouteInput.current === requestInput;
       try {
+        setError("");
+        setRouteAnalysis(null);
         setActionLoading(
           true
         );
@@ -3774,12 +3799,22 @@ function TripPlannerPage() {
           });
 
 
+        if (!stillCurrent()) {
+          setDirty(true);
+          setRouteError("Trip changed during analysis. Analyze the updated trip.");
+          return;
+        }
         const response =
           await analyzeTripRoute(
             tripPlanId
           );
 
 
+        if (!stillCurrent()) {
+          setDirty(true);
+          setRouteError("Trip changed during analysis. Analyze the updated trip.");
+          return;
+        }
         setRouteAnalysis(
           response.data
         );
@@ -3802,6 +3837,7 @@ function TripPlannerPage() {
           );
         }
       } catch (analysisError) {
+        if (!stillCurrent()) return;
         console.error(
           analysisError
         );
@@ -3824,6 +3860,7 @@ function TripPlannerPage() {
           true
         );
       } finally {
+        routeRequestPending.current = false;
         setActionLoading(
           false
         );
@@ -3833,6 +3870,7 @@ function TripPlannerPage() {
 
   const handleApplyRoute =
     async () => {
+      if (!canManagePlans || actionLoading) return;
       if (
         !savedPlanId ||
         !routeAnalysis
@@ -4074,6 +4112,7 @@ function TripPlannerPage() {
 
   const handleDelete =
     async () => {
+      if (savedPlanId && !canManagePlans) return;
       if (!savedPlanId) {
         newTrip();
 
@@ -5889,6 +5928,7 @@ function TripPlannerPage() {
           <button
             type="button"
             className="trip-secondary-button trip-saved-plans-button"
+            disabled={!canManagePlans || loading || actionLoading}
             onClick={
               openSavedPlans
             }
@@ -7396,6 +7436,7 @@ function TripPlannerPage() {
               <button
                 type="button"
                 className="trip-secondary-button danger"
+                disabled={actionLoading || Boolean(savedPlanId && !canManagePlans)}
                 onClick={
                   handleDelete
                 }
@@ -7416,7 +7457,7 @@ function TripPlannerPage() {
                   type="button"
                   className="trip-primary-button"
                   disabled={
-                    actionLoading
+                    !canManagePlans || loading || actionLoading
                   }
                   onClick={
                     handleSave
@@ -7507,7 +7548,11 @@ function TripPlannerPage() {
             </div>
 
 
-            {!routeAnalysis ? (
+            {!canManagePlans ? (
+              <div className="trip-route-empty" role="status">
+                <p>{authReady ? accessMessage : "Checking your account..."}</p>
+              </div>
+            ) : !routeAnalysis ? (
               <div className="trip-route-empty">
                 <p>
                   {routableDayCount < 2
@@ -7520,7 +7565,7 @@ function TripPlannerPage() {
                   type="button"
                   className="trip-primary-button full"
                   disabled={
-                    actionLoading ||
+                    !canManagePlans || loading || actionLoading ||
                     routableDayCount <
                       2
                   }
@@ -7755,7 +7800,7 @@ function TripPlannerPage() {
                       type="button"
                       className="trip-primary-button full"
                       disabled={
-                        actionLoading
+                        !canManagePlans || loading || actionLoading
                       }
                       onClick={
                         handleApplyRoute
@@ -7787,7 +7832,7 @@ function TripPlannerPage() {
                   type="button"
                   className="trip-text-button"
                   disabled={
-                    actionLoading
+                    !canManagePlans || loading || actionLoading
                   }
                   onClick={
                     handleAnalyze

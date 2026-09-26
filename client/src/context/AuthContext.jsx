@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("tourismhub_user");
@@ -14,6 +15,7 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(savedUser));
       setToken(savedToken);
     }
+    setAuthReady(true);
   }, []);
 
   const login = (userData, authToken) => {
@@ -35,7 +37,7 @@ export function AuthProvider({ children }) {
   const isLoggedIn = !!user && !!token;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn, authReady }}>
       {children}
     </AuthContext.Provider>
   );

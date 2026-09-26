@@ -1,3 +1,4 @@
+import { exploreReturn } from "../utils/exploreReturn";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
@@ -472,7 +473,7 @@ export default function PlaceDetailsPage() {
               "Place not found"}
           </strong>
 
-          <Link to="/explore">
+          <Link to="/explore" state={exploreReturn.stateForDetail(location)}>
             Back to Explore
           </Link>
         </div>
@@ -542,7 +543,7 @@ export default function PlaceDetailsPage() {
       <div className="place-detail-shell">
         <div className="place-detail-topbar">
           <Link
-            to="/explore"
+            to="/explore" state={exploreReturn.stateForDetail(location)}
             className="place-detail-back"
           >
             <ArrowLeft size={16} />

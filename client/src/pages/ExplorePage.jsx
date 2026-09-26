@@ -1,3 +1,4 @@
+import { exploreReturn } from "../utils/exploreReturn";
 import {
   useEffect,
   useMemo,
@@ -8,6 +9,8 @@ import {
 import {
   Link,
   useNavigate,
+  useLocation,
+  useOutletContext,
 } from "react-router-dom";
 
 import {
@@ -52,70 +55,6 @@ import {
 
 import "../styles/explorePage.css";
 import "../styles/exploreItinerary.css";
-
-
-/* =========================================================
-   EXPLORE RETURN STATE
-========================================================= */
-
-const EXPLORE_RETURN_KEY =
-  "triplanka:explore:return";
-
-
-const readExploreReturnSnapshot =
-  () => {
-    try {
-      const raw =
-        sessionStorage.getItem(
-          EXPLORE_RETURN_KEY
-        );
-
-      if (!raw) {
-        return null;
-      }
-
-      const parsed =
-        JSON.parse(raw);
-
-      if (!parsed?.restore) {
-        return null;
-      }
-
-      return parsed;
-    } catch {
-      return null;
-    }
-  };
-
-
-const saveExploreReturnSnapshot =
-  (snapshot) => {
-    try {
-      sessionStorage.setItem(
-        EXPLORE_RETURN_KEY,
-        JSON.stringify({
-          ...snapshot,
-          restore: true,
-          savedAt:
-            Date.now(),
-        })
-      );
-    } catch {
-      // Explore remains usable without session storage.
-    }
-  };
-
-
-const clearExploreReturnSnapshot =
-  () => {
-    try {
-      sessionStorage.removeItem(
-        EXPLORE_RETURN_KEY
-      );
-    } catch {
-      // Ignore storage failure.
-    }
-  };
 
 
 /* =========================================================
@@ -1002,6 +941,9 @@ export default function ExplorePage() {
   const navigate =
     useNavigate();
 
+  const location = useLocation();
+  const { exploreReturnSnapshot } = useOutletContext();
+
   const resultsSectionRef =
     useRef(null);
 
@@ -1011,13 +953,7 @@ export default function ExplorePage() {
   const restoreCompletedRef =
     useRef(false);
 
-  const returnSnapshotRef =
-    useRef(
-      readExploreReturnSnapshot()
-    );
-
-  const initialSnapshot =
-    returnSnapshotRef.current;
+  const [initialSnapshot] = useState(exploreReturnSnapshot);
 
   const [currentMonth] =
     useState(
@@ -1158,7 +1094,7 @@ export default function ExplorePage() {
   const [
     placesLoading,
     setPlacesLoading,
-  ] = useState(false);
+  ] = useState(true);
 
   const [
     error,
@@ -1535,8 +1471,14 @@ export default function ExplorePage() {
   ========================================================= */
 
   const rememberExplorePosition =
-    () => {
-      saveExploreReturnSnapshot({
+    (eventOrPath) => {
+      // Modified clicks open another browsing context and must not create a ticket.
+      if (typeof eventOrPath !== "string" && (eventOrPath?.button > 0 ||
+          eventOrPath?.metaKey || eventOrPath?.ctrlKey || eventOrPath?.shiftKey || eventOrPath?.altKey)) return;
+      const detailPath = typeof eventOrPath === "string" ? eventOrPath :
+        new URL(eventOrPath.currentTarget.href).pathname;
+      exploreReturn.save(location.key, detailPath, {
+        restore: true,
         scrollY:
           window.scrollY,
 
@@ -1823,7 +1765,7 @@ export default function ExplorePage() {
 
   useEffect(() => {
     const snapshot =
-      returnSnapshotRef.current;
+      initialSnapshot;
 
     if (
       !snapshot?.restore ||
@@ -1834,72 +1776,12 @@ export default function ExplorePage() {
       return undefined;
     }
 
-    restoreCompletedRef.current =
-      true;
-
-    const targetY =
-      Math.max(
-        0,
-        Number(
-          snapshot.scrollY ||
-            0
-        )
-      );
-
-    const restore =
-      () => {
-        window.scrollTo({
-          top:
-            targetY,
-
-          left:
-            0,
-
-          behavior:
-            "auto",
-        });
-      };
-
-    const timerOne =
-      window.setTimeout(
-        restore,
-        60
-      );
-
-    const timerTwo =
-      window.setTimeout(
-        restore,
-        260
-      );
-
-    const timerThree =
-      window.setTimeout(
-        () => {
-          restore();
-
-          clearExploreReturnSnapshot();
-        },
-        600
-      );
-
-    return () => {
-      window.clearTimeout(
-        timerOne
-      );
-
-      window.clearTimeout(
-        timerTwo
-      );
-
-      window.clearTimeout(
-        timerThree
-      );
-    };
-  }, [
-    initialLoading,
-    placesLoading,
-    places.length,
-  ]);
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: Math.max(0, Number(snapshot.scrollY) || 0), left: 0, behavior: "instant" });
+      restoreCompletedRef.current = true;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialSnapshot, initialLoading, placesLoading, places.length]);
 
 
   /* =========================================================
@@ -2136,7 +2018,7 @@ export default function ExplorePage() {
 
   const openSuggestion =
     (place) => {
-      rememberExplorePosition();
+      rememberExplorePosition(`/explore/${place.id}`);
 
       setSearchFocused(
         false
