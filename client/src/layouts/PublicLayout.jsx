@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { exploreReturn } from "../utils/exploreReturn";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePreferences } from "../context/PreferencesContext";
 import TripBasketWidget from "../components/TripBasketWidget";
@@ -324,8 +325,30 @@ function PublicLayout() {
     setCurrency,
   } = usePreferences();
   const location = useLocation();
+  const navigationType = useNavigationType();
+  const [navigation, setNavigation] = useState({ location, previous: null, snapshot: null });
+  if (navigation.location !== location) {
+    setNavigation({
+      location,
+      previous: navigation.location,
+      snapshot: exploreReturn.resolve(navigation.location, location, navigationType),
+    });
+  }
+  const exploreReturnSnapshot = navigation.snapshot;
+  useLayoutEffect(() => {
+    exploreReturn.commit(navigation.previous, navigation.location);
+  }, [navigation]);
+  useLayoutEffect(() => {
+    const original = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    // Retire snapshots written by older versions; never consume these globally.
+    try { sessionStorage.removeItem("triplanka:explore:return"); } catch { /* Storage optional. */ }
+    return () => { window.history.scrollRestoration = original; };
+  }, []);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const showTripBasket = !shouldHideTripBasket(location.pathname);
   const currentLanguage =
@@ -341,8 +364,34 @@ function PublicLayout() {
   useEffect(() => {
     setMenuOpen(false);
     setLanguageMenuOpen(false);
+    setProfileMenuOpen(false);
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [location.pathname]);
+  }, [location.key]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!event.target?.closest?.(".profile-menu-wrap")) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [profileMenuOpen]);
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -419,6 +468,8 @@ function PublicLayout() {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
+      setProfileMenuOpen(false);
+      setMenuOpen(false);
       logout();
     }
   };
@@ -521,7 +572,10 @@ function PublicLayout() {
               <button
                 type="button"
                 className="language-picker-button"
-                onClick={() => setLanguageMenuOpen((current) => !current)}
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setLanguageMenuOpen((current) => !current);
+                }}
                 aria-label="Select language"
                 aria-expanded={languageMenuOpen}
               >
@@ -594,36 +648,87 @@ function PublicLayout() {
               <>
                 <Link
                   to="/my-bookings"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setProfileMenuOpen(false);
+                  }}
                   className="booking-link cart-icon-link"
                   title="My bookings"
                   aria-label="Open booking cart"
                 >
                   🛒
                 </Link>
-                {user?.role === "tourist" && (
-                  <Link
-                    to="/my-reports"
-                    onClick={() => setMenuOpen(false)}
-                    className="booking-link"
-                  >
-                    My Reports
-                  </Link>
-                )}
-                <span className="user-greeting notranslate" data-no-translate>Hi, {username}</span>
-                <button
-                  type="button"
-                  className="logout-button"
-                  title="Logout"
-                  data-tooltip="Logout"
-                  data-dynamic-title="true"
-                  onClick={handleLogout}
-                  data-header-label-container
+
+                <div
+                  className="profile-menu-wrap notranslate"
+                  data-no-translate
+                  translate="no"
                 >
-                  <span className="header-action-label" data-header-label>
-                    Logout
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    className={`profile-menu-button${profileMenuOpen ? " is-open" : ""}`}
+                    onClick={() => {
+                      setLanguageMenuOpen(false);
+                      setProfileMenuOpen((current) => !current);
+                    }}
+                    aria-label={`Open account menu for ${username}`}
+                    aria-expanded={profileMenuOpen}
+                    aria-haspopup="menu"
+                  >
+                    <span className="profile-avatar" aria-hidden="true">
+                      {String(username).slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="profile-button-name">{username}</span>
+                    <span className="profile-menu-caret" aria-hidden="true">▾</span>
+                  </button>
+
+                  {profileMenuOpen && (
+                    <div className="profile-dropdown" role="menu">
+                      <div className="profile-dropdown-head">
+                        <span>Signed in as</span>
+                        <strong>{username}</strong>
+                      </div>
+
+                      <Link
+                        to="/my-bookings"
+                        role="menuitem"
+                        onClick={() => {
+                          setProfileMenuOpen(false);
+                          setMenuOpen(false);
+                        }}
+                      >
+                        <span className="profile-dropdown-icon" aria-hidden="true">🛒</span>
+                        <span>My bookings</span>
+                      </Link>
+
+                      {user?.role === "tourist" && (
+                        <Link
+                          to="/my-reports"
+                          role="menuitem"
+                          onClick={() => {
+                            setProfileMenuOpen(false);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          <span className="profile-dropdown-icon" aria-hidden="true">▤</span>
+                          <span>My Reports</span>
+                        </Link>
+                      )}
+
+                      <div className="profile-dropdown-divider" />
+
+                      <button
+                        type="button"
+                        className="profile-dropdown-logout"
+                        role="menuitem"
+                        onClick={handleLogout}
+                      >
+                        <span className="profile-dropdown-icon" aria-hidden="true">↪</span>
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -660,7 +765,8 @@ function PublicLayout() {
       </header>
 
       <main className="page-body">
-        <Outlet />
+        <Outlet key={location.pathname === "/explore" ? location.key : undefined}
+          context={{ exploreReturnSnapshot }} />
       </main>
 
       <SiteFooter onNavigateTop={handleNavigateTop} />
@@ -5926,6 +6032,446 @@ const layoutCss = `
 
     .public-site-footer .public-footer-highlight {
       margin-top: 24px;
+    }
+  }
+
+
+  /* =========================================================
+     FINAL HEADER POLISH — SINGLE-LINE DESKTOP + PROFILE MENU
+     ========================================================= */
+
+  /* The nearby-drivable-access warning is informational only.
+     Routing logic, map geometry, distance/duration and real
+     routing errors remain unchanged. */
+  .trip-planner-page .trip-route-warnings {
+    display: none !important;
+  }
+
+  .profile-menu-wrap {
+    position: relative;
+    flex: 0 0 auto;
+    z-index: 10020;
+  }
+
+  .profile-menu-button {
+    min-height: 42px;
+    padding: 0 10px 0 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid rgba(8, 117, 104, 0.22);
+    border-radius: 999px;
+    background: #ffffff;
+    color: #203934;
+    font-family: "Manrope", "Segoe UI", Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 760;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
+    transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+  }
+
+  .profile-menu-button:hover,
+  .profile-menu-button.is-open {
+    border-color: rgba(8, 117, 104, 0.38);
+    background: #f4fbf9;
+    box-shadow: 0 10px 24px rgba(8, 117, 104, 0.09);
+  }
+
+  .profile-avatar {
+    width: 29px;
+    height: 29px;
+    flex: 0 0 29px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #087568, #0ca897);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 850;
+    box-shadow: 0 6px 14px rgba(8, 117, 104, 0.18);
+  }
+
+  .profile-button-name {
+    max-width: 92px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile-menu-caret {
+    color: #657b75;
+    font-size: 10px;
+    transition: transform 160ms ease;
+  }
+
+  .profile-menu-button.is-open .profile-menu-caret {
+    transform: rotate(180deg);
+  }
+
+  .profile-dropdown {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    z-index: 10040;
+    width: 210px;
+    padding: 7px;
+    border: 1px solid rgba(8, 117, 104, 0.16);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.99);
+    box-shadow: 0 20px 46px rgba(15, 46, 40, 0.16);
+    backdrop-filter: blur(14px);
+  }
+
+  .profile-dropdown-head {
+    padding: 10px 10px 11px;
+    border-bottom: 1px solid #e8efed;
+  }
+
+  .profile-dropdown-head span,
+  .profile-dropdown-head strong {
+    display: block;
+  }
+
+  .profile-dropdown-head span {
+    color: #84938f;
+    font-size: 8.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .profile-dropdown-head strong {
+    margin-top: 4px;
+    overflow: hidden;
+    color: #1f3732;
+    font-size: 12px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile-dropdown > a,
+  .profile-dropdown-logout {
+    width: 100%;
+    min-height: 39px;
+    margin-top: 4px;
+    padding: 0 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #334e48;
+    text-decoration: none;
+    text-align: left;
+    font-family: "Manrope", "Segoe UI", Arial, sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .profile-dropdown > a:hover,
+  .profile-dropdown-logout:hover {
+    background: #eef8f5;
+    color: #087568;
+  }
+
+  .profile-dropdown-icon {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    background: #e9f7f3;
+    color: #087568;
+    font-size: 11px;
+  }
+
+  .profile-dropdown-divider {
+    height: 1px;
+    margin: 6px 4px 2px;
+    background: #e8efed;
+  }
+
+  .profile-dropdown-logout {
+    color: #c2413b;
+  }
+
+  .profile-dropdown-logout .profile-dropdown-icon {
+    background: #fff0ef;
+    color: #c2413b;
+  }
+
+  .profile-dropdown-logout:hover {
+    background: #fff3f2;
+    color: #b9322d;
+  }
+
+  /* Desktop and laptop: keep everything on ONE header row. */
+  @media (min-width: 1281px) {
+    .site-header {
+      overflow: visible !important;
+    }
+
+    .site-header-inner {
+      min-height: 78px !important;
+      grid-template-columns:
+        minmax(205px, 245px)
+        minmax(0, 1fr)
+        max-content !important;
+      grid-template-rows: 1fr !important;
+      align-items: center !important;
+      column-gap: clamp(8px, 0.8vw, 14px) !important;
+      row-gap: 0 !important;
+      padding: 0 clamp(12px, 1.25vw, 24px) !important;
+      overflow: visible !important;
+    }
+
+    .brand-link {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+      justify-self: start !important;
+      max-width: 245px !important;
+      overflow: visible !important;
+    }
+
+    .main-navigation {
+      grid-column: 2 !important;
+      grid-row: 1 !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: clamp(2px, 0.38vw, 7px) !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+
+    .header-actions {
+      grid-column: 3 !important;
+      grid-row: 1 !important;
+      justify-self: end !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: clamp(4px, 0.38vw, 7px) !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      overflow: visible !important;
+    }
+
+    .main-navigation .nav-item,
+    .main-navigation:hover .nav-item,
+    .main-navigation:hover .nav-item:hover {
+      width: auto !important;
+      min-width: max-content !important;
+      max-width: none !important;
+      min-height: 42px !important;
+      flex: 0 0 auto !important;
+      padding: 0 clamp(4px, 0.38vw, 7px) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      white-space: nowrap !important;
+      font-size: clamp(11px, 0.72vw, 12.5px) !important;
+      transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease !important;
+    }
+
+    .main-navigation .nav-label,
+    .main-navigation .nav-label > font {
+      width: auto !important;
+      min-width: max-content !important;
+      max-width: none !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      white-space: nowrap !important;
+    }
+
+    .main-navigation [data-header-label-container]::before,
+    .main-navigation [data-header-label-container]::after {
+      display: none !important;
+    }
+
+    .header-actions .property-link {
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      padding-left: 11px !important;
+      padding-right: 11px !important;
+      font-size: 11.5px !important;
+    }
+
+    .header-actions .language-picker-button {
+      height: 42px !important;
+      padding: 0 9px !important;
+      gap: 6px !important;
+      font-size: 11px !important;
+    }
+
+    .header-actions .language-current-text {
+      max-width: 116px !important;
+    }
+
+    .header-actions .clean-select {
+      height: 42px !important;
+      padding: 0 8px !important;
+      font-size: 11px !important;
+    }
+
+    .header-actions .clean-select select {
+      max-width: 62px !important;
+      font-size: 11px !important;
+    }
+
+    .header-actions .cart-icon-link {
+      width: 42px !important;
+      min-width: 42px !important;
+      height: 42px !important;
+      min-height: 42px !important;
+      padding: 0 !important;
+    }
+  }
+
+  /* Tighter laptop widths still remain one clean row. */
+  @media (min-width: 1281px) and (max-width: 1450px) {
+    .site-header-inner {
+      grid-template-columns:
+        minmax(185px, 210px)
+        minmax(0, 1fr)
+        max-content !important;
+      column-gap: 7px !important;
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+
+    .brand-link {
+      max-width: 210px !important;
+      gap: 8px !important;
+    }
+
+    .brand-logo-symbol {
+      width: 46px !important;
+      height: 46px !important;
+      flex-basis: 46px !important;
+      border-radius: 14px !important;
+    }
+
+    .brand-logo-name {
+      font-size: 23px !important;
+      letter-spacing: -0.9px !important;
+    }
+
+    .brand-logo-tagline {
+      font-size: 6.2px !important;
+      letter-spacing: 1px !important;
+    }
+
+    .main-navigation {
+      gap: 1px !important;
+    }
+
+    .main-navigation .nav-item,
+    .main-navigation:hover .nav-item,
+    .main-navigation:hover .nav-item:hover {
+      padding-left: 4px !important;
+      padding-right: 4px !important;
+      font-size: 10.8px !important;
+    }
+
+    .header-actions {
+      gap: 4px !important;
+    }
+
+    .header-actions .property-link {
+      padding-left: 9px !important;
+      padding-right: 9px !important;
+      font-size: 10.5px !important;
+    }
+
+    .header-actions .language-picker-button {
+      padding-left: 7px !important;
+      padding-right: 7px !important;
+      gap: 5px !important;
+      font-size: 10.5px !important;
+    }
+
+    .header-actions .language-current-text {
+      max-width: 100px !important;
+    }
+
+    .header-actions .clean-select {
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+    }
+
+    .profile-menu-button {
+      padding-left: 6px;
+      padding-right: 8px;
+      gap: 5px;
+      font-size: 10.5px;
+    }
+
+    .profile-avatar {
+      width: 27px;
+      height: 27px;
+      flex-basis: 27px;
+      font-size: 10px;
+    }
+
+    .profile-button-name {
+      max-width: 70px;
+    }
+  }
+
+  /* Tablet/mobile: preserve the existing hamburger menu flow. */
+  @media (max-width: 1280px) {
+    .header-actions.header-actions-open .profile-menu-wrap {
+      width: auto;
+      max-width: 100%;
+      position: relative;
+      z-index: 1010;
+    }
+
+    .header-actions.header-actions-open .profile-menu-button {
+      min-height: 40px;
+    }
+
+    .profile-dropdown {
+      z-index: 1020;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .header-actions.header-actions-open .profile-menu-wrap,
+    .header-actions.header-actions-open .profile-menu-button {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .header-actions.header-actions-open .profile-menu-button {
+      justify-content: center;
+    }
+
+    .profile-button-name {
+      max-width: min(190px, 55vw);
+    }
+
+    .profile-dropdown {
+      position: static;
+      width: 100%;
+      margin-top: 7px;
+      box-shadow: 0 10px 24px rgba(15, 46, 40, 0.10);
     }
   }
 
